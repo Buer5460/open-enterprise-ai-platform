@@ -144,6 +144,8 @@ importers:
         specifier: workspace:*
         version: link:../package-spec
 
+  packages/data-runtime: {}
+
   packages/event-bus: {}
 
   packages/harness-adapter: {}
