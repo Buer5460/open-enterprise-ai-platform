@@ -240,7 +240,7 @@ function scanSource(
 ): void {
   const rules: Array<{
     pattern: RegExp;
-    severity: "error" | "warning";
+    severity: "error" | "warning" | "info";
     code: string;
     message: string;
   }> = [
