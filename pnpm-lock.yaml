@@ -52,6 +52,15 @@ importers:
 
   packages/event-bus: {}
 
+  packages/package-manager:
+    dependencies:
+      '@oeap/event-bus':
+        specifier: workspace:*
+        version: link:../event-bus
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../package-spec
+
   packages/package-spec: {}
 
   packages/permission-engine: {}
