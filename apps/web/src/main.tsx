@@ -2,6 +2,28 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./styles.css";
 
+type Role = {
+  name: string;
+  description?: string;
+  permissions?: string[];
+};
+
+type Entity = {
+  name: string;
+  description?: string;
+  fields?: Array<{
+    name: string;
+    type: string;
+    required?: boolean;
+  }>;
+};
+
+type Workflow = {
+  name: string;
+  description?: string;
+  steps?: string[];
+};
+
 type AppManifest = {
   id: string;
   displayName?: string;
@@ -18,9 +40,14 @@ type AppManifest = {
   }>;
 
   metadata?: {
-    roles?: unknown[];
-    entities?: unknown[];
-    workflows?: unknown[];
+    roles?: Role[];
+    entities?: Entity[];
+    workflows?: Workflow[];
+    recommendedPackages?: {
+      skills?: unknown[];
+      agents?: unknown[];
+      connectors?: unknown[];
+    };
   };
 };
 
@@ -36,6 +63,12 @@ function Platform() {
 
   const [creating, setCreating] =
     React.useState(false);
+
+  const [selectedApp, setSelectedApp] =
+    React.useState<AppManifest | null>(null);
+
+  const [activePage, setActivePage] =
+    React.useState<string>("overview");
 
   const loadApps = React.useCallback(() => {
     return fetch(
@@ -101,21 +134,288 @@ function Platform() {
     }
   }
 
+  if (selectedApp) {
+    const roles =
+      selectedApp.metadata?.roles ?? [];
+
+    const entities =
+      selectedApp.metadata?.entities ?? [];
+
+    const workflows =
+      selectedApp.metadata?.workflows ?? [];
+
+    return (
+      <div className="shell">
+
+        <aside className="sidebar">
+          <div className="brand">
+            <div className="logo">O</div>
+
+            <div>
+              <strong>
+                {selectedApp.displayName ??
+                  selectedApp.name}
+              </strong>
+
+              <span>
+                OEAP 企业应用
+              </span>
+            </div>
+          </div>
+
+          <nav>
+            <button
+              className={
+                activePage === "overview"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setActivePage("overview")
+              }
+            >
+              ▣ 应用概览
+            </button>
+
+            {selectedApp.navigation?.map(
+              (page) => (
+                <button
+                  key={page.id}
+                  className={
+                    activePage === page.id
+                      ? "active"
+                      : ""
+                  }
+                  onClick={() =>
+                    setActivePage(page.id)
+                  }
+                >
+                  ◫ {page.label}
+                </button>
+              )
+            )}
+          </nav>
+
+          <div className="sidebarFooter">
+            <button
+              className="backButton"
+              onClick={() => {
+                setSelectedApp(null);
+                setActivePage("overview");
+              }}
+            >
+              ← 返回工作台
+            </button>
+          </div>
+        </aside>
+
+        <main className="main">
+
+          <header>
+            <div>
+              <h1>
+                {selectedApp.displayName ??
+                  selectedApp.name}
+              </h1>
+
+              <p>
+                {selectedApp.description}
+              </p>
+            </div>
+
+            <span className="runtimeBadge">
+              ● 已启用
+            </span>
+          </header>
+
+          {activePage === "overview" ? (
+            <>
+              <section className="stats">
+                <div>
+                  <strong>
+                    {selectedApp.navigation
+                      ?.length ?? 0}
+                  </strong>
+                  <span>业务页面</span>
+                </div>
+
+                <div>
+                  <strong>
+                    {roles.length}
+                  </strong>
+                  <span>用户角色</span>
+                </div>
+
+                <div>
+                  <strong>
+                    {entities.length}
+                  </strong>
+                  <span>数据实体</span>
+                </div>
+
+                <div>
+                  <strong>
+                    {workflows.length}
+                  </strong>
+                  <span>业务流程</span>
+                </div>
+              </section>
+
+              <section className="runtimeGrid">
+
+                <article className="runtimePanel">
+                  <h3>角色与权限</h3>
+
+                  {roles.map((role) => (
+                    <div
+                      className="runtimeItem"
+                      key={role.name}
+                    >
+                      <strong>
+                        {role.name}
+                      </strong>
+
+                      <p>
+                        {role.description ??
+                          "企业应用角色"}
+                      </p>
+
+                      <small>
+                        {(role.permissions ?? [])
+                          .slice(0, 5)
+                          .join(" · ")}
+                      </small>
+                    </div>
+                  ))}
+                </article>
+
+                <article className="runtimePanel">
+                  <h3>数据模型</h3>
+
+                  {entities.map((entity) => (
+                    <div
+                      className="runtimeItem"
+                      key={entity.name}
+                    >
+                      <strong>
+                        {entity.name}
+                      </strong>
+
+                      <p>
+                        {entity.description ??
+                          "业务数据实体"}
+                      </p>
+
+                      <small>
+                        {(entity.fields ?? [])
+                          .slice(0, 6)
+                          .map((field) =>
+                            field.name
+                          )
+                          .join(" · ")}
+                      </small>
+                    </div>
+                  ))}
+                </article>
+
+                <article className="runtimePanel">
+                  <h3>业务流程</h3>
+
+                  {workflows.map(
+                    (workflow) => (
+                      <div
+                        className="runtimeItem"
+                        key={workflow.name}
+                      >
+                        <strong>
+                          {workflow.name}
+                        </strong>
+
+                        <p>
+                          {workflow.description ??
+                            "自动化业务流程"}
+                        </p>
+
+                        <small>
+                          {(workflow.steps ?? [])
+                            .slice(0, 4)
+                            .join(" → ")}
+                        </small>
+                      </div>
+                    )
+                  )}
+                </article>
+
+              </section>
+            </>
+          ) : (
+            <section className="generatedPage">
+              <div className="generatedPageHeader">
+                <span className="generatedTag">
+                  AI GENERATED PAGE
+                </span>
+
+                <h2>
+                  {
+                    selectedApp.navigation
+                      ?.find(
+                        (page) =>
+                          page.id ===
+                          activePage
+                      )
+                      ?.label
+                  }
+                </h2>
+
+                <p>
+                  这是根据 AI App Blueprint
+                  动态生成的业务页面。
+                </p>
+              </div>
+
+              <div className="placeholderTable">
+                <div className="tableHeader">
+                  <span>名称</span>
+                  <span>状态</span>
+                  <span>更新时间</span>
+                  <span>操作</span>
+                </div>
+
+                <div className="tableEmpty">
+                  当前页面的数据模型已经建立，
+                  下一阶段将自动生成真实 CRUD、
+                  表单、权限和数据库。
+                </div>
+              </div>
+            </section>
+          )}
+
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="shell">
 
       <aside className="sidebar">
         <div className="brand">
           <div className="logo">O</div>
+
           <div>
-            <strong>OpenEnterpriseAI</strong>
-            <span>AI 原生企业应用平台</span>
+            <strong>
+              OpenEnterpriseAI
+            </strong>
+
+            <span>
+              AI 原生企业应用平台
+            </span>
           </div>
         </div>
 
         <nav>
           <button className="active">
-            ◫ 工作台
+            ▣ 工作台
           </button>
 
           <button>
@@ -163,6 +463,7 @@ function Platform() {
         <header>
           <div>
             <h1>企业 AI 工作台</h1>
+
             <p>
               用自然语言创建、运行和扩展属于自己的企业应用。
             </p>
@@ -183,6 +484,7 @@ function Platform() {
         </header>
 
         <section className="hero">
+
           <div className="heroLabel">
             AI APP BUILDER
           </div>
@@ -192,8 +494,9 @@ function Platform() {
           </h2>
 
           <p>
-            描述业务需求，AI 将帮助你完成需求分析、数据模型、
-            页面、Agent、Skill、Workflow 和 Connector 设计。
+            描述业务需求，AI 将帮助你完成需求分析、
+            数据模型、页面、Agent、Skill、
+            Workflow 和 Connector 设计。
           </p>
 
           <div className="promptBox">
@@ -201,28 +504,39 @@ function Platform() {
               placeholder="例如：帮我做一个旅行社客户和订单管理系统……"
               value={description}
               onChange={(event) =>
-                setDescription(event.target.value)
+                setDescription(
+                  event.target.value
+                )
               }
               disabled={creating}
               onKeyDown={(event) => {
-                if (event.key === "Enter") {
+                if (
+                  event.key === "Enter"
+                ) {
                   void createApp();
                 }
               }}
             />
 
             <button
-              onClick={() => void createApp()}
+              onClick={() =>
+                void createApp()
+              }
               disabled={creating}
             >
-              {creating ? "AI 正在创建…" : "开始创建"}
+              {creating
+                ? "AI 正在创建…"
+                : "开始创建"}
             </button>
           </div>
         </section>
 
         <section className="stats">
+
           <div>
-            <strong>{apps.length}</strong>
+            <strong>
+              {apps.length}
+            </strong>
             <span>已安装应用</span>
           </div>
 
@@ -238,8 +552,11 @@ function Platform() {
 
           <div>
             <strong>Online</strong>
-            <span>DeepSeek Harness</span>
+            <span>
+              DeepSeek Harness
+            </span>
           </div>
+
         </section>
 
         <section className="appsSection">
@@ -247,6 +564,7 @@ function Platform() {
           <div className="sectionHeader">
             <div>
               <h3>我的应用</h3>
+
               <p>
                 AI 创建或安装到当前平台的企业应用
               </p>
@@ -259,19 +577,15 @@ function Platform() {
             </div>
           )}
 
-          {!loading && apps.length === 0 && (
-            <div className="empty">
-              暂时没有应用。
-            </div>
-          )}
-
           <div className="appGrid">
+
             {apps.map((item) => (
               <article
                 className="appCard"
                 key={item.id}
               >
                 <div className="appTop">
+
                   <div className="appIcon">
                     {item.displayName?.[0] ??
                       item.name[0]}
@@ -288,15 +602,14 @@ function Platform() {
                 </h4>
 
                 <p className="description">
-                  {item.description ??
-                    "OEAP 企业应用"}
+                  {item.description}
                 </p>
 
                 <div className="appMeta">
                   <span>
                     页面{" "}
-                    {item.navigation?.length ??
-                      0}
+                    {item.navigation
+                      ?.length ?? 0}
                   </span>
 
                   <span>
@@ -307,8 +620,9 @@ function Platform() {
 
                   <span>
                     数据实体{" "}
-                    {item.metadata?.entities
-                      ?.length ?? 0}
+                    {item.metadata
+                      ?.entities?.length ??
+                      0}
                   </span>
                 </div>
 
@@ -317,18 +631,23 @@ function Platform() {
                     v{item.version}
                   </span>
 
-                  <button>
+                  <button
+                    onClick={() => {
+                      setSelectedApp(item);
+                      setActivePage(
+                        "overview"
+                      );
+                    }}
+                  >
                     打开应用 →
                   </button>
                 </div>
               </article>
             ))}
+
           </div>
-
         </section>
-
       </main>
-
     </div>
   );
 }

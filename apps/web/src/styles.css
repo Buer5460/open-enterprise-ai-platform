@@ -330,3 +330,118 @@ header p {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+.runtimeBadge {
+  background: #ecfdf3;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  padding: 8px 13px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+.backButton {
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 10px 0;
+}
+
+.runtimeGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.runtimePanel {
+  background: white;
+  border: 1px solid #e8ecf2;
+  border-radius: 14px;
+  padding: 22px;
+}
+
+.runtimePanel h3 {
+  margin: 0 0 16px;
+}
+
+.runtimeItem {
+  padding: 14px 0;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.runtimeItem:last-child {
+  border-bottom: 0;
+}
+
+.runtimeItem strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.runtimeItem p {
+  color: #697386;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 0 6px;
+}
+
+.runtimeItem small {
+  color: #98a1b1;
+  line-height: 1.5;
+}
+
+.generatedPage {
+  background: white;
+  border: 1px solid #e8ecf2;
+  border-radius: 15px;
+  padding: 28px;
+}
+
+.generatedPageHeader {
+  margin-bottom: 26px;
+}
+
+.generatedPageHeader h2 {
+  margin: 8px 0;
+}
+
+.generatedPageHeader p {
+  color: #7a8394;
+}
+
+.generatedTag {
+  color: #2563eb;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+}
+
+.placeholderTable {
+  border: 1px solid #e7ebf1;
+  border-radius: 11px;
+  overflow: hidden;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns:
+    2fr 1fr 1fr 1fr;
+  padding: 13px 17px;
+  background: #f7f9fc;
+  font-size: 13px;
+  color: #667085;
+}
+
+.tableEmpty {
+  padding: 50px 20px;
+  text-align: center;
+  color: #98a1b1;
+}
+
+@media (max-width: 1000px) {
+  .runtimeGrid {
+    grid-template-columns: 1fr;
+  }
+}
