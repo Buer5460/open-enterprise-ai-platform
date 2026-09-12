@@ -4,8 +4,6 @@ import type {
   FastifyRequest
 } from "fastify";
 
-import { join } from "node:path";
-
 import { InvitationStore } from "./invitationStore.js";
 import { TenancyStore } from "./tenancyStore.js";
 import { AuthSessionStore } from "./authStore.js";
@@ -13,19 +11,19 @@ import {
   organizationFrom,
   memberFrom
 } from "./tenancyRoutes.js";
+import { runtimePath } from "./runtimePaths.js";
 
 export interface InvitationRoutesOptions {
   app: FastifyInstance;
   repoRoot: string;
-  loadApps: () => Promise<any[]>;
+  loadApps: (organizationId?: string) => Promise<any[]>;
 }
 
 export function registerInvitationRoutes(
   options: InvitationRoutesOptions
 ) {
-  const tenancyPath = join(
+  const tenancyPath = runtimePath(
     options.repoRoot,
-    ".tmp",
     "tenancy",
     "tenancy.sqlite"
   );
@@ -33,9 +31,8 @@ export function registerInvitationRoutes(
   const invitations = new InvitationStore(tenancyPath);
   const tenancy = new TenancyStore(tenancyPath);
   const sessions = new AuthSessionStore(
-    join(
+    runtimePath(
       options.repoRoot,
-      ".tmp",
       "auth",
       "sessions.sqlite"
     )
@@ -60,7 +57,9 @@ export function registerInvitationRoutes(
         roles: tenancy.listRoles(
           identity.organizationId
         ),
-        apps: await options.loadApps()
+        apps: await options.loadApps(
+          identity.organizationId
+        )
       };
     }
   );
