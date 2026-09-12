@@ -32,9 +32,25 @@ fi
 
 cd "$PLATFORM"
 
-# 编译 API 和 Web
-corepack pnpm --filter @oeap/api build >/dev/null 2>&1
+# 编译 API 及其所有 workspace 依赖，再编译 Web
+# 这样 data-runtime 等底层包更新后不会继续使用旧的 dist。
+corepack pnpm --filter @oeap/api... build >/dev/null 2>&1
+API_BUILD_STATUS=$?
+
 corepack pnpm --filter @oeap/web build >/dev/null 2>&1
+WEB_BUILD_STATUS=$?
+
+if [ "$API_BUILD_STATUS" -ne 0 ]; then
+  echo "❌ API 或其依赖编译失败"
+  corepack pnpm --filter @oeap/api... build
+  exit 1
+fi
+
+if [ "$WEB_BUILD_STATUS" -ne 0 ]; then
+  echo "❌ Web 编译失败"
+  corepack pnpm --filter @oeap/web build
+  exit 1
+fi
 
 # 启动 API
 nohup node apps/api/dist/index.js \
