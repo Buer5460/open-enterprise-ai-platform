@@ -41,6 +41,7 @@ jobs:
           if [ -f scripts/test-tenancy.mjs ]; then node scripts/test-tenancy.mjs; fi
           if [ -f scripts/test-auth-session.mjs ]; then node scripts/test-auth-session.mjs; fi
           if [ -f scripts/test-invitations.mjs ]; then node scripts/test-invitations.mjs; fi
+          if [ -f scripts/test-invitation-delivery.mjs ]; then node scripts/test-invitation-delivery.mjs; fi
 
       - name: Note AI-runtime integration tests
         run: |
