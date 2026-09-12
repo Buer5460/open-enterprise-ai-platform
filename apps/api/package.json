@@ -17,8 +17,7 @@
     "@oeap/ai-generate-skill": "workspace:*",
     "@oeap/app-builder": "workspace:*",
     "@oeap/app-package-builder": "workspace:*",
-    "@oeap/data-runtime": "workspace:*",
-    "@oeap/publisher-runtime": "workspace:*"
+    "@oeap/data-runtime": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.20.0",
