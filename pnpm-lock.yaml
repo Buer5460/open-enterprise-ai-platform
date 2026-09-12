@@ -70,6 +70,15 @@ importers:
         specifier: workspace:*
         version: link:../../package-spec
 
+  packages/official/growth-workflow:
+    dependencies:
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../package-spec
+      '@oeap/workflow-engine':
+        specifier: workspace:*
+        version: link:../../workflow-engine
+
   packages/official/social-first-touch:
     dependencies:
       '@oeap/package-spec':
