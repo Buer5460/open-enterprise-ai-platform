@@ -90,7 +90,10 @@ export function BrandSettingsPanel() {
       }
 
       await load();
-      setMessage("企业品牌配置已保存。");
+      window.dispatchEvent(
+        new CustomEvent("oeap-brand-updated")
+      );
+      setMessage("企业品牌配置已保存，并已应用到当前工作台。");
     } catch (error) {
       setMessage(
         error instanceof Error
