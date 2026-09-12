@@ -22,6 +22,6 @@ run_if_present scripts/test-auth-session.mjs
 run_if_present scripts/test-invitations.mjs
 run_if_present scripts/test-invitation-delivery.mjs
 run_if_present scripts/test-mail-settings.mjs
-run_if_present scripts/test-production-auth.mjs
+run_if_present scripts/test-production-security.mjs
 
 echo "✅ deterministic OEAP test suite passed"
