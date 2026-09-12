@@ -47,6 +47,10 @@ import {
 } from "./mailSettingsRoutes.js";
 
 import {
+  registerOperationsRoutes
+} from "./operationsRoutes.js";
+
+import {
   registerPlatformRoutes
 } from "./platformRoutes.js";
 
@@ -81,6 +85,13 @@ app.get("/health", async () => ({
 }));
 
 registerAuthRoutes({
+  app,
+  repoRoot
+});
+
+// Register operational response hooks before the business routes so that
+// protected API activity is captured after authentication resolves identity.
+registerOperationsRoutes({
   app,
   repoRoot
 });
