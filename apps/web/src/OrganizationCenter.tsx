@@ -1,5 +1,6 @@
 import React from "react";
 import { AuthPanel } from "./AuthPanel";
+import { BrandSettingsPanel } from "./BrandSettingsPanel";
 import { MailSettingsPanel } from "./MailSettingsPanel";
 import { apiFetch } from "./apiClient";
 import "./OrganizationCenter.css";
@@ -88,12 +89,7 @@ export function OrganizationCenter() {
   const load = React.useCallback(async () => {
     const [contextResponse, appsResponse] =
       await Promise.all([
-        apiFetch(`${API}/api/tenancy/context`, {
-          headers: {
-            "x-oeap-org": "org_local",
-            "x-oeap-member": "member_local_owner"
-          }
-        }),
+        apiFetch(`${API}/api/tenancy/context`),
         apiFetch(`${API}/api/apps`)
       ]);
 
@@ -335,6 +331,20 @@ export function OrganizationCenter() {
 
   const { organization, roles, members } =
     data.context;
+  const currentMember = members.find(
+    (member) => member.id === actorId
+  );
+  const currentRole = roles.find(
+    (role) => role.id === currentMember?.roleId
+  );
+  const canManageMembers = Boolean(
+    currentRole?.permissions.includes("*") ||
+    currentRole?.permissions.includes("members.manage")
+  );
+  const canManageRoles = Boolean(
+    currentRole?.permissions.includes("*") ||
+    currentRole?.permissions.includes("org.manage")
+  );
 
   return (
     <section className="organizationCenter">
@@ -350,11 +360,12 @@ export function OrganizationCenter() {
         <div className="orgIdentity">
           <strong>{organization.name}</strong>
           <small>{organization.id}</small>
-          <em>企业身份模式</em>
+          <em>{currentMember?.roleName ?? "Member"}</em>
         </div>
       </div>
 
       <AuthPanel />
+      <BrandSettingsPanel />
       <MailSettingsPanel />
 
       {message && (
@@ -406,8 +417,9 @@ export function OrganizationCenter() {
                 <select
                   value={member.roleId}
                   disabled={
-                    member.id === actorId &&
-                    member.roleName === "Owner"
+                    !canManageMembers ||
+                    (member.id === actorId &&
+                    member.roleName === "Owner")
                   }
                   onChange={(event) =>
                     void updateMember(member, {
@@ -431,7 +443,7 @@ export function OrganizationCenter() {
                       ? "memberState active"
                       : "memberState"
                   }
-                  disabled={member.id === actorId}
+                  disabled={!canManageMembers || member.id === actorId}
                   onClick={() =>
                     void updateMember(member, {
                       status:
@@ -456,6 +468,7 @@ export function OrganizationCenter() {
                     <input
                       type="checkbox"
                       checked={member.appIds.includes("*")}
+                      disabled={!canManageMembers}
                       onChange={(event) =>
                         void updateAppAccess(
                           member,
@@ -474,7 +487,10 @@ export function OrganizationCenter() {
                           member.appIds.includes("*") ||
                           member.appIds.includes(item.id)
                         }
-                        disabled={member.appIds.includes("*")}
+                        disabled={
+                          !canManageMembers ||
+                          member.appIds.includes("*")
+                        }
                         onChange={(event) =>
                           void updateAppAccess(
                             member,
@@ -490,7 +506,7 @@ export function OrganizationCenter() {
 
                 <button
                   className="removeMember"
-                  disabled={member.id === actorId}
+                  disabled={!canManageMembers || member.id === actorId}
                   onClick={() =>
                     void removeMember(member)
                   }
@@ -504,12 +520,17 @@ export function OrganizationCenter() {
 
         <article className="orgPanel addMemberPanel">
           <h3>添加成员</h3>
-          <p>本地模式直接创建成员；启用外部登录后可升级为邀请与域账号绑定。</p>
+          <p>
+            {canManageMembers
+              ? "本地模式直接创建成员；启用外部登录后可升级为邀请与域账号绑定。"
+              : "当前账号仅可查看成员信息；Owner / Admin 才能添加或调整成员。"}
+          </p>
 
           <label>
             <span>姓名</span>
             <input
               value={name}
+              disabled={!canManageMembers}
               onChange={(event) =>
                 setName(event.target.value)
               }
@@ -521,6 +542,7 @@ export function OrganizationCenter() {
             <span>邮箱</span>
             <input
               value={email}
+              disabled={!canManageMembers}
               onChange={(event) =>
                 setEmail(event.target.value)
               }
@@ -532,6 +554,7 @@ export function OrganizationCenter() {
             <span>角色</span>
             <select
               value={roleId}
+              disabled={!canManageMembers}
               onChange={(event) =>
                 setRoleId(event.target.value)
               }
@@ -549,12 +572,14 @@ export function OrganizationCenter() {
 
           <button
             className="primaryOrgButton"
-            disabled={creatingMember}
+            disabled={creatingMember || !canManageMembers}
             onClick={() => void createMember()}
           >
             {creatingMember
               ? "添加中…"
-              : "添加企业成员"}
+              : canManageMembers
+                ? "添加企业成员"
+                : "仅管理员可添加"}
           </button>
         </article>
       </div>
@@ -593,6 +618,7 @@ export function OrganizationCenter() {
           <div className="customRoleForm">
             <input
               value={customRoleName}
+              disabled={!canManageRoles}
               onChange={(event) =>
                 setCustomRoleName(event.target.value)
               }
@@ -600,15 +626,17 @@ export function OrganizationCenter() {
             />
             <input
               value={customPermissions}
+              disabled={!canManageRoles}
               onChange={(event) =>
                 setCustomPermissions(event.target.value)
               }
               placeholder="权限逗号分隔，例如 apps.read,data.read"
             />
             <button
+              disabled={!canManageRoles}
               onClick={() => void createRole()}
             >
-              创建角色
+              {canManageRoles ? "创建角色" : "仅管理员可创建"}
             </button>
           </div>
         </article>
