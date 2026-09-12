@@ -43,6 +43,10 @@ import {
 } from "./invitationDeliveryRoutes.js";
 
 import {
+  registerKnowledgeRoutes
+} from "./knowledgeRoutes.js";
+
+import {
   registerMailSettingsRoutes
 } from "./mailSettingsRoutes.js";
 
@@ -109,6 +113,11 @@ registerAppHistoryRoutes({
 });
 
 registerFileRoutes({
+  app,
+  repoRoot
+});
+
+registerKnowledgeRoutes({
   app,
   repoRoot
 });
