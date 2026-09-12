@@ -12,6 +12,14 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  packages/approval-engine:
+    dependencies:
+      '@oeap/permission-engine':
+        specifier: workspace:*
+        version: link:../permission-engine
+
+  packages/audit-log: {}
+
   packages/capability-registry:
     dependencies:
       '@oeap/package-spec':
