@@ -1,5 +1,6 @@
 import React from "react";
 import { apiFetch } from "./apiClient";
+import { DeploymentSecurityPanel } from "./DeploymentSecurityPanel";
 import "./BrandSettingsPanel.css";
 
 const API = "http://127.0.0.1:8787";
@@ -267,6 +268,8 @@ export function BrandSettingsPanel() {
           {message}
         </div>
       )}
+
+      <DeploymentSecurityPanel />
     </article>
   );
 }
