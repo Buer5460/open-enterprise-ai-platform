@@ -40,6 +40,10 @@ import {
   appPackageBuilder
 } from "@oeap/app-package-builder";
 
+import {
+  AppDatabase
+} from "@oeap/data-runtime";
+
 const app = Fastify({
   logger: true
 });
@@ -107,14 +111,7 @@ async function initializeAI() {
   aiInitialized = true;
 }
 
-app.get("/health", async () => {
-  return {
-    ok: true,
-    service: "oeap-api"
-  };
-});
-
-app.get("/api/apps", async () => {
+async function loadApps() {
   try {
     const entries =
       await readdir(
@@ -124,32 +121,26 @@ app.get("/api/apps", async () => {
         }
       );
 
-    const apps = [];
+    const apps: any[] = [];
 
     for (const entry of entries) {
       if (!entry.isDirectory()) {
         continue;
       }
 
-      const manifestPath =
-        join(
-          generatedAppsRoot,
-          entry.name,
-          "oeap.package.json"
-        );
-
       try {
         const raw =
           await readFile(
-            manifestPath,
+            join(
+              generatedAppsRoot,
+              entry.name,
+              "oeap.package.json"
+            ),
             "utf8"
           );
 
-        const manifest =
-          JSON.parse(raw);
-
         apps.push({
-          ...manifest,
+          ...JSON.parse(raw),
           status: "enabled",
           localDirectory: entry.name
         });
@@ -158,15 +149,70 @@ app.get("/api/apps", async () => {
       }
     }
 
-    return {
-      apps
-    };
+    return apps;
   } catch {
+    return [];
+  }
+}
+
+async function findApp(
+  appId: string
+) {
+  const apps =
+    await loadApps();
+
+  return apps.find(
+    (item) => item.id === appId
+  );
+}
+
+function getDatabase(
+  manifest: any
+) {
+  const safeId =
+    String(manifest.id).replace(
+      /[^a-zA-Z0-9_.-]/g,
+      "_"
+    );
+
+  const database =
+    new AppDatabase(
+      join(
+        repoRoot,
+        ".tmp",
+        "databases",
+        `${safeId}.sqlite`
+      )
+    );
+
+  database.ensureEntities(
+    (
+      manifest.metadata?.entities ??
+      []
+    ).map((entity: any) => ({
+      name: entity.name,
+      fields: entity.fields ?? []
+    }))
+  );
+
+  return database;
+}
+
+app.get("/health", async () => {
+  return {
+    ok: true,
+    service: "oeap-api"
+  };
+});
+
+app.get(
+  "/api/apps",
+  async () => {
     return {
-      apps: []
+      apps: await loadApps()
     };
   }
-});
+);
 
 app.post<{
   Body: {
@@ -198,15 +244,13 @@ app.post<{
         language: "zh-CN"
       });
 
-    const packageId =
-      `local.generated.${Date.now()}`;
-
     const built =
       await appPackageBuilder.build({
         blueprint:
           generated.blueprint,
 
-        packageId,
+        packageId:
+          `local.generated.${Date.now()}`,
 
         publisher:
           "local",
@@ -222,6 +266,82 @@ app.post<{
       ok: true,
       app: built.manifest,
       directory: built.directory
+    };
+  }
+);
+
+app.get<{
+  Params: {
+    appId: string;
+    entity: string;
+  };
+}>(
+  "/api/apps/:appId/data/:entity",
+  async (request, reply) => {
+    const manifest =
+      await findApp(
+        request.params.appId
+      );
+
+    if (!manifest) {
+      return reply
+        .code(404)
+        .send({
+          ok: false,
+          error: "App not found"
+        });
+    }
+
+    const database =
+      getDatabase(manifest);
+
+    return {
+      ok: true,
+      rows:
+        database.list(
+          request.params.entity
+        )
+    };
+  }
+);
+
+app.post<{
+  Params: {
+    appId: string;
+    entity: string;
+  };
+
+  Body: Record<
+    string,
+    unknown
+  >;
+}>(
+  "/api/apps/:appId/data/:entity",
+  async (request, reply) => {
+    const manifest =
+      await findApp(
+        request.params.appId
+      );
+
+    if (!manifest) {
+      return reply
+        .code(404)
+        .send({
+          ok: false,
+          error: "App not found"
+        });
+    }
+
+    const database =
+      getDatabase(manifest);
+
+    return {
+      ok: true,
+      row:
+        database.create(
+          request.params.entity,
+          request.body ?? {}
+        )
     };
   }
 );

@@ -16,7 +16,8 @@
     "@oeap/deepseek-harness-connector": "workspace:*",
     "@oeap/ai-generate-skill": "workspace:*",
     "@oeap/app-builder": "workspace:*",
-    "@oeap/app-package-builder": "workspace:*"
+    "@oeap/app-package-builder": "workspace:*",
+    "@oeap/data-runtime": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.20.0",

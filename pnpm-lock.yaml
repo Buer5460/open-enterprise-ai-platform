@@ -29,6 +29,9 @@ importers:
       '@oeap/app-package-builder':
         specifier: workspace:*
         version: link:../../packages/app-package-builder
+      '@oeap/data-runtime':
+        specifier: workspace:*
+        version: link:../../packages/data-runtime
       '@oeap/deepseek-harness-connector':
         specifier: workspace:*
         version: link:../../packages/official/deepseek-harness-connector
