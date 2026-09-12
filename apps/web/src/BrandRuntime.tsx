@@ -1,8 +1,9 @@
 import React from "react";
-import { apiFetch } from "./apiClient";
+import {
+  apiFetch,
+  apiUrl
+} from "./apiClient";
 import "./BrandRuntime.css";
-
-const API = "http://127.0.0.1:8787";
 
 export type BrandSettings = {
   organizationName: string;
@@ -59,14 +60,34 @@ export function BrandProvider(props: {
 
   const reload = React.useCallback(async () => {
     try {
-      const response = await apiFetch(
-        `${API}/api/brand/settings`
+      const privateResponse = await apiFetch(
+        apiUrl("/api/brand/settings")
       );
-      const result = await response.json();
 
-      if (response.ok && result.ok && result.settings) {
-        apply(result.settings);
+      if (privateResponse.ok) {
+        const result = await privateResponse.json();
+        if (result.ok && result.settings) {
+          apply(result.settings);
+          return;
+        }
       }
+
+      const publicResponse = await fetch(
+        apiUrl("/api/brand/public")
+      );
+      const publicResult =
+        await publicResponse.json();
+
+      if (
+        publicResponse.ok &&
+        publicResult.ok &&
+        publicResult.settings
+      ) {
+        apply(publicResult.settings);
+        return;
+      }
+
+      apply(DEFAULT_BRAND);
     } catch {
       applyBrandToDocument(DEFAULT_BRAND);
     }
