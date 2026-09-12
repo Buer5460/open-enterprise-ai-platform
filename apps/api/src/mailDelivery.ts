@@ -9,6 +9,24 @@ export type MailProviderId =
   | "webhook"
   | "smtp";
 
+export interface MailRuntimeConfig {
+  provider: MailProviderId;
+  from?: string;
+  resendApiKey?: string;
+  webhookUrl?: string;
+  webhookToken?: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpSecure?: boolean;
+  smtpStartTls?: boolean;
+  smtpRejectUnauthorized?: boolean;
+  smtpUser?: string;
+  smtpPassword?: string;
+  smtpFrom?: string;
+  smtpHelo?: string;
+  smtpTimeoutMs?: number;
+}
+
 export interface MailProviderStatus {
   id: MailProviderId;
   name: string;
@@ -35,6 +53,12 @@ export interface MailDeliveryResult {
 type SocketLike = Socket | TLSSocket;
 
 export class MailDeliveryService {
+  private readonly config: MailRuntimeConfig;
+
+  constructor(config?: MailRuntimeConfig) {
+    this.config = config ?? environmentConfig();
+  }
+
   status(): {
     activeProvider: MailProviderId;
     providers: MailProviderStatus[];
@@ -56,8 +80,8 @@ export class MailDeliveryService {
           id: "resend",
           name: "Resend",
           configured: Boolean(
-            process.env.RESEND_API_KEY &&
-            process.env.OEAP_MAIL_FROM
+            this.config.resendApiKey &&
+            this.config.from
           ),
           active: activeProvider === "resend",
           description:
@@ -67,7 +91,7 @@ export class MailDeliveryService {
           id: "webhook",
           name: "Enterprise Mail Webhook",
           configured: Boolean(
-            process.env.OEAP_MAIL_WEBHOOK_URL
+            this.config.webhookUrl
           ),
           active: activeProvider === "webhook",
           description:
@@ -77,8 +101,8 @@ export class MailDeliveryService {
           id: "smtp",
           name: "SMTP",
           configured: Boolean(
-            process.env.OEAP_SMTP_HOST &&
-            process.env.OEAP_SMTP_FROM
+            this.config.smtpHost &&
+            this.config.smtpFrom
           ),
           active: activeProvider === "smtp",
           description:
@@ -125,48 +149,49 @@ export class MailDeliveryService {
   }
 
   private resolveProvider(): MailProviderId {
-    const preferred =
-      process.env.OEAP_MAIL_PROVIDER
-        ?.trim()
-        .toLowerCase();
+    const preferred = this.config.provider;
 
     if (
       preferred === "resend" &&
-      process.env.RESEND_API_KEY &&
-      process.env.OEAP_MAIL_FROM
+      this.config.resendApiKey &&
+      this.config.from
     ) {
       return "resend";
     }
 
     if (
       preferred === "webhook" &&
-      process.env.OEAP_MAIL_WEBHOOK_URL
+      this.config.webhookUrl
     ) {
       return "webhook";
     }
 
     if (
       preferred === "smtp" &&
-      process.env.OEAP_SMTP_HOST &&
-      process.env.OEAP_SMTP_FROM
+      this.config.smtpHost &&
+      this.config.smtpFrom
     ) {
       return "smtp";
     }
 
+    if (preferred === "manual") {
+      return "manual";
+    }
+
     if (
-      process.env.RESEND_API_KEY &&
-      process.env.OEAP_MAIL_FROM
+      this.config.resendApiKey &&
+      this.config.from
     ) {
       return "resend";
     }
 
-    if (process.env.OEAP_MAIL_WEBHOOK_URL) {
+    if (this.config.webhookUrl) {
       return "webhook";
     }
 
     if (
-      process.env.OEAP_SMTP_HOST &&
-      process.env.OEAP_SMTP_FROM
+      this.config.smtpHost &&
+      this.config.smtpFrom
     ) {
       return "smtp";
     }
@@ -177,8 +202,8 @@ export class MailDeliveryService {
   private async sendResend(
     message: MailMessage
   ): Promise<MailDeliveryResult> {
-    const apiKey = process.env.RESEND_API_KEY!;
-    const from = process.env.OEAP_MAIL_FROM!;
+    const apiKey = this.config.resendApiKey!;
+    const from = this.config.from!;
 
     const response = await fetch(
       "https://api.resend.com/emails",
@@ -220,10 +245,8 @@ export class MailDeliveryService {
   private async sendWebhook(
     message: MailMessage
   ): Promise<MailDeliveryResult> {
-    const url =
-      process.env.OEAP_MAIL_WEBHOOK_URL!;
-    const token =
-      process.env.OEAP_MAIL_WEBHOOK_TOKEN;
+    const url = this.config.webhookUrl!;
+    const token = this.config.webhookToken;
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json"
@@ -240,7 +263,7 @@ export class MailDeliveryService {
         type: "oeap.email",
         to: message.to,
         from:
-          process.env.OEAP_MAIL_FROM ||
+          this.config.from ||
           "OEAP",
         subject: message.subject,
         text: message.text,
@@ -267,22 +290,21 @@ export class MailDeliveryService {
   private async sendSmtp(
     message: MailMessage
   ): Promise<MailDeliveryResult> {
-    const host = process.env.OEAP_SMTP_HOST!;
+    const host = this.config.smtpHost!;
     const port = Number(
-      process.env.OEAP_SMTP_PORT || 587
+      this.config.smtpPort ?? 587
     );
     const secure =
-      process.env.OEAP_SMTP_SECURE === "true" ||
+      this.config.smtpSecure === true ||
       port === 465;
     const useStartTls =
       !secure &&
-      process.env.OEAP_SMTP_STARTTLS !== "false";
+      this.config.smtpStartTls !== false;
     const rejectUnauthorized =
-      process.env.OEAP_SMTP_REJECT_UNAUTHORIZED !==
-      "false";
-    const username = process.env.OEAP_SMTP_USER;
-    const password = process.env.OEAP_SMTP_PASS;
-    const from = process.env.OEAP_SMTP_FROM!;
+      this.config.smtpRejectUnauthorized !== false;
+    const username = this.config.smtpUser;
+    const password = this.config.smtpPassword;
+    const from = this.config.smtpFrom!;
 
     let socket: SocketLike = secure
       ? await openTlsSocket(
@@ -292,18 +314,24 @@ export class MailDeliveryService {
         )
       : await openNetSocket(host, port);
 
-    await expectReply(socket, [220]);
+    await expectReply(
+      socket,
+      [220],
+      this.timeoutMs()
+    );
     await sendCommand(
       socket,
-      `EHLO ${process.env.OEAP_SMTP_HELO || "oeap.local"}`,
-      [250]
+      `EHLO ${this.config.smtpHelo || "oeap.local"}`,
+      [250],
+      this.timeoutMs()
     );
 
     if (useStartTls) {
       await sendCommand(
         socket,
         "STARTTLS",
-        [220]
+        [220],
+        this.timeoutMs()
       );
 
       socket = await upgradeTls(
@@ -314,36 +342,51 @@ export class MailDeliveryService {
 
       await sendCommand(
         socket,
-        `EHLO ${process.env.OEAP_SMTP_HELO || "oeap.local"}`,
-        [250]
+        `EHLO ${this.config.smtpHelo || "oeap.local"}`,
+        [250],
+        this.timeoutMs()
       );
     }
 
     if (username && password) {
-      await sendCommand(socket, "AUTH LOGIN", [334]);
+      await sendCommand(
+        socket,
+        "AUTH LOGIN",
+        [334],
+        this.timeoutMs()
+      );
       await sendCommand(
         socket,
         Buffer.from(username).toString("base64"),
-        [334]
+        [334],
+        this.timeoutMs()
       );
       await sendCommand(
         socket,
         Buffer.from(password).toString("base64"),
-        [235]
+        [235],
+        this.timeoutMs()
       );
     }
 
     await sendCommand(
       socket,
       `MAIL FROM:<${extractAddress(from)}>`,
-      [250]
+      [250],
+      this.timeoutMs()
     );
     await sendCommand(
       socket,
       `RCPT TO:<${extractAddress(message.to)}>`,
-      [250, 251]
+      [250, 251],
+      this.timeoutMs()
     );
-    await sendCommand(socket, "DATA", [354]);
+    await sendCommand(
+      socket,
+      "DATA",
+      [354],
+      this.timeoutMs()
+    );
 
     socket.write(
       formatMimeMessage(
@@ -352,10 +395,19 @@ export class MailDeliveryService {
       ) + "\r\n.\r\n"
     );
 
-    await expectReply(socket, [250]);
+    await expectReply(
+      socket,
+      [250],
+      this.timeoutMs()
+    );
 
     try {
-      await sendCommand(socket, "QUIT", [221]);
+      await sendCommand(
+        socket,
+        "QUIT",
+        [221],
+        this.timeoutMs()
+      );
     } catch {
       // Message was already accepted; a QUIT failure should not flip delivery status.
     }
@@ -368,6 +420,64 @@ export class MailDeliveryService {
       status: "sent"
     };
   }
+
+  private timeoutMs(): number {
+    return Number(
+      this.config.smtpTimeoutMs ?? 15000
+    );
+  }
+}
+
+export function environmentConfig(): MailRuntimeConfig {
+  const provider = normalizeProvider(
+    process.env.OEAP_MAIL_PROVIDER
+  );
+
+  return {
+    provider,
+    from: process.env.OEAP_MAIL_FROM,
+    resendApiKey: process.env.RESEND_API_KEY,
+    webhookUrl:
+      process.env.OEAP_MAIL_WEBHOOK_URL,
+    webhookToken:
+      process.env.OEAP_MAIL_WEBHOOK_TOKEN,
+    smtpHost: process.env.OEAP_SMTP_HOST,
+    smtpPort: Number(
+      process.env.OEAP_SMTP_PORT || 587
+    ),
+    smtpSecure:
+      process.env.OEAP_SMTP_SECURE === "true",
+    smtpStartTls:
+      process.env.OEAP_SMTP_STARTTLS !== "false",
+    smtpRejectUnauthorized:
+      process.env.OEAP_SMTP_REJECT_UNAUTHORIZED !==
+      "false",
+    smtpUser: process.env.OEAP_SMTP_USER,
+    smtpPassword: process.env.OEAP_SMTP_PASS,
+    smtpFrom: process.env.OEAP_SMTP_FROM,
+    smtpHelo: process.env.OEAP_SMTP_HELO,
+    smtpTimeoutMs: Number(
+      process.env.OEAP_SMTP_TIMEOUT_MS || 15000
+    )
+  };
+}
+
+function normalizeProvider(
+  value: string | undefined
+): MailProviderId {
+  const normalized = value
+    ?.trim()
+    .toLowerCase();
+
+  if (
+    normalized === "resend" ||
+    normalized === "webhook" ||
+    normalized === "smtp"
+  ) {
+    return normalized;
+  }
+
+  return "manual";
 }
 
 function openNetSocket(
@@ -429,15 +539,21 @@ function upgradeTls(
 async function sendCommand(
   socket: SocketLike,
   command: string,
-  expectedCodes: number[]
+  expectedCodes: number[],
+  timeoutMs: number
 ): Promise<string> {
   socket.write(command + "\r\n");
-  return expectReply(socket, expectedCodes);
+  return expectReply(
+    socket,
+    expectedCodes,
+    timeoutMs
+  );
 }
 
 function expectReply(
   socket: SocketLike,
-  expectedCodes: number[]
+  expectedCodes: number[],
+  timeoutMs: number
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     let buffer = "";
@@ -492,7 +608,7 @@ function expectReply(
 
     const timer = setTimeout(() => {
       finish(new Error("SMTP response timeout"));
-    }, Number(process.env.OEAP_SMTP_TIMEOUT_MS || 15000));
+    }, timeoutMs);
 
     socket.on("data", onData);
     socket.once("error", onError);
