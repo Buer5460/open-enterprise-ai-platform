@@ -252,7 +252,29 @@ export function MailSettingsPanel() {
   }
 
   if (forbidden) {
-    return null;
+    return (
+      <article className="mailSettingsPanel">
+        <div className="mailSettingsHeader">
+          <div>
+            <span>MAIL DELIVERY</span>
+            <h3>企业邮件服务</h3>
+            <p>
+              当前账号可以使用企业邀请与登录能力，但邮件服务配置仅允许 Owner / Admin 管理。
+            </p>
+          </div>
+          <div className="mailActiveState">
+            <small>权限</small>
+            <strong>仅管理员可配置</strong>
+          </div>
+        </div>
+        <div className="mailManualNotice">
+          <strong>无需处理</strong>
+          <p>
+            如果需要修改 SMTP、Resend 或企业邮件 Webhook，请联系企业 Owner / Admin。
+          </p>
+        </div>
+      </article>
+    );
   }
 
   return (
