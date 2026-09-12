@@ -33,7 +33,7 @@ import { runtimePath } from "./runtimePaths.js";
 export interface PlatformRoutesOptions {
   app: FastifyInstance;
   repoRoot: string;
-  loadApps: () => Promise<any[]>;
+  loadApps: (organizationId?: string) => Promise<any[]>;
 }
 
 type Identity = {
@@ -97,7 +97,7 @@ export function registerPlatformRoutes(
         discoverOfficialPackages(repoRoot),
         listDeveloperPackages(repoRoot, identity.organizationId),
         listPublishedPackages(repoRoot, identity.organizationId),
-        loadApps()
+        loadApps(identity.organizationId)
       ]);
 
       const generated: MarketplacePackage[] = apps
@@ -248,7 +248,7 @@ export function registerPlatformRoutes(
       );
       if (!identity) return;
 
-      const apps = (await loadApps()).filter(
+      const apps = (await loadApps(identity.organizationId)).filter(
         (manifest) =>
           can(tenancy, identity, "apps.read", manifest.id) &&
           can(tenancy, identity, "data.read", manifest.id)
