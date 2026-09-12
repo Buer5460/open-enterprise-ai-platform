@@ -134,3 +134,44 @@ nav button.active,
 .brandPreviewBadge {
   color: var(--oeap-primary-dark) !important;
 }
+
+.oeapBootScreen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  background: #f5f7fb;
+  color: #172033;
+}
+
+.oeapBootMark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  margin-bottom: 6px;
+  border-radius: 14px;
+  background: var(--oeap-primary);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  box-shadow: 0 14px 34px rgba(27, 39, 77, .12);
+}
+
+.oeapBootMark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+
+.oeapBootScreen > strong {
+  font-size: 15px;
+}
+
+.oeapBootScreen > span {
+  color: #8991a2;
+  font-size: 11px;
+}
