@@ -50,6 +50,8 @@ importers:
         specifier: workspace:*
         version: link:../package-spec
 
+  packages/event-bus: {}
+
   packages/package-spec: {}
 
   packages/permission-engine: {}
