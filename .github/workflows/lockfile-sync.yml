@@ -1,0 +1,50 @@
+name: Lockfile Sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - "apps/**/package.json"
+      - "packages/**/package.json"
+      - ".github/workflows/lockfile-sync.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: oeap-lockfile-main
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Regenerate lockfile
+        run: corepack pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Commit lockfile when changed
+        shell: bash
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "pnpm-lock.yaml is already current"
+            exit 0
+          fi
+          git config user.name "oeap-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "chore: sync pnpm lockfile"
+          git push origin HEAD:main
