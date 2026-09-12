@@ -13,6 +13,12 @@ export interface DataEntity {
   fields: DataField[];
 }
 
+export interface ListOptions {
+  query?: string;
+  limit?: number;
+  offset?: number;
+}
+
 type DBValue =
   | string
   | number
@@ -31,7 +37,8 @@ function sqlType(type: string): string {
 
   if (
     value.includes("number") ||
-    value.includes("int")
+    value.includes("int") ||
+    value.includes("amount")
   ) {
     return "REAL";
   }
@@ -103,15 +110,115 @@ export class AppDatabase {
     }
   }
 
-  list(entity: string): unknown[] {
+  list(
+    entity: string,
+    options: ListOptions = {}
+  ): unknown[] {
+    const table =
+      safeName(entity);
+
+    const limit = Math.min(
+      Math.max(options.limit ?? 20, 1),
+      100
+    );
+
+    const offset = Math.max(
+      options.offset ?? 0,
+      0
+    );
+
+    const query =
+      options.query?.trim();
+
+    const searchableColumns =
+      this.getSearchableColumns(table);
+
+    const where =
+      query && searchableColumns.length > 0
+        ? `WHERE ${searchableColumns
+            .map(
+              (column) =>
+                `CAST("${column}" AS TEXT) LIKE ?`
+            )
+            .join(" OR ")}`
+        : "";
+
+    const params: DBValue[] =
+      query
+        ? searchableColumns.map(
+            () => `%${query}%`
+          )
+        : [];
+
+    return this.db
+      .prepare(`
+        SELECT * FROM "${table}"
+        ${where}
+        ORDER BY id DESC
+        LIMIT ? OFFSET ?
+      `)
+      .all(
+        ...params,
+        limit,
+        offset
+      );
+  }
+
+  count(
+    entity: string,
+    query?: string
+  ): number {
+    const table =
+      safeName(entity);
+
+    const normalizedQuery =
+      query?.trim();
+
+    const searchableColumns =
+      this.getSearchableColumns(table);
+
+    const where =
+      normalizedQuery && searchableColumns.length > 0
+        ? `WHERE ${searchableColumns
+            .map(
+              (column) =>
+                `CAST("${column}" AS TEXT) LIKE ?`
+            )
+            .join(" OR ")}`
+        : "";
+
+    const params: DBValue[] =
+      normalizedQuery
+        ? searchableColumns.map(
+            () => `%${normalizedQuery}%`
+          )
+        : [];
+
+    const row = this.db
+      .prepare(`
+        SELECT COUNT(*) AS total
+        FROM "${table}"
+        ${where}
+      `)
+      .get(...params) as
+      | { total: number }
+      | undefined;
+
+    return Number(row?.total ?? 0);
+  }
+
+  get(
+    entity: string,
+    id: number
+  ): unknown {
     const table =
       safeName(entity);
 
     return this.db
       .prepare(
-        `SELECT * FROM "${table}" ORDER BY id DESC`
+        `SELECT * FROM "${table}" WHERE id = ?`
       )
-      .all();
+      .get(id);
   }
 
   create(
@@ -153,12 +260,103 @@ export class AppDatabase {
         .prepare(sql)
         .run(...values);
 
-    return this.db
+    return this.get(
+      entity,
+      Number(result.lastInsertRowid)
+    );
+  }
+
+  update(
+    entity: string,
+    id: number,
+    data: Record<string, unknown>
+  ): unknown {
+    const table =
+      safeName(entity);
+
+    const entries =
+      Object.entries(data);
+
+    if (entries.length === 0) {
+      throw new Error(
+        "No data supplied"
+      );
+    }
+
+    const assignments =
+      entries
+        .map(
+          ([key]) =>
+            `"${safeName(key)}" = ?`
+        )
+        .join(", ");
+
+    const values: DBValue[] =
+      entries.map(
+        ([, value]) =>
+          toDBValue(value)
+      );
+
+    this.db
+      .prepare(`
+        UPDATE "${table}"
+        SET ${assignments},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `)
+      .run(
+        ...values,
+        id
+      );
+
+    return this.get(
+      entity,
+      id
+    );
+  }
+
+  delete(
+    entity: string,
+    id: number
+  ): boolean {
+    const table =
+      safeName(entity);
+
+    const result =
+      this.db
+        .prepare(
+          `DELETE FROM "${table}" WHERE id = ?`
+        )
+        .run(id);
+
+    return Number(result.changes) > 0;
+  }
+
+  private getSearchableColumns(
+    table: string
+  ): string[] {
+    const columns = this.db
       .prepare(
-        `SELECT * FROM "${table}" WHERE id = ?`
+        `PRAGMA table_info("${table}")`
       )
-      .get(
-        result.lastInsertRowid
+      .all() as Array<{
+        name?: string;
+      }>;
+
+    return columns
+      .map((column) =>
+        safeName(
+          String(column.name ?? "")
+        )
+      )
+      .filter(
+        (column) =>
+          column &&
+          ![
+            "id",
+            "created_at",
+            "updated_at"
+          ].includes(column)
       );
   }
 }
