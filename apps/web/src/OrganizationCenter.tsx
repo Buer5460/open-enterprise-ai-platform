@@ -1,4 +1,6 @@
 import React from "react";
+import { AuthPanel } from "./AuthPanel";
+import { apiFetch } from "./apiClient";
 import "./OrganizationCenter.css";
 
 const API = "http://127.0.0.1:8787";
@@ -85,13 +87,13 @@ export function OrganizationCenter() {
   const load = React.useCallback(async () => {
     const [contextResponse, appsResponse] =
       await Promise.all([
-        fetch(`${API}/api/tenancy/context`, {
+        apiFetch(`${API}/api/tenancy/context`, {
           headers: {
             "x-oeap-org": "org_local",
             "x-oeap-member": "member_local_owner"
           }
         }),
-        fetch(`${API}/api/apps`)
+        apiFetch(`${API}/api/apps`)
       ]);
 
     const contextResult =
@@ -114,7 +116,9 @@ export function OrganizationCenter() {
       ) ?? contextResult.context.roles[0];
 
     if (defaultRole) {
-      setRoleId((current) => current || defaultRole.id);
+      setRoleId((current) =>
+        current || defaultRole.id
+      );
     }
   }, []);
 
@@ -131,16 +135,10 @@ export function OrganizationCenter() {
   }, [load]);
 
   async function reloadCurrent() {
-    const response = await fetch(
+    const response = await apiFetch(
       `${API}/api/tenancy/context`,
-      {
-        headers: {
-          "x-oeap-org": orgId,
-          "x-oeap-member": actorId
-        }
-      }
+      { headers }
     );
-
     const result = await response.json();
 
     if (!response.ok || !result.ok) {
@@ -162,7 +160,7 @@ export function OrganizationCenter() {
     setMessage("");
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API}/api/tenancy/members`,
         {
           method: "POST",
@@ -175,7 +173,6 @@ export function OrganizationCenter() {
           })
         }
       );
-
       const result = await response.json();
 
       if (!response.ok || !result.ok) {
@@ -203,7 +200,7 @@ export function OrganizationCenter() {
     member: Member,
     patch: Record<string, unknown>
   ) {
-    const response = await fetch(
+    const response = await apiFetch(
       `${API}/api/tenancy/members/${encodeURIComponent(member.id)}`,
       {
         method: "PUT",
@@ -211,7 +208,6 @@ export function OrganizationCenter() {
         body: JSON.stringify(patch)
       }
     );
-
     const result = await response.json();
 
     if (!response.ok || !result.ok) {
@@ -242,7 +238,7 @@ export function OrganizationCenter() {
         : current.filter((id) => id !== appId);
     }
 
-    const response = await fetch(
+    const response = await apiFetch(
       `${API}/api/tenancy/members/${encodeURIComponent(member.id)}/apps`,
       {
         method: "PUT",
@@ -250,7 +246,6 @@ export function OrganizationCenter() {
         body: JSON.stringify({ appIds: next })
       }
     );
-
     const result = await response.json();
 
     if (!response.ok || !result.ok) {
@@ -267,14 +262,13 @@ export function OrganizationCenter() {
       return;
     }
 
-    const response = await fetch(
+    const response = await apiFetch(
       `${API}/api/tenancy/members/${encodeURIComponent(member.id)}`,
       {
         method: "DELETE",
         headers
       }
     );
-
     const result = await response.json();
 
     if (!response.ok || !result.ok) {
@@ -298,7 +292,7 @@ export function OrganizationCenter() {
       return;
     }
 
-    const response = await fetch(
+    const response = await apiFetch(
       `${API}/api/tenancy/roles`,
       {
         method: "POST",
@@ -309,7 +303,6 @@ export function OrganizationCenter() {
         })
       }
     );
-
     const result = await response.json();
 
     if (!response.ok || !result.ok) {
@@ -349,16 +342,18 @@ export function OrganizationCenter() {
           <span>ENTERPRISE TENANCY & RBAC</span>
           <h1>企业与权限</h1>
           <p>
-            管理组织、员工角色、应用访问范围和权限审计。当前为本地开发身份模式，后续可接 OAuth / SSO。
+            管理组织、员工角色、应用访问范围、登录身份与权限审计。Session 与 OAuth / SSO Provider 已从业务权限层独立出来。
           </p>
         </div>
 
         <div className="orgIdentity">
           <strong>{organization.name}</strong>
           <small>{organization.id}</small>
-          <em>本地开发模式</em>
+          <em>企业身份模式</em>
         </div>
       </div>
+
+      <AuthPanel />
 
       {message && (
         <div className="orgMessage">
@@ -408,7 +403,10 @@ export function OrganizationCenter() {
 
                 <select
                   value={member.roleId}
-                  disabled={member.id === actorId && member.roleName === "Owner"}
+                  disabled={
+                    member.id === actorId &&
+                    member.roleName === "Owner"
+                  }
                   onChange={(event) =>
                     void updateMember(member, {
                       roleId: event.target.value
@@ -504,13 +502,15 @@ export function OrganizationCenter() {
 
         <article className="orgPanel addMemberPanel">
           <h3>添加成员</h3>
-          <p>当前本地模式直接创建成员；接入登录后将改成邀请机制。</p>
+          <p>本地模式直接创建成员；启用外部登录后可升级为邀请与域账号绑定。</p>
 
           <label>
             <span>姓名</span>
             <input
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) =>
+                setName(event.target.value)
+              }
               placeholder="例如：张经理"
             />
           </label>
@@ -519,7 +519,9 @@ export function OrganizationCenter() {
             <span>邮箱</span>
             <input
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) =>
+                setEmail(event.target.value)
+              }
               placeholder="name@company.com"
             />
           </label>
@@ -528,7 +530,9 @@ export function OrganizationCenter() {
             <span>角色</span>
             <select
               value={roleId}
-              onChange={(event) => setRoleId(event.target.value)}
+              onChange={(event) =>
+                setRoleId(event.target.value)
+              }
             >
               {roles.map((role) => (
                 <option
@@ -546,7 +550,9 @@ export function OrganizationCenter() {
             disabled={creatingMember}
             onClick={() => void createMember()}
           >
-            {creatingMember ? "添加中…" : "添加企业成员"}
+            {creatingMember
+              ? "添加中…"
+              : "添加企业成员"}
           </button>
         </article>
       </div>
@@ -556,21 +562,27 @@ export function OrganizationCenter() {
           <div className="orgPanelHeading">
             <div>
               <h3>角色与权限</h3>
-              <p>权限粒度采用 capability-style 标识，后续可继续下沉到页面、字段和动作级。</p>
+              <p>权限粒度采用 capability-style 标识，可继续下沉到页面、字段和动作级。</p>
             </div>
           </div>
 
           <div className="roleGrid">
             {roles.map((role) => (
-              <div className="roleCard" key={role.id}>
+              <div
+                className="roleCard"
+                key={role.id}
+              >
                 <div>
                   <strong>{role.name}</strong>
-                  {role.system && <span>系统角色</span>}
+                  {role.system && (
+                    <span>系统角色</span>
+                  )}
                 </div>
                 <code>
                   {role.permissions.includes("*")
                     ? "全部权限"
-                    : role.permissions.join(" · ") || "无权限"}
+                    : role.permissions.join(" · ") ||
+                      "无权限"}
                 </code>
               </div>
             ))}
@@ -591,7 +603,9 @@ export function OrganizationCenter() {
               }
               placeholder="权限逗号分隔，例如 apps.read,data.read"
             />
-            <button onClick={() => void createRole()}>
+            <button
+              onClick={() => void createRole()}
+            >
               创建角色
             </button>
           </div>
@@ -603,14 +617,18 @@ export function OrganizationCenter() {
 
           <div className="auditList">
             {data.audit.length === 0 ? (
-              <div className="auditEmpty">暂无审计事件</div>
+              <div className="auditEmpty">
+                暂无审计事件
+              </div>
             ) : (
               data.audit.slice(0, 12).map((event) => (
                 <div key={event.id}>
                   <strong>{event.action}</strong>
                   <span>
                     {event.subjectType}
-                    {event.subjectId ? ` · ${event.subjectId}` : ""}
+                    {event.subjectId
+                      ? ` · ${event.subjectId}`
+                      : ""}
                   </span>
                   <small>{event.createdAt}</small>
                 </div>
