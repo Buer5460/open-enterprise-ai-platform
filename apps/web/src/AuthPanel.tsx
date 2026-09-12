@@ -451,8 +451,9 @@ export function AuthPanel() {
             <small>组织</small>
             <strong>
               {brand.organizationName ||
-                session.organization?.name ??
-                session.session?.organizationId}
+                session.organization?.name ||
+                session.session?.organizationId ||
+                "Organization"}
             </strong>
           </div>
           <div>
