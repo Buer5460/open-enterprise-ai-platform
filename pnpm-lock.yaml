@@ -12,6 +12,12 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  packages/capability-registry:
+    dependencies:
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../package-spec
+
   packages/package-spec: {}
 
 packages:
