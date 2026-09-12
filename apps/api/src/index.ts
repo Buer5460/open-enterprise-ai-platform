@@ -88,10 +88,11 @@ registerTenancyRoutes({
   repoRoot
 });
 
-registerBrandSettingsRoutes({
-  app,
-  repoRoot
-});
+const brandSettingsStore =
+  registerBrandSettingsRoutes({
+    app,
+    repoRoot
+  });
 
 const mailSettingsStore =
   registerMailSettingsRoutes({
@@ -109,7 +110,8 @@ registerInvitationRoutes({
 registerInvitationDeliveryRoutes({
   app,
   repoRoot,
-  mailSettingsStore
+  mailSettingsStore,
+  brandSettingsStore
 });
 
 await app.listen({
