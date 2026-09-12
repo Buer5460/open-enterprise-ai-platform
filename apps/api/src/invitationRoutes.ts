@@ -6,15 +6,9 @@ import type {
 
 import { join } from "node:path";
 
-import {
-  InvitationStore
-} from "./invitationStore.js";
-import {
-  TenancyStore
-} from "./tenancyStore.js";
-import {
-  AuthSessionStore
-} from "./authStore.js";
+import { InvitationStore } from "./invitationStore.js";
+import { TenancyStore } from "./tenancyStore.js";
+import { AuthSessionStore } from "./authStore.js";
 import {
   organizationFrom,
   memberFrom
@@ -36,19 +30,16 @@ export function registerInvitationRoutes(
     "tenancy.sqlite"
   );
 
-  const invitations =
-    new InvitationStore(tenancyPath);
-  const tenancy =
-    new TenancyStore(tenancyPath);
-  const sessions =
-    new AuthSessionStore(
-      join(
-        options.repoRoot,
-        ".tmp",
-        "auth",
-        "sessions.sqlite"
-      )
-    );
+  const invitations = new InvitationStore(tenancyPath);
+  const tenancy = new TenancyStore(tenancyPath);
+  const sessions = new AuthSessionStore(
+    join(
+      options.repoRoot,
+      ".tmp",
+      "auth",
+      "sessions.sqlite"
+    )
+  );
 
   const { app } = options;
 
@@ -65,14 +56,11 @@ export function registerInvitationRoutes(
 
       return {
         ok: true,
-        organizationId:
-          identity.organizationId,
-        roles:
-          tenancy.listRoles(
-            identity.organizationId
-          ),
-        apps:
-          await options.loadApps()
+        organizationId: identity.organizationId,
+        roles: tenancy.listRoles(
+          identity.organizationId
+        ),
+        apps: await options.loadApps()
       };
     }
   );
@@ -90,10 +78,9 @@ export function registerInvitationRoutes(
 
       return {
         ok: true,
-        invitations:
-          invitations.list(
-            identity.organizationId
-          )
+        invitations: invitations.list(
+          identity.organizationId
+        )
       };
     }
   );
@@ -122,24 +109,30 @@ export function registerInvitationRoutes(
       if (!body.email?.trim() || !body.roleId) {
         return reply.code(400).send({
           ok: false,
+          error: "email and roleId are required"
+        });
+      }
+
+      if (
+        Array.isArray(body.appIds) &&
+        body.appIds.length === 0
+      ) {
+        return reply.code(400).send({
+          ok: false,
           error:
-            "email and roleId are required"
+            "Select at least one app or choose all apps"
         });
       }
 
       try {
         const created = invitations.create({
-          organizationId:
-            identity.organizationId,
+          organizationId: identity.organizationId,
           email: body.email,
-          invitedName:
-            body.invitedName,
+          invitedName: body.invitedName,
           roleId: body.roleId,
           appIds: body.appIds,
-          expiresHours:
-            body.expiresHours,
-          createdBy:
-            identity.memberId
+          expiresHours: body.expiresHours,
+          createdBy: identity.memberId
         });
 
         const apiBase =
@@ -151,8 +144,7 @@ export function registerInvitationRoutes(
 
         return {
           ok: true,
-          invitation:
-            created.invitation,
+          invitation: created.invitation,
           inviteUrl:
             `${apiBase}/invite/${encodeURIComponent(
               created.token
@@ -182,26 +174,27 @@ export function registerInvitationRoutes(
 
       if (!identity) return;
 
+      const ownedInvitation = invitations
+        .list(identity.organizationId)
+        .find(
+          (item) =>
+            item.id === request.params.invitationId
+        );
+
+      if (!ownedInvitation) {
+        return reply.code(404).send({
+          ok: false,
+          error: "Invitation not found"
+        });
+      }
+
       try {
-        const invitation =
-          invitations.revoke(
-            request.params.invitationId,
-            identity.memberId
-          );
-
-        if (
-          invitation.organizationId !==
-          identity.organizationId
-        ) {
-          return reply.code(403).send({
-            ok: false,
-            error: "Forbidden"
-          });
-        }
-
         return {
           ok: true,
-          invitation
+          invitation: invitations.revoke(
+            request.params.invitationId,
+            identity.memberId
+          )
         };
       } catch (error) {
         return reply.code(400).send({
@@ -213,16 +206,13 @@ export function registerInvitationRoutes(
   );
 
   app.get<{
-    Params: {
-      token: string;
-    };
+    Params: { token: string };
   }>(
     "/api/invitations/public/:token",
     async (request, reply) => {
-      const invitation =
-        invitations.getPublic(
-          request.params.token
-        );
+      const invitation = invitations.getPublic(
+        request.params.token
+      );
 
       if (!invitation) {
         return reply.code(404).send({
@@ -231,10 +221,7 @@ export function registerInvitationRoutes(
         });
       }
 
-      return {
-        ok: true,
-        invitation
-      };
+      return { ok: true, invitation };
     }
   );
 
@@ -246,8 +233,7 @@ export function registerInvitationRoutes(
   }>(
     "/api/invitations/accept",
     async (request, reply) => {
-      const token =
-        request.body?.token?.trim();
+      const token = request.body?.token?.trim();
 
       if (!token) {
         return reply.code(400).send({
@@ -276,14 +262,10 @@ export function registerInvitationRoutes(
 
         return {
           ok: true,
-          invitation:
-            accepted.invitation,
-          member:
-            accepted.member,
-          sessionToken:
-            session.token,
-          expiresAt:
-            session.expiresAt
+          invitation: accepted.invitation,
+          member: accepted.member,
+          sessionToken: session.token,
+          expiresAt: session.expiresAt
         };
       } catch (error) {
         return reply.code(400).send({
@@ -295,34 +277,37 @@ export function registerInvitationRoutes(
   );
 
   app.get<{
-    Params: {
-      token: string;
-    };
+    Params: { token: string };
   }>(
     "/invite/:token",
     async (request, reply) => {
-      const invitation =
-        invitations.getPublic(
-          request.params.token
-        );
+      const invitation = invitations.getPublic(
+        request.params.token
+      );
 
       if (!invitation) {
         return reply
           .code(404)
           .type("text/html; charset=utf-8")
-          .send(renderMessagePage(
-            "邀请不存在",
-            "该邀请链接无效或已被清理。"
-          ));
+          .send(
+            renderMessagePage(
+              "邀请不存在",
+              "该邀请链接无效或已被清理。"
+            )
+          );
       }
 
       if (invitation.status !== "pending") {
         return reply
           .type("text/html; charset=utf-8")
-          .send(renderMessagePage(
-            "邀请不可用",
-            `当前状态：${escapeHtml(invitation.status)}`
-          ));
+          .send(
+            renderMessagePage(
+              "邀请不可用",
+              `当前状态：${escapeHtml(
+                invitation.status
+              )}`
+            )
+          );
       }
 
       const webUrl =
@@ -350,8 +335,7 @@ function requireManager(
   organizationId: string;
   memberId: string;
 } | undefined {
-  const organizationId =
-    organizationFrom(request);
+  const organizationId = organizationFrom(request);
   const memberId = memberFrom(request);
 
   try {
@@ -376,10 +360,7 @@ function requireManager(
     return undefined;
   }
 
-  return {
-    organizationId,
-    memberId
-  };
+  return { organizationId, memberId };
 }
 
 function renderInvitationPage(input: {
@@ -435,36 +416,31 @@ function renderInvitationPage(input: {
 <div class="fine">邀请链接只能使用一次。接受后会创建一个临时登录会话；生产环境可切换为 GitHub、Google、Microsoft Entra ID 或企业 OIDC 登录。</div>
 </main></div>
 <script>
-const inviteToken = ${tokenJson};
-const webUrl = ${webUrlJson};
-const form = document.getElementById('invite-form');
-const button = document.getElementById('submit');
-const message = document.getElementById('message');
-form.addEventListener('submit', async (event) => {
+const inviteToken=${tokenJson};
+const webUrl=${webUrlJson};
+const form=document.getElementById('invite-form');
+const button=document.getElementById('submit');
+const message=document.getElementById('message');
+form.addEventListener('submit',async(event)=>{
   event.preventDefault();
-  button.disabled = true;
-  button.textContent = '正在加入…';
-  message.style.display = 'none';
-  try {
-    const response = await fetch('/api/invitations/accept', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        token: inviteToken,
-        name: document.getElementById('name').value
-      })
+  button.disabled=true;
+  button.textContent='正在加入…';
+  message.style.display='none';
+  try{
+    const response=await fetch('/api/invitations/accept',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token:inviteToken,name:document.getElementById('name').value})
     });
-    const result = await response.json();
-    if (!response.ok || !result.ok) {
-      throw new Error(result.error || '接受邀请失败');
-    }
-    const separator = webUrl.includes('#') ? '&' : '#';
-    window.location.href = webUrl + separator + 'oeap_session=' + encodeURIComponent(result.sessionToken);
-  } catch (error) {
-    message.textContent = error instanceof Error ? error.message : '接受邀请失败';
-    message.style.display = 'block';
-    button.disabled = false;
-    button.textContent = '接受邀请并进入 OEAP';
+    const result=await response.json();
+    if(!response.ok||!result.ok){throw new Error(result.error||'接受邀请失败');}
+    const separator=webUrl.includes('#')?'&':'#';
+    window.location.href=webUrl+separator+'oeap_session='+encodeURIComponent(result.sessionToken);
+  }catch(error){
+    message.textContent=error instanceof Error?error.message:'接受邀请失败';
+    message.style.display='block';
+    button.disabled=false;
+    button.textContent='接受邀请并进入 OEAP';
   }
 });
 </script>
