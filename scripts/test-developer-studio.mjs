@@ -1,7 +1,11 @@
 import {
   createDeveloperPackage,
   deleteDeveloperPackage,
-  listDeveloperPackages
+  listDeveloperPackages,
+  listPublishedPackages,
+  publishDeveloperPackage,
+  unpublishDeveloperPackage,
+  validateDeveloperPackage
 } from "../apps/api/dist/platformCatalog.js";
 
 import {
@@ -47,6 +51,71 @@ if (
   );
 }
 
+const validation =
+  await validateDeveloperPackage(
+    repoRoot,
+    packageId
+  );
+
+if (!validation.valid) {
+  throw new Error(
+    `Developer package validation failed: ${validation.errors.join(", ")}`
+  );
+}
+
+const published =
+  await publishDeveloperPackage(
+    repoRoot,
+    packageId
+  );
+
+if (
+  published.id !== packageId ||
+  published.status !== "available"
+) {
+  throw new Error(
+    "Developer package publish returned unexpected result"
+  );
+}
+
+const marketplace =
+  await listPublishedPackages(repoRoot);
+
+if (
+  !marketplace.some(
+    (item) => item.id === packageId
+  )
+) {
+  throw new Error(
+    "Published package was not discoverable in local marketplace"
+  );
+}
+
+const unpublished =
+  await unpublishDeveloperPackage(
+    repoRoot,
+    packageId
+  );
+
+if (!unpublished) {
+  throw new Error(
+    "Developer package unpublish returned false"
+  );
+}
+
+const afterUnpublish =
+  await listPublishedPackages(repoRoot);
+
+if (
+  afterUnpublish.some(
+    (item) => item.id === packageId
+  )
+) {
+  throw new Error(
+    "Developer package still exists in local marketplace after unpublish"
+  );
+}
+
 const deleted =
   await deleteDeveloperPackage(
     repoRoot,
@@ -73,5 +142,5 @@ if (
 }
 
 console.log(
-  "✅ DEVELOPER STUDIO LIFECYCLE TEST PASSED"
+  "✅ DEVELOPER STUDIO VALIDATE/PUBLISH LIFECYCLE TEST PASSED"
 );
