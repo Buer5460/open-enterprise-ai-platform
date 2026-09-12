@@ -1,5 +1,6 @@
 import type {
-  FastifyInstance
+  FastifyInstance,
+  FastifyRequest
 } from "fastify";
 
 import {
@@ -40,6 +41,15 @@ import {
   AppDatabase
 } from "@oeap/data-runtime";
 
+import {
+  TenancyStore
+} from "./tenancyStore.js";
+
+import {
+  organizationFrom,
+  memberFrom
+} from "./tenancyRoutes.js";
+
 export interface AppRoutesOptions {
   app: FastifyInstance;
   repoRoot: string;
@@ -61,6 +71,15 @@ export function registerAppRoutes(
       ".tmp",
       "generated-apps"
     );
+
+  const tenancyStore = new TenancyStore(
+    join(
+      repoRoot,
+      ".tmp",
+      "tenancy",
+      "tenancy.sqlite"
+    )
+  );
 
   let aiInitialized = false;
 
@@ -163,8 +182,37 @@ export function registerAppRoutes(
     );
   }
 
+  function can(
+    request: FastifyRequest,
+    permission: string,
+    appId?: string
+  ): boolean {
+    try {
+      return tenancyStore.authorize({
+        organizationId:
+          organizationFrom(request),
+        memberId:
+          memberFrom(request),
+        permission,
+        appId
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  function forbidden(reply: any) {
+    return reply
+      .code(403)
+      .send({
+        ok: false,
+        error: "Forbidden"
+      });
+  }
+
   function getDatabase(
-    manifest: any
+    manifest: any,
+    organizationId = "org_local"
   ) {
     const safeId =
       String(manifest.id).replace(
@@ -172,13 +220,24 @@ export function registerAppRoutes(
         "_"
       );
 
+    const safeOrganizationId =
+      String(organizationId).replace(
+        /[^a-zA-Z0-9_.-]/g,
+        "_"
+      );
+
+    const databaseFile =
+      organizationId === "org_local"
+        ? `${safeId}.sqlite`
+        : `${safeOrganizationId}__${safeId}.sqlite`;
+
     const database =
       new AppDatabase(
         join(
           repoRoot,
           ".tmp",
           "databases",
-          `${safeId}.sqlite`
+          databaseFile
         )
       );
 
@@ -196,8 +255,10 @@ export function registerAppRoutes(
   }
 
   async function withAppDatabase(
+    request: FastifyRequest,
     appId: string,
-    reply: any
+    reply: any,
+    permission: "data.read" | "data.write"
   ) {
     const manifest = await findApp(appId);
 
@@ -212,9 +273,21 @@ export function registerAppRoutes(
       return undefined;
     }
 
+    if (!can(request, permission, appId)) {
+      forbidden(reply);
+      return undefined;
+    }
+
     return {
       manifest,
-      database: getDatabase(manifest)
+      organizationId:
+        organizationFrom(request),
+      memberId:
+        memberFrom(request),
+      database: getDatabase(
+        manifest,
+        organizationFrom(request)
+      )
     };
   }
 
@@ -249,9 +322,20 @@ export function registerAppRoutes(
 
   app.get(
     "/api/apps",
-    async () => ({
-      apps: await loadApps()
-    })
+    async (request) => {
+      const apps = await loadApps();
+
+      return {
+        apps: apps.filter(
+          (item) =>
+            can(
+              request,
+              "apps.read",
+              item.id
+            )
+        )
+      };
+    }
   );
 
   app.post<{
@@ -262,6 +346,10 @@ export function registerAppRoutes(
   }>(
     "/api/apps/generate",
     async (request, reply) => {
+      if (!can(request, "apps.manage")) {
+        return forbidden(reply);
+      }
+
       const description =
         request.body?.description?.trim();
 
@@ -311,6 +399,16 @@ export function registerAppRoutes(
   }>(
     "/api/apps/:appId/blueprint",
     async (request, reply) => {
+      if (
+        !can(
+          request,
+          "apps.read",
+          request.params.appId
+        )
+      ) {
+        return forbidden(reply);
+      }
+
       const manifest =
         await findApp(
           request.params.appId
@@ -343,6 +441,16 @@ export function registerAppRoutes(
   }>(
     "/api/apps/:appId/revise",
     async (request, reply) => {
+      if (
+        !can(
+          request,
+          "apps.manage",
+          request.params.appId
+        )
+      ) {
+        return forbidden(reply);
+      }
+
       const instruction =
         request.body?.instruction?.trim();
 
@@ -413,7 +521,10 @@ export function registerAppRoutes(
           manifest.localDirectory
       };
 
-      getDatabase(updatedApp);
+      getDatabase(
+        updatedApp,
+        organizationFrom(request)
+      );
 
       return {
         ok: true,
@@ -440,8 +551,10 @@ export function registerAppRoutes(
     async (request, reply) => {
       const context =
         await withAppDatabase(
+          request,
           request.params.appId,
-          reply
+          reply,
+          "data.read"
         );
 
       if (!context) {
@@ -471,6 +584,8 @@ export function registerAppRoutes(
 
       return {
         ok: true,
+        organizationId:
+          context.organizationId,
         rows:
           context.database.list(
             request.params.entity,
@@ -503,8 +618,10 @@ export function registerAppRoutes(
     async (request, reply) => {
       const context =
         await withAppDatabase(
+          request,
           request.params.appId,
-          reply
+          reply,
+          "data.read"
         );
 
       if (!context) {
@@ -528,6 +645,8 @@ export function registerAppRoutes(
 
       return {
         ok: true,
+        organizationId:
+          context.organizationId,
         row
       };
     }
@@ -544,8 +663,10 @@ export function registerAppRoutes(
     async (request, reply) => {
       const context =
         await withAppDatabase(
+          request,
           request.params.appId,
-          reply
+          reply,
+          "data.write"
         );
 
       if (!context) {
@@ -554,6 +675,8 @@ export function registerAppRoutes(
 
       return {
         ok: true,
+        organizationId:
+          context.organizationId,
         row:
           context.database.create(
             request.params.entity,
@@ -575,8 +698,10 @@ export function registerAppRoutes(
     async (request, reply) => {
       const context =
         await withAppDatabase(
+          request,
           request.params.appId,
-          reply
+          reply,
+          "data.write"
         );
 
       if (!context) {
@@ -601,6 +726,8 @@ export function registerAppRoutes(
 
       return {
         ok: true,
+        organizationId:
+          context.organizationId,
         row
       };
     }
@@ -617,8 +744,10 @@ export function registerAppRoutes(
     async (request, reply) => {
       const context =
         await withAppDatabase(
+          request,
           request.params.appId,
-          reply
+          reply,
+          "data.write"
         );
 
       if (!context) {
@@ -641,7 +770,9 @@ export function registerAppRoutes(
       }
 
       return {
-        ok: true
+        ok: true,
+        organizationId:
+          context.organizationId
       };
     }
   );
