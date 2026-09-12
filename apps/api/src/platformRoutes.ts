@@ -3,8 +3,16 @@ import type {
 } from "fastify";
 
 import {
+  join
+} from "node:path";
+
+import {
   packageManager
 } from "@oeap/package-manager";
+
+import {
+  AppDatabase
+} from "@oeap/data-runtime";
 
 import {
   createDeveloperPackage,
@@ -120,6 +128,101 @@ export function registerPlatformRoutes(
               item.updatedAt
           })
         )
+      };
+    }
+  );
+
+  app.get(
+    "/api/platform/data-overview",
+    async () => {
+      const apps = await loadApps();
+
+      const summaries = apps.map(
+        (manifest) => {
+          const safeId = String(
+            manifest.id
+          ).replace(
+            /[^a-zA-Z0-9_.-]/g,
+            "_"
+          );
+
+          const database =
+            new AppDatabase(
+              join(
+                repoRoot,
+                ".tmp",
+                "databases",
+                `${safeId}.sqlite`
+              )
+            );
+
+          const entities =
+            manifest.metadata?.entities ??
+            [];
+
+          database.ensureEntities(
+            entities.map(
+              (entity: any) => ({
+                name: entity.name,
+                fields:
+                  entity.fields ?? []
+              })
+            )
+          );
+
+          const entityStats =
+            entities.map(
+              (entity: any) => ({
+                name: entity.name,
+                description:
+                  entity.description,
+                fields:
+                  entity.fields?.length ?? 0,
+                records:
+                  database.count(
+                    entity.name
+                  )
+              })
+            );
+
+          return {
+            id: manifest.id,
+            name:
+              manifest.displayName ??
+              manifest.name,
+            version:
+              manifest.version,
+            entities:
+              entityStats.length,
+            records:
+              entityStats.reduce(
+                (total: number, item: any) =>
+                  total + item.records,
+                0
+              ),
+            entityStats
+          };
+        }
+      );
+
+      return {
+        ok: true,
+        apps: summaries,
+        totals: {
+          apps: summaries.length,
+          entities:
+            summaries.reduce(
+              (total, item) =>
+                total + item.entities,
+              0
+            ),
+          records:
+            summaries.reduce(
+              (total, item) =>
+                total + item.records,
+              0
+            )
+        }
       };
     }
   );
