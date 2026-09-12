@@ -23,6 +23,10 @@ import {
 } from "./brandSettingsRoutes.js";
 
 import {
+  registerDeploymentRoutes
+} from "./deploymentRoutes.js";
+
+import {
   registerInvitationRoutes
 } from "./invitationRoutes.js";
 
@@ -47,7 +51,7 @@ const app = Fastify({
 });
 
 await app.register(cors, {
-  origin: true
+  origin: corsOriginPolicy()
 });
 
 const currentDir =
@@ -100,6 +104,13 @@ const mailSettingsStore =
     repoRoot
   });
 
+registerDeploymentRoutes({
+  app,
+  repoRoot,
+  mailSettingsStore,
+  brandSettingsStore
+});
+
 registerInvitationRoutes({
   app,
   repoRoot,
@@ -118,3 +129,30 @@ await app.listen({
   port: 8787,
   host: "127.0.0.1"
 });
+
+function corsOriginPolicy():
+  | true
+  | false
+  | string
+  | string[] {
+  const configured =
+    process.env.OEAP_CORS_ORIGINS
+      ?.split(",")
+      .map((value) => value.trim())
+      .filter(Boolean) ?? [];
+
+  if (configured.length === 1) {
+    return configured[0];
+  }
+
+  if (configured.length > 1) {
+    return configured;
+  }
+
+  const production =
+    process.env.OEAP_DEPLOYMENT_MODE
+      ?.trim()
+      .toLowerCase() === "production";
+
+  return production ? false : true;
+}
