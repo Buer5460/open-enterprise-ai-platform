@@ -38,6 +38,7 @@ jobs:
           if [ -f scripts/test-growth-agent.mjs ]; then node scripts/test-growth-agent.mjs; fi
           if [ -f scripts/test-growth-workflow.mjs ]; then node scripts/test-growth-workflow.mjs; fi
           if [ -f scripts/test-developer-studio.mjs ]; then node scripts/test-developer-studio.mjs; fi
+          if [ -f scripts/test-tenancy.mjs ]; then node scripts/test-tenancy.mjs; fi
 
       - name: Note AI-runtime integration tests
         run: |
