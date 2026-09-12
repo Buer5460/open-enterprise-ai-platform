@@ -27,6 +27,10 @@ import {
 } from "./brandSettingsRoutes.js";
 
 import {
+  registerConnectorSecretRoutes
+} from "./connectorSecretRoutes.js";
+
+import {
   registerDeploymentRoutes
 } from "./deploymentRoutes.js";
 
@@ -118,6 +122,11 @@ registerFileRoutes({
 });
 
 registerKnowledgeRoutes({
+  app,
+  repoRoot
+});
+
+registerConnectorSecretRoutes({
   app,
   repoRoot
 });
