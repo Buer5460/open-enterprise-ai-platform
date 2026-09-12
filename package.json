@@ -1,6 +1,6 @@
 {
   "name": "open-enterprise-ai-platform",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.7.0",
@@ -8,9 +8,12 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "echo \"Platform development environment not configured yet\"",
-    "build": "echo \"Platform build not configured yet\"",
-    "test": "echo \"Platform tests not configured yet\""
+    "dev": "bash scripts/start-local.sh",
+    "build": "corepack pnpm -r build",
+    "test": "bash scripts/test-ci.sh",
+    "start:api": "corepack pnpm --filter @oeap/api start",
+    "backup": "bash scripts/backup-data.sh",
+    "restore": "bash scripts/restore-data.sh"
   },
   "devDependencies": {
     "@types/node": "^22.20.2",
