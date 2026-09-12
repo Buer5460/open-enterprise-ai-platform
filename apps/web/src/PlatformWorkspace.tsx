@@ -7,6 +7,7 @@ export type PlatformView =
   | "skills"
   | "workflows"
   | "connectors"
+  | "data"
   | "marketplace"
   | "developer";
 
@@ -38,7 +39,29 @@ type CatalogResponse = {
   counts: Record<string, number>;
 };
 
-const titles: Record<PlatformView, {
+type DataOverview = {
+  ok: boolean;
+  totals: {
+    apps: number;
+    entities: number;
+    records: number;
+  };
+  apps: Array<{
+    id: string;
+    name: string;
+    version: string;
+    entities: number;
+    records: number;
+    entityStats: Array<{
+      name: string;
+      description?: string;
+      fields: number;
+      records: number;
+    }>;
+  }>;
+};
+
+const titles: Record<Exclude<PlatformView, "data">, {
   title: string;
   subtitle: string;
 }> = {
@@ -123,6 +146,10 @@ export function PlatformWorkspace({
   }, []);
 
   React.useEffect(() => {
+    if (view === "data") {
+      return;
+    }
+
     setLoading(true);
     load()
       .catch((error) => {
@@ -132,6 +159,10 @@ export function PlatformWorkspace({
         setLoading(false);
       });
   }, [load, view]);
+
+  if (view === "data") {
+    return <DataCenter />;
+  }
 
   if (view === "developer") {
     return (
@@ -271,6 +302,131 @@ export function PlatformWorkspace({
           packages={packages}
         />
       )}
+    </section>
+  );
+}
+
+function DataCenter() {
+  const [data, setData] =
+    React.useState<DataOverview | null>(null);
+  const [loading, setLoading] =
+    React.useState(true);
+  const [error, setError] =
+    React.useState("");
+
+  React.useEffect(() => {
+    fetch(`${API}/api/platform/data-overview`)
+      .then(async (response) => {
+        const result = await response.json();
+
+        if (!response.ok || !result.ok) {
+          throw new Error(
+            result.error ?? "数据中心加载失败"
+          );
+        }
+
+        setData(result);
+      })
+      .catch((reason) => {
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : "数据中心加载失败"
+        );
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  return (
+    <section className="platformWorkspace">
+      <div className="workspaceHeading">
+        <div>
+          <span className="workspaceEyebrow">
+            ENTERPRISE DATA
+          </span>
+          <h1>数据中心</h1>
+          <p>
+            汇总 AI 生成应用的 SQLite 数据实体和记录量，为后续跨应用分析、BI 和数据权限奠定统一入口。
+          </p>
+        </div>
+
+        <div className="workspaceMetric">
+          <strong>
+            {data?.totals.records ?? 0}
+          </strong>
+          <span>总业务记录</span>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="workspaceEmpty">
+          正在统计应用数据…
+        </div>
+      ) : error ? (
+        <div className="workspaceEmpty">
+          {error}
+        </div>
+      ) : data ? (
+        <>
+          <div className="dataCenterStats">
+            <div>
+              <strong>{data.totals.apps}</strong>
+              <span>应用</span>
+            </div>
+            <div>
+              <strong>{data.totals.entities}</strong>
+              <span>数据实体</span>
+            </div>
+            <div>
+              <strong>{data.totals.records}</strong>
+              <span>业务记录</span>
+            </div>
+          </div>
+
+          <div className="dataAppGrid">
+            {data.apps.map((item) => (
+              <article
+                className="dataAppCard"
+                key={item.id}
+              >
+                <div className="dataAppHeader">
+                  <div>
+                    <h3>{item.name}</h3>
+                    <span>v{item.version}</span>
+                  </div>
+                  <strong>
+                    {item.records} 条
+                  </strong>
+                </div>
+
+                <div className="dataEntityList">
+                  {item.entityStats.map(
+                    (entity) => (
+                      <div
+                        key={entity.name}
+                      >
+                        <div>
+                          <strong>
+                            {entity.name}
+                          </strong>
+                          <small>
+                            {entity.fields} 个字段
+                          </small>
+                        </div>
+                        <span>
+                          {entity.records} 条
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </>
+      ) : null}
     </section>
   );
 }
