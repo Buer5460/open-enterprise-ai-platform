@@ -8,6 +8,12 @@ import {
   PlatformWorkspace,
   type PlatformView
 } from "./PlatformWorkspace";
+import {
+  BrandMark,
+  BrandProvider,
+  useBrand
+} from "./BrandRuntime";
+import { apiFetch } from "./apiClient";
 
 type Role = {
   name: string;
@@ -64,43 +70,33 @@ type RootView =
   | PlatformView;
 
 function Platform() {
+  const { brand } = useBrand();
   const [apps, setApps] =
     React.useState<AppManifest[]>([]);
-
   const [loading, setLoading] =
     React.useState(true);
-
   const [description, setDescription] =
     React.useState("");
-
   const [creating, setCreating] =
     React.useState(false);
-
   const [selectedApp, setSelectedApp] =
     React.useState<AppManifest | null>(null);
-
   const [activePage, setActivePage] =
     React.useState("overview");
-
   const [rootView, setRootView] =
     React.useState<RootView>("workbench");
 
   const loadApps = React.useCallback(async () => {
-    const response = await fetch(
+    const response = await apiFetch(
       `${API}/api/apps`
     );
-
     const data = await response.json();
     const nextApps: AppManifest[] =
       data.apps ?? [];
 
     setApps(nextApps);
-
     setSelectedApp((current) => {
-      if (!current) {
-        return null;
-      }
-
+      if (!current) return null;
       return nextApps.find(
         (item) => item.id === current.id
       ) ?? current;
@@ -142,7 +138,7 @@ function Platform() {
     setCreating(true);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API}/api/apps/generate`,
         {
           method: "POST",
@@ -183,10 +179,8 @@ function Platform() {
   if (selectedApp) {
     const roles =
       selectedApp.metadata?.roles ?? [];
-
     const entities =
       selectedApp.metadata?.entities ?? [];
-
     const workflows =
       selectedApp.metadata?.workflows ?? [];
 
@@ -194,12 +188,14 @@ function Platform() {
       <div className="shell">
         <aside className="sidebar">
           <div className="brand">
-            <div className="logo">O</div>
+            <BrandMark />
             <div>
               <strong>
                 {selectedApp.displayName ?? selectedApp.name}
               </strong>
-              <span>OEAP 企业应用</span>
+              <span>
+                {brand.shortName || brand.organizationName} · 企业应用
+              </span>
             </div>
           </div>
 
@@ -378,10 +374,12 @@ function Platform() {
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="logo">O</div>
+          <BrandMark />
           <div>
-            <strong>OpenEnterpriseAI</strong>
-            <span>AI 原生企业应用平台</span>
+            <strong>
+              {brand.shortName || brand.organizationName}
+            </strong>
+            <span>{brand.loginSubtitle}</span>
           </div>
         </div>
 
@@ -520,6 +518,11 @@ function Platform() {
       <main className="main">
         {rootView === "workbench" ? (
           <Workbench
+            brandName={
+              brand.shortName || brand.organizationName
+            }
+            brandTitle={brand.loginTitle}
+            brandSubtitle={brand.loginSubtitle}
             apps={apps}
             loading={loading}
             description={description}
@@ -544,6 +547,9 @@ function Platform() {
 }
 
 function Workbench({
+  brandName,
+  brandTitle,
+  brandSubtitle,
   apps,
   loading,
   description,
@@ -552,6 +558,9 @@ function Workbench({
   createApp,
   openApp
 }: {
+  brandName: string;
+  brandTitle: string;
+  brandSubtitle: string;
   apps: AppManifest[];
   loading: boolean;
   description: string;
@@ -564,10 +573,8 @@ function Workbench({
     <>
       <header>
         <div>
-          <h1>企业 AI 工作台</h1>
-          <p>
-            用自然语言创建、运行和扩展属于自己的企业应用。
-          </p>
+          <h1>{brandName} AI 工作台</h1>
+          <p>{brandSubtitle}</p>
         </div>
 
         <button
@@ -586,7 +593,7 @@ function Workbench({
 
       <section className="hero">
         <div className="heroLabel">
-          AI APP BUILDER
+          {brandTitle || "AI APP BUILDER"}
         </div>
 
         <h2>
@@ -719,6 +726,8 @@ ReactDOM
   )
   .render(
     <React.StrictMode>
-      <Platform />
+      <BrandProvider>
+        <Platform />
+      </BrandProvider>
     </React.StrictMode>
   );
