@@ -1,61 +1,28 @@
-export type OEAPPackageType =
-  | "app"
-  | "agent"
-  | "skill"
-  | "workflow"
-  | "connector"
-  | "data-provider";
+export * from "./base.js";
+export * from "./skill.js";
+export * from "./agent.js";
+export * from "./workflow.js";
+export * from "./connector.js";
+export * from "./data-provider.js";
+export * from "./app.js";
 
-export interface OEAPPermission {
-  id: string;
-  description?: string;
-  required?: boolean;
-}
+import type { OEAPSkillManifest } from "./skill.js";
+import type { OEAPAgentManifest } from "./agent.js";
+import type { OEAPWorkflowManifest } from "./workflow.js";
+import type { OEAPConnectorManifest } from "./connector.js";
+import type { OEAPDataProviderManifest } from "./data-provider.js";
+import type { OEAPAppManifest } from "./app.js";
 
-export interface OEAPCapabilityRequirement {
-  id: string;
-  version?: string;
-  optional?: boolean;
-}
+export type OEAPPackageManifest =
+  | OEAPSkillManifest
+  | OEAPAgentManifest
+  | OEAPWorkflowManifest
+  | OEAPConnectorManifest
+  | OEAPDataProviderManifest
+  | OEAPAppManifest;
 
-export interface OEAPPackageDependency {
-  package: string;
-  version: string;
-  optional?: boolean;
-}
-
-export interface OEAPPackageManifest {
-  schemaVersion: "1.0";
-
-  id: string;
-  type: OEAPPackageType;
-
-  name: string;
-  displayName?: string;
-  description?: string;
-
-  version: string;
-  publisher: string;
-
-  license?: string;
-  homepage?: string;
-  repository?: string;
-
-  entrypoint?: string;
-
-  permissions?: OEAPPermission[];
-
-  capabilities?: OEAPCapabilityRequirement[];
-
-  dependencies?: OEAPPackageDependency[];
-
-  tags?: string[];
-
-  metadata?: Record<string, unknown>;
-}
-
-export function definePackage(
-  manifest: OEAPPackageManifest
-): OEAPPackageManifest {
+export function definePackage<T extends OEAPPackageManifest>(
+  manifest: T
+): T {
   return manifest;
 }
