@@ -15,6 +15,10 @@ import {
 } from "./authRoutes.js";
 
 import {
+  registerAppHistoryRoutes
+} from "./appHistoryRoutes.js";
+
+import {
   registerAppRoutes
 } from "./appRoutes.js";
 
@@ -82,6 +86,11 @@ const appRoutes =
     repoRoot,
     openEnterpriseRoot
   });
+
+registerAppHistoryRoutes({
+  app,
+  repoRoot
+});
 
 registerPlatformRoutes({
   app,
