@@ -129,6 +129,12 @@ export function PlatformWorkspace({
       "all"
     );
 
+  const [workingPackage, setWorkingPackage] =
+    React.useState<string | null>(null);
+
+  const [actionMessage, setActionMessage] =
+    React.useState("");
+
   const load = React.useCallback(async () => {
     const response = await fetch(
       `${API}/api/platform/packages`
@@ -159,6 +165,58 @@ export function PlatformWorkspace({
         setLoading(false);
       });
   }, [load, view]);
+
+  async function togglePackage(
+    item: MarketplacePackage
+  ) {
+    if (
+      item.source !== "official" ||
+      item.id === "oeap.deepseek-harness"
+    ) {
+      return;
+    }
+
+    const action =
+      item.status === "enabled"
+        ? "disable"
+        : "enable";
+
+    setWorkingPackage(item.id);
+    setActionMessage("");
+
+    try {
+      const response = await fetch(
+        `${API}/api/platform/packages/${encodeURIComponent(
+          item.id
+        )}/${action}`,
+        {
+          method: "POST"
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(
+          result.error ?? "Package 操作失败"
+        );
+      }
+
+      setActionMessage(
+        `${item.displayName} ${action === "enable" ? "已启用" : "已停用"}`
+      );
+
+      await load();
+    } catch (error) {
+      setActionMessage(
+        error instanceof Error
+          ? error.message
+          : "Package 操作失败"
+      );
+    } finally {
+      setWorkingPackage(null);
+    }
+  }
 
   if (view === "data") {
     return <DataCenter />;
@@ -273,6 +331,12 @@ export function PlatformWorkspace({
         )}
       </div>
 
+      {actionMessage && (
+        <div className="packageActionMessage">
+          {actionMessage}
+        </div>
+      )}
+
       {view === "marketplace" && (
         <div className="catalogStats">
           {[
@@ -300,6 +364,8 @@ export function PlatformWorkspace({
       ) : (
         <PackageGrid
           packages={packages}
+          workingPackage={workingPackage}
+          onToggle={togglePackage}
         />
       )}
     </section>
@@ -432,9 +498,15 @@ function DataCenter() {
 }
 
 function PackageGrid({
-  packages
+  packages,
+  workingPackage,
+  onToggle
 }: {
   packages: MarketplacePackage[];
+  workingPackage: string | null;
+  onToggle: (
+    item: MarketplacePackage
+  ) => Promise<void>;
 }) {
   if (packages.length === 0) {
     return (
@@ -446,53 +518,87 @@ function PackageGrid({
 
   return (
     <div className="packageGrid">
-      {packages.map((item) => (
-        <article
-          className="packageCard"
-          key={`${item.source}:${item.id}`}
-        >
-          <div className="packageCardTop">
-            <span
-              className={`packageType packageType-${item.type}`}
-            >
-              {item.type}
-            </span>
+      {packages.map((item) => {
+        const canToggle =
+          item.source === "official" &&
+          item.id !==
+            "oeap.deepseek-harness";
 
-            <span
-              className={`packageStatus packageStatus-${item.status}`}
-            >
-              {statusLabel(item.status)}
-            </span>
-          </div>
+        return (
+          <article
+            className="packageCard"
+            key={`${item.source}:${item.id}`}
+          >
+            <div className="packageCardTop">
+              <span
+                className={`packageType packageType-${item.type}`}
+              >
+                {item.type}
+              </span>
 
-          <h3>{item.displayName}</h3>
-          <code>{item.id}</code>
+              <span
+                className={`packageStatus packageStatus-${item.status}`}
+              >
+                {statusLabel(item.status)}
+              </span>
+            </div>
 
-          <p>
-            {item.description ??
-              "OEAP 可扩展业务能力包。"}
-          </p>
+            <h3>{item.displayName}</h3>
+            <code>{item.id}</code>
 
-          <div className="packageTags">
-            {(item.tags ?? [])
-              .slice(0, 4)
-              .map((tag) => (
-                <span key={tag}>
-                  {tag}
-                </span>
-              ))}
-          </div>
+            <p>
+              {item.description ??
+                "OEAP 可扩展业务能力包。"}
+            </p>
 
-          <footer>
-            <span>
-              {item.publisher} · v{item.version}
-            </span>
-            <span>
-              {sourceLabel(item.source)}
-            </span>
-          </footer>
-        </article>
-      ))}
+            <div className="packageTags">
+              {(item.tags ?? [])
+                .slice(0, 4)
+                .map((tag) => (
+                  <span key={tag}>
+                    {tag}
+                  </span>
+                ))}
+            </div>
+
+            {canToggle ? (
+              <button
+                className={
+                  item.status === "enabled"
+                    ? "packageToggle packageToggleDanger"
+                    : "packageToggle"
+                }
+                disabled={
+                  workingPackage === item.id
+                }
+                onClick={() =>
+                  void onToggle(item)
+                }
+              >
+                {workingPackage === item.id
+                  ? "处理中…"
+                  : item.status === "enabled"
+                    ? "停用 Package"
+                    : "启用 Package"}
+              </button>
+            ) : item.id ===
+              "oeap.deepseek-harness" ? (
+              <div className="packageManagedHint">
+                由 AI Runtime 启动配置管理
+              </div>
+            ) : null}
+
+            <footer>
+              <span>
+                {item.publisher} · v{item.version}
+              </span>
+              <span>
+                {sourceLabel(item.source)}
+              </span>
+            </footer>
+          </article>
+        );
+      })}
     </div>
   );
 }
