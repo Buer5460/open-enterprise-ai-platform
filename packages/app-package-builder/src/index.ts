@@ -22,6 +22,7 @@ export interface BuildAppPackageOptions {
   publisher: string;
   version?: string;
   outputDir: string;
+  directoryName?: string;
 }
 
 export interface BuiltAppPackage {
@@ -48,10 +49,14 @@ export class AppPackageBuilder {
       slugify(options.blueprint.appName) ||
       "generated-app";
 
+    const directoryName =
+      options.directoryName?.trim() ||
+      appSlug;
+
     const directory =
       join(
         options.outputDir,
-        appSlug
+        directoryName
       );
 
     await mkdir(
