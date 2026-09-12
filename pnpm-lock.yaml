@@ -52,6 +52,15 @@ importers:
 
   packages/event-bus: {}
 
+  packages/official/social-first-touch:
+    dependencies:
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../package-spec
+      '@oeap/skill-runtime':
+        specifier: workspace:*
+        version: link:../../skill-runtime
+
   packages/package-manager:
     dependencies:
       '@oeap/event-bus':
