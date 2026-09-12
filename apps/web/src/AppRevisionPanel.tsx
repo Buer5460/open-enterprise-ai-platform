@@ -1,4 +1,5 @@
 import React from "react";
+import "./AppRevisionPanel.css";
 
 type Props = {
   app: any;
