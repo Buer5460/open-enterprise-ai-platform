@@ -8,6 +8,7 @@ import { FileCenter } from "./FileCenter";
 import { OperationsCenter } from "./OperationsCenter";
 import { KnowledgeCenter } from "./KnowledgeCenter";
 import { ConnectorCredentials } from "./ConnectorCredentials";
+import { PublisherCenter } from "./PublisherCenter";
 import {
   ProductionLogin,
   resolveAuthGate
@@ -21,7 +22,7 @@ import {
   BrandProvider,
   useBrand
 } from "./BrandRuntime";
-import { apiFetch } from "./apiClient";
+import { apiFetch, apiUrl } from "./apiClient";
 
 type Role = {
   name: string;
@@ -74,8 +75,6 @@ type AppManifest = {
   };
 };
 
-const API = "http://127.0.0.1:8787";
-
 type RootView =
   | "workbench"
   | "organization"
@@ -83,6 +82,7 @@ type RootView =
   | "knowledge"
   | "operations"
   | "credentials"
+  | "publisher"
   | PlatformView;
 
 function AuthenticatedPlatform() {
@@ -161,7 +161,7 @@ function Platform() {
   const [rootView, setRootView] = React.useState<RootView>("workbench");
 
   const loadApps = React.useCallback(async () => {
-    const response = await apiFetch(`${API}/api/apps`);
+    const response = await apiFetch(apiUrl("/api/apps"));
     const data = await response.json();
     const nextApps: AppManifest[] = data.apps ?? [];
 
@@ -199,7 +199,7 @@ function Platform() {
     setCreating(true);
 
     try {
-      const response = await apiFetch(`${API}/api/apps/generate`, {
+      const response = await apiFetch(apiUrl("/api/apps/generate"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -373,6 +373,7 @@ function Platform() {
 
           <button className={rootView === "marketplace" ? "active" : ""} onClick={() => setRootView("marketplace")}>◇ Marketplace</button>
           <button className={rootView === "developer" ? "active" : ""} onClick={() => setRootView("developer")}>&lt;/&gt; Developer</button>
+          <button className={rootView === "publisher" ? "active" : ""} onClick={() => setRootView("publisher")}>⇧ 发布中心</button>
         </nav>
 
         <div className="sidebarFooter">
@@ -412,6 +413,8 @@ function Platform() {
           <OperationsCenter />
         ) : rootView === "credentials" ? (
           <ConnectorCredentials />
+        ) : rootView === "publisher" ? (
+          <PublisherCenter />
         ) : (
           <PlatformWorkspace view={rootView} />
         )}
