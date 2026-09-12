@@ -47,7 +47,9 @@ import {
 } from "./tenancyRoutes.js";
 
 const app = Fastify({
-  logger: true
+  logger: true,
+  trustProxy:
+    process.env.OEAP_TRUST_PROXY === "true"
 });
 
 await app.register(cors, {
@@ -65,7 +67,8 @@ const openEnterpriseRoot =
 
 app.get("/health", async () => ({
   ok: true,
-  service: "oeap-api"
+  service: "oeap-api",
+  mode: deploymentMode()
 }));
 
 registerAuthRoutes({
@@ -125,9 +128,19 @@ registerInvitationDeliveryRoutes({
   brandSettingsStore
 });
 
+const port = integerEnvironment(
+  "OEAP_API_PORT",
+  8787
+);
+const host =
+  process.env.OEAP_API_HOST?.trim() ||
+  (deploymentMode() === "production"
+    ? "0.0.0.0"
+    : "127.0.0.1");
+
 await app.listen({
-  port: 8787,
-  host: "127.0.0.1"
+  port,
+  host
 });
 
 function corsOriginPolicy():
@@ -149,10 +162,29 @@ function corsOriginPolicy():
     return configured;
   }
 
-  const production =
-    process.env.OEAP_DEPLOYMENT_MODE
-      ?.trim()
-      .toLowerCase() === "production";
+  return deploymentMode() === "production"
+    ? false
+    : true;
+}
 
-  return production ? false : true;
+function deploymentMode():
+  | "development"
+  | "production" {
+  return process.env.OEAP_DEPLOYMENT_MODE
+    ?.trim()
+    .toLowerCase() === "production"
+    ? "production"
+    : "development";
+}
+
+function integerEnvironment(
+  name: string,
+  fallback: number
+): number {
+  const value = Number(process.env[name]);
+  return Number.isInteger(value) &&
+    value > 0 &&
+    value <= 65535
+    ? value
+    : fallback;
 }
