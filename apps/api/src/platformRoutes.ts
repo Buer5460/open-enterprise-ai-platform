@@ -7,7 +7,12 @@ import {
 } from "node:path";
 
 import {
-  packageManager
+  pathToFileURL
+} from "node:url";
+
+import {
+  packageManager,
+  type PackageRuntimeModule
 } from "@oeap/package-manager";
 
 import {
@@ -38,6 +43,49 @@ export function registerPlatformRoutes(
     repoRoot,
     loadApps
   } = options;
+
+  async function loadOfficialRuntimeModule(
+    packageId: string
+  ): Promise<PackageRuntimeModule> {
+    const official =
+      await discoverOfficialPackages(
+        repoRoot
+      );
+
+    const found = official.find(
+      (item) => item.id === packageId
+    );
+
+    if (!found?.directory) {
+      throw new Error(
+        `Official package not found: ${packageId}`
+      );
+    }
+
+    const modulePath = join(
+      repoRoot,
+      found.directory,
+      "dist",
+      "index.js"
+    );
+
+    const imported = await import(
+      pathToFileURL(modulePath).href
+    );
+
+    const runtimeModule =
+      imported.packageModule as
+        | PackageRuntimeModule
+        | undefined;
+
+    if (!runtimeModule) {
+      throw new Error(
+        `${packageId} requires connector/runtime configuration and cannot be toggled automatically yet.`
+      );
+    }
+
+    return runtimeModule;
+  }
 
   app.get(
     "/api/platform/packages",
@@ -96,7 +144,7 @@ export function registerPlatformRoutes(
               ...item,
               status:
                 status === "enabled"
-                  ? "enabled"
+                  ? "enabled" as const
                   : item.status
             }
           : item;
@@ -128,6 +176,101 @@ export function registerPlatformRoutes(
               item.updatedAt
           })
         )
+      };
+    }
+  );
+
+  app.post<{
+    Params: {
+      packageId: string;
+    };
+  }>(
+    "/api/platform/packages/:packageId/enable",
+    async (request, reply) => {
+      const packageId =
+        request.params.packageId;
+
+      try {
+        if (!packageManager.get(packageId)) {
+          const runtimeModule =
+            await loadOfficialRuntimeModule(
+              packageId
+            );
+
+          await packageManager.install(
+            runtimeModule
+          );
+        }
+
+        const installed =
+          packageManager.isEnabled(packageId)
+            ? packageManager.get(packageId)!
+            : await packageManager.enable(
+                packageId
+              );
+
+        return {
+          ok: true,
+          package: {
+            id: installed.manifest.id,
+            type: installed.manifest.type,
+            status: installed.status,
+            version:
+              installed.manifest.version
+          }
+        };
+      } catch (error) {
+        return reply
+          .code(400)
+          .send({
+            ok: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Package enable failed"
+          });
+      }
+    }
+  );
+
+  app.post<{
+    Params: {
+      packageId: string;
+    };
+  }>(
+    "/api/platform/packages/:packageId/disable",
+    async (request, reply) => {
+      const packageId =
+        request.params.packageId;
+
+      const installed =
+        packageManager.get(packageId);
+
+      if (!installed) {
+        return reply
+          .code(404)
+          .send({
+            ok: false,
+            error: "Package not installed"
+          });
+      }
+
+      const updated =
+        installed.status === "enabled"
+          ? await packageManager.disable(
+              packageId
+            )
+          : installed;
+
+      return {
+        ok: true,
+        package: {
+          id: updated.manifest.id,
+          type: updated.manifest.type,
+          status: updated.status,
+          version:
+            updated.manifest.version
+        }
       };
     }
   );
