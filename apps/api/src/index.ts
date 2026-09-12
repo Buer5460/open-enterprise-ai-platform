@@ -33,7 +33,8 @@ import {
 } from "@oeap/ai-generate-skill";
 
 import {
-  appBuilder
+  appBuilder,
+  type AppBlueprint
 } from "@oeap/app-builder";
 
 import {
@@ -222,6 +223,37 @@ async function withAppDatabase(
   };
 }
 
+async function loadBlueprint(
+  manifest: any
+): Promise<AppBlueprint> {
+  const raw = await readFile(
+    join(
+      generatedAppsRoot,
+      manifest.localDirectory,
+      "app.blueprint.json"
+    ),
+    "utf8"
+  );
+
+  return JSON.parse(raw) as AppBlueprint;
+}
+
+function bumpPatchVersion(
+  version: string
+): string {
+  const parts =
+    version.split(".");
+
+  const major =
+    Number(parts[0] ?? 0) || 0;
+  const minor =
+    Number(parts[1] ?? 0) || 0;
+  const patch =
+    Number(parts[2] ?? 0) || 0;
+
+  return `${major}.${minor}.${patch + 1}`;
+}
+
 app.get("/health", async () => {
   return {
     ok: true,
@@ -290,6 +322,125 @@ app.post<{
       ok: true,
       app: built.manifest,
       directory: built.directory
+    };
+  }
+);
+
+app.get<{
+  Params: {
+    appId: string;
+  };
+}>(
+  "/api/apps/:appId/blueprint",
+  async (request, reply) => {
+    const manifest =
+      await findApp(
+        request.params.appId
+      );
+
+    if (!manifest) {
+      return reply
+        .code(404)
+        .send({
+          ok: false,
+          error: "App not found"
+        });
+    }
+
+    return {
+      ok: true,
+      blueprint:
+        await loadBlueprint(manifest)
+    };
+  }
+);
+
+app.post<{
+  Params: {
+    appId: string;
+  };
+  Body: {
+    instruction?: string;
+  };
+}>(
+  "/api/apps/:appId/revise",
+  async (request, reply) => {
+    const instruction =
+      request.body?.instruction?.trim();
+
+    if (!instruction) {
+      return reply
+        .code(400)
+        .send({
+          ok: false,
+          error: "instruction is required"
+        });
+    }
+
+    const manifest =
+      await findApp(
+        request.params.appId
+      );
+
+    if (!manifest) {
+      return reply
+        .code(404)
+        .send({
+          ok: false,
+          error: "App not found"
+        });
+    }
+
+    await initializeAI();
+
+    const currentBlueprint =
+      await loadBlueprint(manifest);
+
+    const revised =
+      await appBuilder.revise({
+        blueprint:
+          currentBlueprint,
+        instruction,
+        language: "zh-CN"
+      });
+
+    const nextVersion =
+      bumpPatchVersion(
+        String(manifest.version ?? "0.0.1")
+      );
+
+    const built =
+      await appPackageBuilder.build({
+        blueprint:
+          revised.blueprint,
+        packageId:
+          manifest.id,
+        publisher:
+          manifest.publisher ?? "local",
+        version:
+          nextVersion,
+        outputDir:
+          generatedAppsRoot,
+        directoryName:
+          manifest.localDirectory
+      });
+
+    const updatedApp = {
+      ...built.manifest,
+      status: "enabled",
+      localDirectory:
+        manifest.localDirectory
+    };
+
+    getDatabase(updatedApp);
+
+    return {
+      ok: true,
+      app: updatedApp,
+      previousVersion:
+        manifest.version,
+      version:
+        nextVersion
     };
   }
 );
