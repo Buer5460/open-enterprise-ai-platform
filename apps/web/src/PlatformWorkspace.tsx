@@ -239,6 +239,10 @@ export function PlatformWorkspace({
 
   const packages = catalog.packages.filter(
     (item) => {
+      if (item.status === "draft") {
+        return false;
+      }
+
       if (
         requestedType &&
         item.type !== requestedType
@@ -527,7 +531,7 @@ function PackageGrid({
         return (
           <article
             className="packageCard"
-            key={`${item.source}:${item.id}`}
+            key={`${item.source}:${item.id}:${item.status}`}
           >
             <div className="packageCardTop">
               <span
@@ -622,12 +626,21 @@ function DeveloperStudio({
     React.useState("local");
   const [working, setWorking] =
     React.useState(false);
+  const [workingPackage, setWorkingPackage] =
+    React.useState<string | null>(null);
   const [message, setMessage] =
     React.useState("");
 
   const drafts = packages.filter(
     (item) =>
-      item.source === "developer"
+      item.source === "developer" &&
+      item.status === "draft"
+  );
+
+  const published = packages.filter(
+    (item) =>
+      item.source === "developer" &&
+      item.status === "available"
   );
 
   async function createDraft() {
@@ -670,7 +683,7 @@ function DeveloperStudio({
       setDisplayName("");
       setDescription("");
       setMessage(
-        `已创建 ${result.package.id}，脚手架保存在 ${result.package.directory}`
+        `已创建 ${result.package.id}，下一步可以校验并发布到本地 Marketplace。`
       );
       await onChanged();
     } catch (error) {
@@ -681,6 +694,119 @@ function DeveloperStudio({
       );
     } finally {
       setWorking(false);
+    }
+  }
+
+  async function validateDraft(
+    packageId: string
+  ) {
+    setWorkingPackage(packageId);
+    setMessage("正在校验 Package 结构和 manifest…");
+
+    try {
+      const response = await fetch(
+        `${API}/api/developer/packages/${encodeURIComponent(
+          packageId
+        )}/validate`,
+        { method: "POST" }
+      );
+
+      const result = await response.json();
+
+      if (!result.valid) {
+        throw new Error(
+          (result.errors ?? []).join("；") ||
+          "校验失败"
+        );
+      }
+
+      const warnings =
+        result.warnings?.length
+          ? `；提示：${result.warnings.join("；")}`
+          : "";
+
+      setMessage(
+        `✅ ${packageId} 校验通过${warnings}`
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "校验失败"
+      );
+    } finally {
+      setWorkingPackage(null);
+    }
+  }
+
+  async function publishDraft(
+    packageId: string
+  ) {
+    setWorkingPackage(packageId);
+    setMessage("正在校验并发布到本地 Marketplace…");
+
+    try {
+      const response = await fetch(
+        `${API}/api/developer/packages/${encodeURIComponent(
+          packageId
+        )}/publish`,
+        { method: "POST" }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(
+          result.error ?? "发布失败"
+        );
+      }
+
+      setMessage(
+        `✅ ${packageId} 已发布到本地 Marketplace。GitHub 发布将通过独立 Publisher Connector 完成。`
+      );
+      await onChanged();
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "发布失败"
+      );
+    } finally {
+      setWorkingPackage(null);
+    }
+  }
+
+  async function unpublish(
+    packageId: string
+  ) {
+    setWorkingPackage(packageId);
+
+    try {
+      const response = await fetch(
+        `${API}/api/developer/packages/${encodeURIComponent(
+          packageId
+        )}/publish`,
+        { method: "DELETE" }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(
+          result.error ?? "撤回发布失败"
+        );
+      }
+
+      setMessage(`已从本地 Marketplace 撤回 ${packageId}`);
+      await onChanged();
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "撤回发布失败"
+      );
+    } finally {
+      setWorkingPackage(null);
     }
   }
 
@@ -724,7 +850,7 @@ function DeveloperStudio({
           </span>
           <h1>Developer Studio</h1>
           <p>
-            创建符合 OEAP Package 规范的 App、Agent、Skill、Workflow、Connector 和 Data Provider 脚手架。
+            创建、校验并发布符合 OEAP Package 规范的 App、Agent、Skill、Workflow、Connector 和 Data Provider。
           </p>
         </div>
 
@@ -734,11 +860,19 @@ function DeveloperStudio({
         </div>
       </div>
 
+      <div className="developerPipeline">
+        <span>① 创建脚手架</span>
+        <span>② 编写/调整代码</span>
+        <span>③ Package 校验</span>
+        <span>④ 本地 Marketplace 发布</span>
+        <span>⑤ GitHub Publisher</span>
+      </div>
+
       <div className="developerLayout">
         <article className="developerForm">
           <h3>创建 Package</h3>
           <p>
-            先定义扩展类型和业务语义，平台会生成 manifest、源码入口和 README。
+            定义扩展类型和业务语义，平台会生成 manifest、源码入口、Smoke Test 和 README。
           </p>
 
           <label>
@@ -841,7 +975,7 @@ function DeveloperStudio({
             <div>
               <h3>开发草稿</h3>
               <p>
-                草稿存储在本地 .tmp，不会自动提交 GitHub。
+                草稿保存在本地 .tmp。校验通过后可一键发布到本地 Marketplace。
               </p>
             </div>
           </div>
@@ -866,15 +1000,84 @@ function DeveloperStudio({
                   </small>
                 </div>
 
-                <button
-                  onClick={() =>
-                    void removeDraft(
-                      item.id
-                    )
-                  }
-                >
-                  删除
-                </button>
+                <div className="developerActions">
+                  <button
+                    disabled={
+                      workingPackage === item.id
+                    }
+                    onClick={() =>
+                      void validateDraft(item.id)
+                    }
+                  >
+                    校验
+                  </button>
+                  <button
+                    className="developerPublishButton"
+                    disabled={
+                      workingPackage === item.id
+                    }
+                    onClick={() =>
+                      void publishDraft(item.id)
+                    }
+                  >
+                    发布
+                  </button>
+                  <button
+                    disabled={
+                      workingPackage === item.id
+                    }
+                    onClick={() =>
+                      void removeDraft(item.id)
+                    }
+                  >
+                    删除
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+
+          <div className="developerDraftHeader developerPublishedHeader">
+            <div>
+              <h3>已发布 Package</h3>
+              <p>
+                这些 Package 已进入本地 Marketplace，可被用户发现；下一阶段由 GitHub Publisher 推送远程仓库。
+              </p>
+            </div>
+          </div>
+
+          {published.length === 0 ? (
+            <div className="workspaceEmpty compact">
+              暂无开发者 Package 发布到 Marketplace。
+            </div>
+          ) : (
+            published.map((item) => (
+              <div
+                className="developerDraftItem developerPublishedItem"
+                key={`published:${item.id}`}
+              >
+                <div>
+                  <strong>{item.displayName}</strong>
+                  <code>{item.id}</code>
+                  <small>
+                    {item.type} · v{item.version} · 本地 Marketplace
+                  </small>
+                </div>
+                <div className="developerActions">
+                  <span className="developerPublishedBadge">
+                    已发布
+                  </span>
+                  <button
+                    disabled={
+                      workingPackage === item.id
+                    }
+                    onClick={() =>
+                      void unpublish(item.id)
+                    }
+                  >
+                    撤回
+                  </button>
+                </div>
               </div>
             ))
           )}
