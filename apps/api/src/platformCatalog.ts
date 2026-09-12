@@ -11,6 +11,10 @@ import {
   join
 } from "node:path";
 
+import {
+  runtimePath
+} from "./runtimePaths.js";
+
 export type PlatformPackageType =
   | "app"
   | "agent"
@@ -54,6 +58,12 @@ function safeSlug(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9-]+/g, "-")
     .replace(/^-+|-+$/g, "") || "package";
+}
+
+function safeOrganizationId(value: string): string {
+  return value
+    .trim()
+    .replace(/[^A-Za-z0-9_.-]+/g, "_") || "org_local";
 }
 
 function stringField(
@@ -181,23 +191,48 @@ export async function discoverOfficialPackages(
 }
 
 export async function listDeveloperPackages(
-  repoRoot: string
+  repoRoot: string,
+  organizationId = "org_local"
 ): Promise<MarketplacePackage[]> {
   return listPackagesFromRoot(
-    developerRoot(repoRoot),
+    developerRoot(repoRoot, organizationId),
     "draft",
-    ".tmp/developer-packages"
+    displayPrefix(organizationId, "developer-packages")
   );
 }
 
 export async function listPublishedPackages(
-  repoRoot: string
+  repoRoot: string,
+  organizationId = "org_local"
 ): Promise<MarketplacePackage[]> {
   return listPackagesFromRoot(
-    marketplaceRoot(repoRoot),
+    marketplaceRoot(repoRoot, organizationId),
     "available",
-    ".tmp/marketplace-packages"
+    displayPrefix(organizationId, "marketplace-packages")
   );
+}
+
+export async function publishedPackageDirectory(
+  repoRoot: string,
+  organizationId: string,
+  packageId: string
+): Promise<string | undefined> {
+  const published = await listPublishedPackages(
+    repoRoot,
+    organizationId
+  );
+  const item = published.find(
+    (candidate) => candidate.id === packageId
+  );
+  const directoryName =
+    item?.directory?.split("/").pop();
+
+  return directoryName
+    ? join(
+        marketplaceRoot(repoRoot, organizationId),
+        directoryName
+      )
+    : undefined;
 }
 
 async function listPackagesFromRoot(
@@ -275,13 +310,14 @@ async function listPackagesFromRoot(
 
 export async function createDeveloperPackage(
   repoRoot: string,
-  input: DeveloperPackageInput
+  input: DeveloperPackageInput,
+  organizationId = "org_local"
 ): Promise<MarketplacePackage> {
   const name = safeSlug(input.name);
   const publisher =
     safeSlug(input.publisher ?? "local");
   const id = `${publisher}.${name}`;
-  const root = developerRoot(repoRoot);
+  const root = developerRoot(repoRoot, organizationId);
   const directory = join(root, name);
 
   await mkdir(
@@ -355,7 +391,7 @@ export async function createDeveloperPackage(
 
   await writeFile(
     join(directory, "README.md"),
-    `# ${manifest.displayName}\n\n${manifest.description}\n\nCreated with OEAP Developer Studio.\n\n## Package\n\n- ID: \`${id}\`\n- Type: \`${input.type}\`\n- Version: \`0.0.1\`\n- Publisher: \`${publisher}\`\n\n## Lifecycle\n\n1. Edit \`src/index.ts\`\n2. Validate in Developer Studio\n3. Publish to the local Marketplace\n4. Connect a GitHub publisher to push the package to a remote repository\n`,
+    `# ${manifest.displayName}\n\n${manifest.description}\n\nCreated with OEAP Developer Studio.\n\n## Package\n\n- ID: \`${id}\`\n- Type: \`${input.type}\`\n- Version: \`0.0.1\`\n- Publisher: \`${publisher}\`\n\n## Lifecycle\n\n1. Edit \`src/index.ts\`\n2. Validate in Developer Studio\n3. Publish to the local Marketplace\n4. Sign and verify package provenance\n5. Connect a GitHub publisher to push the package to a remote repository\n`,
     "utf8"
   );
 
@@ -370,17 +406,21 @@ export async function createDeveloperPackage(
     source: "developer",
     status: "draft",
     directory:
-      `.tmp/developer-packages/${name}`,
+      `${displayPrefix(organizationId, "developer-packages")}/${name}`,
     tags: manifest.tags
   };
 }
 
 export async function validateDeveloperPackage(
   repoRoot: string,
-  packageId: string
+  packageId: string,
+  organizationId = "org_local"
 ): Promise<DeveloperPackageValidation> {
   const drafts =
-    await listDeveloperPackages(repoRoot);
+    await listDeveloperPackages(
+      repoRoot,
+      organizationId
+    );
 
   const found = drafts.find(
     (item) => item.id === packageId
@@ -411,7 +451,7 @@ export async function validateDeveloperPackage(
   }
 
   const directory = join(
-    developerRoot(repoRoot),
+    developerRoot(repoRoot, organizationId),
     directoryName
   );
 
@@ -500,12 +540,14 @@ export async function validateDeveloperPackage(
 
 export async function publishDeveloperPackage(
   repoRoot: string,
-  packageId: string
+  packageId: string,
+  organizationId = "org_local"
 ): Promise<MarketplacePackage> {
   const validation =
     await validateDeveloperPackage(
       repoRoot,
-      packageId
+      packageId,
+      organizationId
     );
 
   if (!validation.valid || !validation.package) {
@@ -526,17 +568,17 @@ export async function publishDeveloperPackage(
   }
 
   const sourceDirectory = join(
-    developerRoot(repoRoot),
+    developerRoot(repoRoot, organizationId),
     directoryName
   );
 
   const targetDirectory = join(
-    marketplaceRoot(repoRoot),
+    marketplaceRoot(repoRoot, organizationId),
     directoryName
   );
 
   await mkdir(
-    marketplaceRoot(repoRoot),
+    marketplaceRoot(repoRoot, organizationId),
     { recursive: true }
   );
 
@@ -564,6 +606,7 @@ export async function publishDeveloperPackage(
     JSON.stringify(
       {
         packageId,
+        organizationId,
         publishedAt:
           new Date().toISOString(),
         channel: "local-marketplace",
@@ -583,7 +626,7 @@ export async function publishDeveloperPackage(
     ...draft,
     status: "available",
     directory:
-      `.tmp/marketplace-packages/${directoryName}`,
+      `${displayPrefix(organizationId, "marketplace-packages")}/${directoryName}`,
     tags: [
       ...(draft.tags ?? []),
       "published"
@@ -593,10 +636,14 @@ export async function publishDeveloperPackage(
 
 export async function unpublishDeveloperPackage(
   repoRoot: string,
-  packageId: string
+  packageId: string,
+  organizationId = "org_local"
 ): Promise<boolean> {
   const published =
-    await listPublishedPackages(repoRoot);
+    await listPublishedPackages(
+      repoRoot,
+      organizationId
+    );
 
   const found = published.find(
     (item) => item.id === packageId
@@ -611,7 +658,7 @@ export async function unpublishDeveloperPackage(
 
   await rm(
     join(
-      marketplaceRoot(repoRoot),
+      marketplaceRoot(repoRoot, organizationId),
       directoryName
     ),
     {
@@ -625,10 +672,14 @@ export async function unpublishDeveloperPackage(
 
 export async function deleteDeveloperPackage(
   repoRoot: string,
-  packageId: string
+  packageId: string,
+  organizationId = "org_local"
 ): Promise<boolean> {
   const drafts =
-    await listDeveloperPackages(repoRoot);
+    await listDeveloperPackages(
+      repoRoot,
+      organizationId
+    );
 
   const found = drafts.find(
     (item) => item.id === packageId
@@ -647,7 +698,7 @@ export async function deleteDeveloperPackage(
 
   await rm(
     join(
-      developerRoot(repoRoot),
+      developerRoot(repoRoot, organizationId),
       directoryName
     ),
     {
@@ -659,20 +710,41 @@ export async function deleteDeveloperPackage(
   return true;
 }
 
-function developerRoot(repoRoot: string) {
-  return join(
-    repoRoot,
-    ".tmp",
-    "developer-packages"
-  );
+function developerRoot(
+  repoRoot: string,
+  organizationId: string
+) {
+  return organizationId === "org_local"
+    ? runtimePath(repoRoot, "developer-packages")
+    : runtimePath(
+        repoRoot,
+        "organizations",
+        safeOrganizationId(organizationId),
+        "developer-packages"
+      );
 }
 
-function marketplaceRoot(repoRoot: string) {
-  return join(
-    repoRoot,
-    ".tmp",
-    "marketplace-packages"
-  );
+function marketplaceRoot(
+  repoRoot: string,
+  organizationId: string
+) {
+  return organizationId === "org_local"
+    ? runtimePath(repoRoot, "marketplace-packages")
+    : runtimePath(
+        repoRoot,
+        "organizations",
+        safeOrganizationId(organizationId),
+        "marketplace-packages"
+      );
+}
+
+function displayPrefix(
+  organizationId: string,
+  kind: "developer-packages" | "marketplace-packages"
+): string {
+  return organizationId === "org_local"
+    ? `.tmp/${kind}`
+    : `.tmp/organizations/${safeOrganizationId(organizationId)}/${kind}`;
 }
 
 function inferType(
