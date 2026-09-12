@@ -16,6 +16,9 @@ import {
   MailDeliveryService,
   type MailDeliveryResult
 } from "./mailDelivery.js";
+import type {
+  MailSettingsStore
+} from "./mailSettingsStore.js";
 import {
   TenancyStore
 } from "./tenancyStore.js";
@@ -27,6 +30,7 @@ import {
 export interface InvitationDeliveryRoutesOptions {
   app: FastifyInstance;
   repoRoot: string;
+  mailSettingsStore: MailSettingsStore;
 }
 
 export function registerInvitationDeliveryRoutes(
@@ -45,7 +49,12 @@ export function registerInvitationDeliveryRoutes(
     new TenancyStore(tenancyPath);
   const deliveryStore =
     new InvitationDeliveryStore(tenancyPath);
-  const mail = new MailDeliveryService();
+  const mailFor = (organizationId: string) =>
+    new MailDeliveryService(
+      options.mailSettingsStore.get(
+        organizationId
+      )
+    );
   const { app } = options;
 
   app.addHook(
@@ -82,7 +91,9 @@ export function registerInvitationDeliveryRoutes(
       }
 
       const delivery = await deliverInvitation({
-        mail,
+        mail: mailFor(
+          invitation.organizationId
+        ),
         deliveryStore,
         invitation,
         inviteUrl: String(parsed.inviteUrl),
@@ -108,7 +119,9 @@ export function registerInvitationDeliveryRoutes(
 
       return {
         ok: true,
-        mail: mail.status(),
+        mail: mailFor(
+          identity.organizationId
+        ).status(),
         events: deliveryStore.listEvents(
           identity.organizationId,
           50
@@ -170,7 +183,9 @@ export function registerInvitationDeliveryRoutes(
         token
       );
       const delivery = await deliverInvitation({
-        mail,
+        mail: mailFor(
+          identity.organizationId
+        ),
         deliveryStore,
         invitation,
         inviteUrl,
@@ -200,6 +215,9 @@ export function registerInvitationDeliveryRoutes(
       );
       if (!identity) return;
 
+      const mail = mailFor(
+        identity.organizationId
+      );
       const withinHours = Math.max(
         1,
         Math.min(
