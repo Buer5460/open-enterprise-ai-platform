@@ -1,0 +1,16 @@
+{
+  "name": "@oeap/deepseek-harness-connector",
+  "version": "0.0.1",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@oeap/package-spec": "workspace:*",
+    "@oeap/connector-runtime": "workspace:*",
+    "@oeap/harness-adapter": "workspace:*"
+  }
+}

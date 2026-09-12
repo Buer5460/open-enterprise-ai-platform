@@ -66,6 +66,18 @@ importers:
 
   packages/harness-adapter: {}
 
+  packages/official/deepseek-harness-connector:
+    dependencies:
+      '@oeap/connector-runtime':
+        specifier: workspace:*
+        version: link:../../connector-runtime
+      '@oeap/harness-adapter':
+        specifier: workspace:*
+        version: link:../../harness-adapter
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../package-spec
+
   packages/official/growth-agent:
     dependencies:
       '@oeap/agent-runtime':
