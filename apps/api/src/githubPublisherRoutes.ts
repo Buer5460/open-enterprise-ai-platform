@@ -1,9 +1,9 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { readdir, readFile, stat } from "node:fs/promises";
-import { join, relative, sep } from "node:path";
+import { relative, sep } from "node:path";
 
 import { ConnectorSecretStore } from "./connectorSecretStore.js";
-import { listPublishedPackages } from "./platformCatalog.js";
+import { publishedPackageDirectory, listPublishedPackages } from "./platformCatalog.js";
 import { TenancyStore } from "./tenancyStore.js";
 import { memberFrom, organizationFrom } from "./tenancyRoutes.js";
 import { runtimePath } from "./runtimePaths.js";
@@ -76,10 +76,13 @@ export function registerGitHubPublisherRoutes(input: {
       if (!identity) return;
 
       const packageId = request.params.packageId.trim();
-      const published = await listPublishedPackages(input.repoRoot);
+      const published = await listPublishedPackages(
+        input.repoRoot,
+        identity.organizationId
+      );
       const item = published.find((candidate) => candidate.id === packageId);
 
-      if (!item?.directory) {
+      if (!item) {
         return reply.code(404).send({
           ok: false,
           error: "Package must be published to the local Marketplace before GitHub publishing"
@@ -101,7 +104,15 @@ export function registerGitHubPublisherRoutes(input: {
       }
 
       try {
-        const localRoot = join(input.repoRoot, item.directory);
+        const localRoot = await publishedPackageDirectory(
+          input.repoRoot,
+          identity.organizationId,
+          packageId
+        );
+        if (!localRoot) {
+          throw new Error("Published package directory is unavailable");
+        }
+
         const files = await collectFiles(localRoot);
         if (files.length === 0) {
           throw new Error("Published package directory is empty");
@@ -207,7 +218,7 @@ async function collectFiles(root: string): Promise<RepositoryFile[]> {
   async function walk(directory: string) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       if (["node_modules", ".git", "dist"].includes(entry.name)) continue;
-      const absolute = join(directory, entry.name);
+      const absolute = `${directory}/${entry.name}`;
       if (entry.isDirectory()) {
         await walk(absolute);
         continue;
