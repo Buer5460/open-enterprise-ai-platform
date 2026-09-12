@@ -23,5 +23,6 @@ run_if_present scripts/test-invitations.mjs
 run_if_present scripts/test-invitation-delivery.mjs
 run_if_present scripts/test-mail-settings.mjs
 run_if_present scripts/test-production-security.mjs
+run_if_present scripts/test-enterprise-core.mjs
 
 echo "✅ deterministic OEAP test suite passed"
