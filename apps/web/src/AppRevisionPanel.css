@@ -8,7 +8,7 @@
 
 .aiRevisionCopy span {
   display: block;
-  color: #2563eb;
+  color: var(--oeap-primary, #2563eb);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 1.5px;
@@ -49,7 +49,7 @@
 }
 
 .aiRevisionComposer textarea:focus {
-  border-color: #2563eb;
+  border-color: var(--oeap-primary, #2563eb);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
 }
 
@@ -58,7 +58,7 @@
   border: 0;
   border-radius: 9px;
   padding: 0 18px;
-  background: #2563eb;
+  background: var(--oeap-primary, #2563eb);
   color: white;
   cursor: pointer;
   white-space: nowrap;
@@ -76,6 +76,98 @@
   background: rgba(255, 255, 255, .75);
   border-radius: 8px;
   padding: 9px 11px;
+}
+
+.appVersionHistory {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #d9e4f5;
+}
+
+.appVersionHistoryHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.appVersionHistoryHeader strong,
+.appVersionHistoryHeader span {
+  display: block;
+}
+
+.appVersionHistoryHeader strong {
+  color: #26344d;
+  font-size: 13px;
+}
+
+.appVersionHistoryHeader span {
+  margin-top: 4px;
+  color: #7c8799;
+  font-size: 10px;
+}
+
+.appVersionHistoryHeader em {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: white;
+  color: #72809a;
+  font-size: 9px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.appVersionList {
+  display: grid;
+  gap: 7px;
+}
+
+.appVersionItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(209, 220, 238, .9);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .78);
+}
+
+.appVersionItem strong,
+.appVersionItem span {
+  display: block;
+}
+
+.appVersionItem strong {
+  font-size: 11px;
+}
+
+.appVersionItem span {
+  margin-top: 3px;
+  color: #8a94a5;
+  font-size: 9px;
+}
+
+.appVersionItem em {
+  color: #15803d;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.appVersionItem button {
+  border: 1px solid #d9e2ef;
+  border-radius: 8px;
+  background: #fff;
+  padding: 7px 9px;
+  color: var(--oeap-primary, #2563eb);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.appVersionItem button:disabled {
+  opacity: .55;
+  cursor: wait;
 }
 
 @media (max-width: 900px) {
