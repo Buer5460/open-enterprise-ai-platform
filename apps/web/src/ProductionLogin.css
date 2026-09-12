@@ -1,0 +1,221 @@
+.productionLogin {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background:
+    radial-gradient(circle at top left, var(--oeap-primary-soft), transparent 34%),
+    #f5f7fb;
+}
+
+.productionLoginCard {
+  width: min(620px, 100%);
+  padding: 30px;
+  border: 1px solid #e5eaf2;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 24px 80px rgba(27, 39, 77, .12);
+}
+
+.productionLoginBrand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.productionLoginLogo {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 15px;
+  background: var(--oeap-primary);
+  color: white;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.productionLoginLogo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+
+.productionLoginBrand span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--oeap-primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.productionLoginBrand h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.productionLoginBrand p,
+.productionLoginHeading p,
+.productionLoginEmpty p {
+  color: #758096;
+  line-height: 1.65;
+}
+
+.productionLoginBrand p {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+.productionLoginDivider {
+  height: 1px;
+  margin: 24px 0;
+  background: #edf0f4;
+}
+
+.productionLoginHeading h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.productionLoginHeading p {
+  margin: 0 0 16px;
+  font-size: 12px;
+}
+
+.productionLoginProviders {
+  display: grid;
+  gap: 10px;
+}
+
+.productionLoginProviders > button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e1e7ef;
+  border-radius: 12px;
+  background: #fff;
+  padding: 13px 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: .18s ease;
+}
+
+.productionLoginProviders > button:hover {
+  border-color: var(--oeap-primary-soft-2);
+  background: var(--oeap-primary-soft);
+  transform: translateY(-1px);
+}
+
+.productionLoginProviders > button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.providerMark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--oeap-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.productionLoginProviders strong,
+.productionLoginProviders small {
+  display: block;
+}
+
+.productionLoginProviders strong {
+  color: #172033;
+  font-size: 13px;
+}
+
+.productionLoginProviders small {
+  margin-top: 4px;
+  color: #8a93a4;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.productionLoginProviders em {
+  color: var(--oeap-primary);
+  font-size: 20px;
+  font-style: normal;
+}
+
+.productionLoginEmpty {
+  padding: 16px;
+  border: 1px dashed #d6dce6;
+  border-radius: 12px;
+  background: #fafbfd;
+}
+
+.productionLoginEmpty strong {
+  font-size: 13px;
+}
+
+.productionLoginEmpty p {
+  margin: 6px 0 0;
+  font-size: 11px;
+}
+
+.productionLoginMessage {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #fff4f4;
+  color: #a43b3b;
+  font-size: 11px;
+}
+
+.productionLoginRetry {
+  width: 100%;
+  margin-top: 14px;
+  border: 0;
+  background: transparent;
+  color: var(--oeap-primary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.productionLogin footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #edf0f4;
+  color: #9aa3b2;
+  font-size: 10px;
+}
+
+@media (max-width: 640px) {
+  .productionLogin {
+    padding: 16px;
+  }
+
+  .productionLoginCard {
+    padding: 22px;
+  }
+
+  .productionLoginBrand {
+    align-items: flex-start;
+  }
+
+  .productionLoginBrand h1 {
+    font-size: 22px;
+  }
+
+  .productionLogin footer {
+    flex-direction: column;
+  }
+}
