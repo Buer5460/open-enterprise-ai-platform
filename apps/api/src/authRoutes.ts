@@ -52,33 +52,48 @@ export function registerAuthRoutes(
     )
   );
 
-  app.addHook("preHandler", async (request) => {
-    // In production, client-supplied identity headers are never trusted.
-    // Only a server-validated session may populate the tenancy identity.
-    if (productionAuthMode()) {
-      delete request.headers["x-oeap-org"];
-      delete request.headers["x-oeap-member"];
+  app.addHook(
+    "preHandler",
+    async (request, reply) => {
+      const production = productionAuthMode();
+
+      // Production never trusts tenancy identity supplied by the browser.
+      // Start every request unauthenticated and only replace these values
+      // after validating a server-side session token.
+      if (production) {
+        request.headers["x-oeap-org"] =
+          "__unauthenticated_org__";
+        request.headers["x-oeap-member"] =
+          "__unauthenticated_member__";
+      }
+
+      const token = bearerToken(
+        request.headers.authorization
+      );
+      const session = token
+        ? sessions.get(token)
+        : undefined;
+
+      if (session) {
+        request.headers["x-oeap-org"] =
+          session.organizationId;
+        request.headers["x-oeap-member"] =
+          session.memberId;
+        return;
+      }
+
+      if (
+        production &&
+        !isPublicProductionRequest(request)
+      ) {
+        return reply.code(401).send({
+          ok: false,
+          authenticated: false,
+          error: "Authentication required"
+        });
+      }
     }
-
-    const token = bearerToken(
-      request.headers.authorization
-    );
-
-    if (!token) {
-      return;
-    }
-
-    const session = sessions.get(token);
-
-    if (!session) {
-      return;
-    }
-
-    request.headers["x-oeap-org"] =
-      session.organizationId;
-    request.headers["x-oeap-member"] =
-      session.memberId;
-  });
+  );
 
   app.get(
     "/api/auth/providers",
@@ -390,6 +405,32 @@ export function productionAuthMode(): boolean {
   return process.env.OEAP_DEPLOYMENT_MODE
     ?.trim()
     .toLowerCase() === "production";
+}
+
+function isPublicProductionRequest(
+  request: FastifyRequest
+): boolean {
+  if (request.method === "OPTIONS") {
+    return true;
+  }
+
+  const route =
+    request.routeOptions.url ||
+    request.url.split("?")[0];
+
+  if (route === "/health") {
+    return true;
+  }
+
+  if (route.startsWith("/api/auth/")) {
+    return true;
+  }
+
+  return (
+    route === "/api/invitations/public/:token" ||
+    route === "/api/invitations/accept" ||
+    route === "/invite/:token"
+  );
 }
 
 function sessionFrom(
