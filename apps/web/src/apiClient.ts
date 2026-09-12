@@ -60,6 +60,14 @@ export function setAuthToken(
   } catch {
     // Local storage can be unavailable in restricted browsers.
   }
+
+  try {
+    window.dispatchEvent(
+      new CustomEvent("oeap-auth-changed")
+    );
+  } catch {
+    // Ignore unavailable browser event APIs.
+  }
 }
 
 export function authHeaders(
