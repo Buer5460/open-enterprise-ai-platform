@@ -31,6 +31,10 @@ import {
 } from "./deploymentRoutes.js";
 
 import {
+  registerFileRoutes
+} from "./fileRoutes.js";
+
+import {
   registerInvitationRoutes
 } from "./invitationRoutes.js";
 
@@ -53,7 +57,8 @@ import {
 const app = Fastify({
   logger: true,
   trustProxy:
-    process.env.OEAP_TRUST_PROXY === "true"
+    process.env.OEAP_TRUST_PROXY === "true",
+  bodyLimit: requestBodyLimit()
 });
 
 await app.register(cors, {
@@ -88,6 +93,11 @@ const appRoutes =
   });
 
 registerAppHistoryRoutes({
+  app,
+  repoRoot
+});
+
+registerFileRoutes({
   app,
   repoRoot
 });
@@ -196,4 +206,19 @@ function integerEnvironment(
     value <= 65535
     ? value
     : fallback;
+}
+
+function requestBodyLimit(): number {
+  const requestedMb = Number(
+    process.env.OEAP_MAX_FILE_MB || 10
+  );
+  const fileMb =
+    Number.isFinite(requestedMb) && requestedMb > 0
+      ? Math.min(requestedMb, 25)
+      : 10;
+
+  // JSON/base64 encoding adds roughly 33%; keep a small envelope for metadata.
+  return Math.ceil(
+    (fileMb * 4 / 3 + 1) * 1024 * 1024
+  );
 }
