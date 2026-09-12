@@ -19,6 +19,10 @@ import {
 } from "./appRoutes.js";
 
 import {
+  registerBrandSettingsRoutes
+} from "./brandSettingsRoutes.js";
+
+import {
   registerInvitationRoutes
 } from "./invitationRoutes.js";
 
@@ -80,6 +84,11 @@ registerPlatformRoutes({
 });
 
 registerTenancyRoutes({
+  app,
+  repoRoot
+});
+
+registerBrandSettingsRoutes({
   app,
   repoRoot
 });
