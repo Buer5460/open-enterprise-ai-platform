@@ -8,3 +8,14 @@ dist/
 coverage/
 .tmp/
 .cache/
+
+# OEAP local runtime
+.tmp/
+*.sqlite
+*.sqlite3
+.dsh*
+.env
+.env.*
+!.env.example
+credentials*
+secrets*

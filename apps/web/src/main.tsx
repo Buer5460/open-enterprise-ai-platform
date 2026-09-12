@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "./styles.css";
+import { DataEntityPage } from "./DataEntityPage";
 
 type Role = {
   name: string;
@@ -349,45 +350,19 @@ function Platform() {
               </section>
             </>
           ) : (
-            <section className="generatedPage">
-              <div className="generatedPageHeader">
-                <span className="generatedTag">
-                  AI GENERATED PAGE
-                </span>
-
-                <h2>
-                  {
-                    selectedApp.navigation
-                      ?.find(
-                        (page) =>
-                          page.id ===
-                          activePage
-                      )
-                      ?.label
-                  }
-                </h2>
-
-                <p>
-                  这是根据 AI App Blueprint
-                  动态生成的业务页面。
-                </p>
-              </div>
-
-              <div className="placeholderTable">
-                <div className="tableHeader">
-                  <span>名称</span>
-                  <span>状态</span>
-                  <span>更新时间</span>
-                  <span>操作</span>
-                </div>
-
-                <div className="tableEmpty">
-                  当前页面的数据模型已经建立，
-                  下一阶段将自动生成真实 CRUD、
-                  表单、权限和数据库。
-                </div>
-              </div>
-            </section>
+            <DataEntityPage
+              key={activePage}
+              appId={selectedApp.id}
+              pageLabel={
+                selectedApp.navigation
+                  ?.find(
+                    (page) =>
+                      page.id === activePage
+                  )
+                  ?.label ?? activePage
+              }
+              entities={entities}
+            />
           )}
 
         </main>
