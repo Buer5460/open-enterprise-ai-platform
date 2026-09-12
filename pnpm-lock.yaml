@@ -52,6 +52,19 @@ importers:
         specifier: ^4.20.0
         version: 4.23.13
 
+  apps/cli:
+    dependencies:
+      '@oeap/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.0
+        version: 22.20.2
+      typescript:
+        specifier: ^7.0.0
+        version: 7.0.2
+
   apps/web:
     dependencies:
       '@types/react':
@@ -213,6 +226,19 @@ importers:
   packages/package-spec: {}
 
   packages/permission-engine: {}
+
+  packages/sdk:
+    dependencies:
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../package-spec
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.0
+        version: 22.20.2
+      typescript:
+        specifier: ^7.0.0
+        version: 7.0.2
 
   packages/skill-runtime:
     dependencies:
