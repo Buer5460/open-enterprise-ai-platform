@@ -52,6 +52,12 @@ export interface AppBuilderResult {
   rawAIResponse: string;
 }
 
+export interface AppRevisionInput {
+  blueprint: AppBlueprint;
+  instruction: string;
+  language?: string;
+}
+
 function parseBlueprint(
   text: string
 ): AppBlueprint {
@@ -80,7 +86,10 @@ function parseBlueprint(
     !Array.isArray(parsed.entities) ||
     !Array.isArray(parsed.pages) ||
     !Array.isArray(parsed.workflows) ||
-    !parsed.recommendedPackages
+    !parsed.recommendedPackages ||
+    !Array.isArray(parsed.recommendedPackages.skills) ||
+    !Array.isArray(parsed.recommendedPackages.agents) ||
+    !Array.isArray(parsed.recommendedPackages.connectors)
   ) {
     throw new Error(
       "AI App Blueprint schema is invalid"
@@ -90,25 +99,41 @@ function parseBlueprint(
   return parsed as AppBlueprint;
 }
 
-export class AIAppBuilder {
-  async build(
-    input: AppBuilderInput
-  ): Promise<AppBuilderResult> {
-    const language =
-      input.language ?? "zh-CN";
+async function generateBlueprint(
+  prompt: string,
+  taskPrefix: string
+): Promise<AppBuilderResult> {
+  const result = await skillRuntime.run<
+    { prompt: string },
+    { text: string }
+  >({
+    skillId: "oeap.ai-generate",
+    agentId: "oeap.app-builder",
+    taskId: `${taskPrefix}:${Date.now()}`,
+    input: {
+      prompt
+    }
+  });
 
-    const prompt = `
-你是一名企业软件产品经理和系统架构师。
+  if (
+    !result.ok ||
+    !result.output
+  ) {
+    throw new Error(
+      result.error?.message ??
+      "AI App Builder failed"
+    );
+  }
 
-用户希望创建一个企业应用。
+  return {
+    blueprint:
+      parseBlueprint(result.output.text),
+    rawAIResponse:
+      result.output.text
+  };
+}
 
-业务需求：
-${input.description}
-
-${input.nameHint ? `应用名称参考：${input.nameHint}` : ""}
-
-请先理解业务，再设计应用蓝图。
-
+const schemaInstruction = `
 必须只返回 JSON，不要 Markdown，不要解释。
 
 返回结构必须严格为：
@@ -156,39 +181,72 @@ ${input.nameHint ? `应用名称参考：${input.nameHint}` : ""}
     "connectors": []
   }
 }
+`;
+
+export class AIAppBuilder {
+  async build(
+    input: AppBuilderInput
+  ): Promise<AppBuilderResult> {
+    const language =
+      input.language ?? "zh-CN";
+
+    const prompt = `
+你是一名企业软件产品经理和系统架构师。
+
+用户希望创建一个企业应用。
+
+业务需求：
+${input.description}
+
+${input.nameHint ? `应用名称参考：${input.nameHint}` : ""}
+
+请先理解业务，再设计应用蓝图。
+
+${schemaInstruction}
 
 输出语言：${language}
 `;
 
-    const result = await skillRuntime.run<
-      { prompt: string },
-      { text: string }
-    >({
-      skillId: "oeap.ai-generate",
-      agentId: "oeap.app-builder",
-      taskId: `app-builder:${Date.now()}`,
-      input: {
-        prompt
-      }
-    });
+    return generateBlueprint(
+      prompt,
+      "app-builder"
+    );
+  }
 
-    if (
-      !result.ok ||
-      !result.output
-    ) {
-      throw new Error(
-        result.error?.message ??
-        "AI App Builder failed"
-      );
-    }
+  async revise(
+    input: AppRevisionInput
+  ): Promise<AppBuilderResult> {
+    const language =
+      input.language ?? "zh-CN";
 
-    return {
-      blueprint:
-        parseBlueprint(result.output.text),
+    const prompt = `
+你是一名企业软件产品经理和系统架构师，正在修改一个已经存在并且已有真实业务数据的企业应用。
 
-      rawAIResponse:
-        result.output.text
-    };
+当前应用蓝图：
+${JSON.stringify(input.blueprint, null, 2)}
+
+用户提出的修改要求：
+${input.instruction}
+
+请基于当前蓝图生成修改后的完整蓝图。
+
+规则：
+1. 未被修改要求涉及的角色、数据实体、字段、页面、流程和推荐包必须尽量保留。
+2. 除非用户明确要求，不要删除已有实体或字段，避免破坏已有数据。
+3. 除非用户明确要求重命名应用，否则保持 appName 不变。
+4. 新增字段时使用稳定、简洁的英文字段名。
+5. 页面 id 使用稳定的小写英文与连字符；已有页面 id 尽量保持不变。
+6. 输出必须是完整蓝图，不是 diff。
+
+${schemaInstruction}
+
+输出语言：${language}
+`;
+
+    return generateBlueprint(
+      prompt,
+      "app-revision"
+    );
   }
 }
 
