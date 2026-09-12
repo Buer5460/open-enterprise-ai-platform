@@ -457,7 +457,16 @@ function Platform() {
             ⌘ Connectors
           </button>
 
-          <button>
+          <button
+            className={
+              rootView === "data"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setRootView("data")
+            }
+          >
             ▦ 数据中心
           </button>
 
