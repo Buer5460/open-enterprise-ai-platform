@@ -1,0 +1,84 @@
+:root {
+  --oeap-primary: #2563EB;
+  --oeap-primary-soft: #EAF1FE;
+  --oeap-primary-soft-2: #D5E3FC;
+  --oeap-primary-dark: #1B47A9;
+}
+
+.logo {
+  overflow: hidden;
+  background: var(--oeap-primary);
+}
+
+.logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+  border-radius: inherit;
+}
+
+nav button:hover,
+nav button.active,
+.backButton.active {
+  background: var(--oeap-primary-soft);
+  color: var(--oeap-primary);
+}
+
+.createButton,
+.promptBox button,
+.saveButton,
+.primaryOrgButton,
+.inviteCreateButton,
+.mailSaveButton {
+  background: var(--oeap-primary) !important;
+}
+
+.cardFooter button,
+.generatedTag,
+.authPanelHeader > div:first-child > span,
+.inviteHeading > div > span,
+.mailSettingsHeader > div:first-child > span,
+.brandSettingsHeader > div:first-child > span {
+  color: var(--oeap-primary) !important;
+}
+
+.runtimeBadge,
+.status {
+  color: var(--oeap-primary-dark);
+}
+
+.heroLabel {
+  color: var(--oeap-primary-soft-2);
+}
+
+.promptBox input:focus,
+.dynamicForm input:focus,
+.inviteForm input:focus,
+.inviteForm select:focus,
+.mailField input:focus,
+.mailField select:focus,
+.brandField input:focus,
+.brandField textarea:focus {
+  border-color: var(--oeap-primary) !important;
+}
+
+.authProviders > button:hover,
+.authProviders > button.configured,
+.mailProviderTabs button.active {
+  border-color: var(--oeap-primary-soft-2) !important;
+}
+
+.authState,
+.inviteHeading > strong,
+.mailActiveState,
+.brandPreviewBadge {
+  background: var(--oeap-primary-soft) !important;
+}
+
+.authState strong,
+.inviteHeading > strong,
+.mailActiveState strong,
+.brandPreviewBadge {
+  color: var(--oeap-primary-dark) !important;
+}
