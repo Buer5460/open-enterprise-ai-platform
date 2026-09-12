@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./styles.css";
 import { DataEntityPage } from "./DataEntityPage";
+import { AppRevisionPanel } from "./AppRevisionPanel";
 
 type Role = {
   name: string;
@@ -33,13 +34,11 @@ type AppManifest = {
   version: string;
   publisher: string;
   status: string;
-
   navigation?: Array<{
     id: string;
     label: string;
     path: string;
   }>;
-
   metadata?: {
     roles?: Role[];
     entities?: Entity[];
@@ -51,6 +50,8 @@ type AppManifest = {
     };
   };
 };
+
+const API = "http://127.0.0.1:8787";
 
 function Platform() {
   const [apps, setApps] =
@@ -69,16 +70,30 @@ function Platform() {
     React.useState<AppManifest | null>(null);
 
   const [activePage, setActivePage] =
-    React.useState<string>("overview");
+    React.useState("overview");
 
-  const loadApps = React.useCallback(() => {
-    return fetch(
-      "http://127.0.0.1:8787/api/apps"
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        setApps(data.apps ?? []);
-      });
+  const loadApps = React.useCallback(async () => {
+    const response = await fetch(
+      `${API}/api/apps`
+    );
+
+    const data = await response.json();
+    const nextApps: AppManifest[] =
+      data.apps ?? [];
+
+    setApps(nextApps);
+
+    setSelectedApp((current) => {
+      if (!current) {
+        return null;
+      }
+
+      return nextApps.find(
+        (item) => item.id === current.id
+      ) ?? current;
+    });
+
+    return nextApps;
   }, []);
 
   React.useEffect(() => {
@@ -88,8 +103,25 @@ function Platform() {
       });
   }, [loadApps]);
 
+  function applyUpdatedApp(
+    updated: AppManifest
+  ) {
+    setSelectedApp(updated);
+    setApps((current) =>
+      current.map((item) =>
+        item.id === updated.id
+          ? updated
+          : item
+      )
+    );
+    setActivePage("overview");
+  }
+
   async function createApp() {
-    if (!description.trim()) {
+    const businessRequest =
+      description.trim();
+
+    if (!businessRequest) {
       alert("请先描述你想创建的企业应用。");
       return;
     }
@@ -98,14 +130,14 @@ function Platform() {
 
     try {
       const response = await fetch(
-        "http://127.0.0.1:8787/api/apps/generate",
+        `${API}/api/apps/generate`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            description
+            description: businessRequest
           })
         }
       );
@@ -147,20 +179,14 @@ function Platform() {
 
     return (
       <div className="shell">
-
         <aside className="sidebar">
           <div className="brand">
             <div className="logo">O</div>
-
             <div>
               <strong>
-                {selectedApp.displayName ??
-                  selectedApp.name}
+                {selectedApp.displayName ?? selectedApp.name}
               </strong>
-
-              <span>
-                OEAP 企业应用
-              </span>
+              <span>OEAP 企业应用</span>
             </div>
           </div>
 
@@ -211,76 +237,59 @@ function Platform() {
         </aside>
 
         <main className="main">
-
           <header>
             <div>
               <h1>
-                {selectedApp.displayName ??
-                  selectedApp.name}
+                {selectedApp.displayName ?? selectedApp.name}
               </h1>
-
-              <p>
-                {selectedApp.description}
-              </p>
+              <p>{selectedApp.description}</p>
             </div>
 
             <span className="runtimeBadge">
-              ● 已启用
+              ● 已启用 · v{selectedApp.version}
             </span>
           </header>
 
           {activePage === "overview" ? (
             <>
+              <AppRevisionPanel
+                app={selectedApp}
+                onUpdated={applyUpdatedApp}
+              />
+
               <section className="stats">
                 <div>
                   <strong>
-                    {selectedApp.navigation
-                      ?.length ?? 0}
+                    {selectedApp.navigation?.length ?? 0}
                   </strong>
                   <span>业务页面</span>
                 </div>
-
                 <div>
-                  <strong>
-                    {roles.length}
-                  </strong>
+                  <strong>{roles.length}</strong>
                   <span>用户角色</span>
                 </div>
-
                 <div>
-                  <strong>
-                    {entities.length}
-                  </strong>
+                  <strong>{entities.length}</strong>
                   <span>数据实体</span>
                 </div>
-
                 <div>
-                  <strong>
-                    {workflows.length}
-                  </strong>
+                  <strong>{workflows.length}</strong>
                   <span>业务流程</span>
                 </div>
               </section>
 
               <section className="runtimeGrid">
-
                 <article className="runtimePanel">
                   <h3>角色与权限</h3>
-
                   {roles.map((role) => (
                     <div
                       className="runtimeItem"
                       key={role.name}
                     >
-                      <strong>
-                        {role.name}
-                      </strong>
-
+                      <strong>{role.name}</strong>
                       <p>
-                        {role.description ??
-                          "企业应用角色"}
+                        {role.description ?? "企业应用角色"}
                       </p>
-
                       <small>
                         {(role.permissions ?? [])
                           .slice(0, 5)
@@ -292,27 +301,19 @@ function Platform() {
 
                 <article className="runtimePanel">
                   <h3>数据模型</h3>
-
                   {entities.map((entity) => (
                     <div
                       className="runtimeItem"
                       key={entity.name}
                     >
-                      <strong>
-                        {entity.name}
-                      </strong>
-
+                      <strong>{entity.name}</strong>
                       <p>
-                        {entity.description ??
-                          "业务数据实体"}
+                        {entity.description ?? "业务数据实体"}
                       </p>
-
                       <small>
                         {(entity.fields ?? [])
                           .slice(0, 6)
-                          .map((field) =>
-                            field.name
-                          )
+                          .map((field) => field.name)
                           .join(" · ")}
                       </small>
                     </div>
@@ -321,50 +322,39 @@ function Platform() {
 
                 <article className="runtimePanel">
                   <h3>业务流程</h3>
-
-                  {workflows.map(
-                    (workflow) => (
-                      <div
-                        className="runtimeItem"
-                        key={workflow.name}
-                      >
-                        <strong>
-                          {workflow.name}
-                        </strong>
-
-                        <p>
-                          {workflow.description ??
-                            "自动化业务流程"}
-                        </p>
-
-                        <small>
-                          {(workflow.steps ?? [])
-                            .slice(0, 4)
-                            .join(" → ")}
-                        </small>
-                      </div>
-                    )
-                  )}
+                  {workflows.map((workflow) => (
+                    <div
+                      className="runtimeItem"
+                      key={workflow.name}
+                    >
+                      <strong>{workflow.name}</strong>
+                      <p>
+                        {workflow.description ?? "自动化业务流程"}
+                      </p>
+                      <small>
+                        {(workflow.steps ?? [])
+                          .slice(0, 4)
+                          .join(" → ")}
+                      </small>
+                    </div>
+                  ))}
                 </article>
-
               </section>
             </>
           ) : (
             <DataEntityPage
-              key={activePage}
+              key={`${selectedApp.version}:${activePage}`}
               appId={selectedApp.id}
               pageLabel={
                 selectedApp.navigation
                   ?.find(
-                    (page) =>
-                      page.id === activePage
+                    (page) => page.id === activePage
                   )
                   ?.label ?? activePage
               }
               entities={entities}
             />
           )}
-
         </main>
       </div>
     );
@@ -372,60 +362,26 @@ function Platform() {
 
   return (
     <div className="shell">
-
       <aside className="sidebar">
         <div className="brand">
           <div className="logo">O</div>
-
           <div>
-            <strong>
-              OpenEnterpriseAI
-            </strong>
-
-            <span>
-              AI 原生企业应用平台
-            </span>
+            <strong>OpenEnterpriseAI</strong>
+            <span>AI 原生企业应用平台</span>
           </div>
         </div>
 
         <nav>
-          <button className="active">
-            ▣ 工作台
-          </button>
-
-          <button>
-            ◈ 我的应用
-          </button>
-
-          <button>
-            ◎ Agent
-          </button>
-
-          <button>
-            ◆ Skills
-          </button>
-
-          <button>
-            ⇄ Workflows
-          </button>
-
-          <button>
-            ⌘ Connectors
-          </button>
-
-          <button>
-            ▦ 数据中心
-          </button>
-
+          <button className="active">▣ 工作台</button>
+          <button>◈ 我的应用</button>
+          <button>◎ Agent</button>
+          <button>◆ Skills</button>
+          <button>⇄ Workflows</button>
+          <button>⌘ Connectors</button>
+          <button>▦ 数据中心</button>
           <div className="navDivider" />
-
-          <button>
-            ◇ Marketplace
-          </button>
-
-          <button>
-            &lt;/&gt; Developer
-          </button>
+          <button>◇ Marketplace</button>
+          <button>&lt;/&gt; Developer</button>
         </nav>
 
         <div className="sidebarFooter">
@@ -434,11 +390,9 @@ function Platform() {
       </aside>
 
       <main className="main">
-
         <header>
           <div>
             <h1>企业 AI 工作台</h1>
-
             <p>
               用自然语言创建、运行和扩展属于自己的企业应用。
             </p>
@@ -459,7 +413,6 @@ function Platform() {
         </header>
 
         <section className="hero">
-
           <div className="heroLabel">
             AI APP BUILDER
           </div>
@@ -469,9 +422,7 @@ function Platform() {
           </h2>
 
           <p>
-            描述业务需求，AI 将帮助你完成需求分析、
-            数据模型、页面、Agent、Skill、
-            Workflow 和 Connector 设计。
+            描述业务需求，AI 将帮助你完成需求分析、数据模型、页面、Agent、Skill、Workflow 和 Connector 设计。
           </p>
 
           <div className="promptBox">
@@ -479,24 +430,18 @@ function Platform() {
               placeholder="例如：帮我做一个旅行社客户和订单管理系统……"
               value={description}
               onChange={(event) =>
-                setDescription(
-                  event.target.value
-                )
+                setDescription(event.target.value)
               }
               disabled={creating}
               onKeyDown={(event) => {
-                if (
-                  event.key === "Enter"
-                ) {
+                if (event.key === "Enter") {
                   void createApp();
                 }
               }}
             />
 
             <button
-              onClick={() =>
-                void createApp()
-              }
+              onClick={() => void createApp()}
               disabled={creating}
             >
               {creating
@@ -507,39 +452,28 @@ function Platform() {
         </section>
 
         <section className="stats">
-
           <div>
-            <strong>
-              {apps.length}
-            </strong>
+            <strong>{apps.length}</strong>
             <span>已安装应用</span>
           </div>
-
           <div>
             <strong>6</strong>
             <span>Package 类型</span>
           </div>
-
           <div>
             <strong>1</strong>
             <span>AI Runtime</span>
           </div>
-
           <div>
             <strong>Online</strong>
-            <span>
-              DeepSeek Harness
-            </span>
+            <span>DeepSeek Harness</span>
           </div>
-
         </section>
 
         <section className="appsSection">
-
           <div className="sectionHeader">
             <div>
               <h3>我的应用</h3>
-
               <p>
                 AI 创建或安装到当前平台的企业应用
               </p>
@@ -553,27 +487,22 @@ function Platform() {
           )}
 
           <div className="appGrid">
-
             {apps.map((item) => (
               <article
                 className="appCard"
                 key={item.id}
               >
                 <div className="appTop">
-
                   <div className="appIcon">
-                    {item.displayName?.[0] ??
-                      item.name[0]}
+                    {item.displayName?.[0] ?? item.name[0]}
                   </div>
-
                   <span className="status">
                     ● 已启用
                   </span>
                 </div>
 
                 <h4>
-                  {item.displayName ??
-                    item.name}
+                  {item.displayName ?? item.name}
                 </h4>
 
                 <p className="description">
@@ -582,36 +511,22 @@ function Platform() {
 
                 <div className="appMeta">
                   <span>
-                    页面{" "}
-                    {item.navigation
-                      ?.length ?? 0}
+                    页面 {item.navigation?.length ?? 0}
                   </span>
-
                   <span>
-                    角色{" "}
-                    {item.metadata?.roles
-                      ?.length ?? 0}
+                    角色 {item.metadata?.roles?.length ?? 0}
                   </span>
-
                   <span>
-                    数据实体{" "}
-                    {item.metadata
-                      ?.entities?.length ??
-                      0}
+                    数据实体 {item.metadata?.entities?.length ?? 0}
                   </span>
                 </div>
 
                 <div className="cardFooter">
-                  <span>
-                    v{item.version}
-                  </span>
-
+                  <span>v{item.version}</span>
                   <button
                     onClick={() => {
                       setSelectedApp(item);
-                      setActivePage(
-                        "overview"
-                      );
+                      setActivePage("overview");
                     }}
                   >
                     打开应用 →
@@ -619,7 +534,6 @@ function Platform() {
                 </div>
               </article>
             ))}
-
           </div>
         </section>
       </main>
