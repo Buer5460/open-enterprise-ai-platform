@@ -3,6 +3,9 @@ const LOCAL_API_BASE = "http://127.0.0.1:8787";
 
 export const API_BASE = resolveApiBase();
 
+const nativeFetch =
+  globalThis.fetch.bind(globalThis);
+
 function importRedirectSession(): void {
   try {
     const hash = window.location.hash;
@@ -34,6 +37,7 @@ function importRedirectSession(): void {
 
 if (typeof window !== "undefined") {
   importRedirectSession();
+  installOeapFetch();
 }
 
 export function getAuthToken(): string | undefined {
@@ -105,10 +109,63 @@ export function apiFetch(
 ): Promise<Response> {
   const normalized = normalizeInput(input);
 
-  return fetch(normalized, {
+  return nativeFetch(normalized, {
     ...init,
     headers: authHeaders(init.headers)
   });
+}
+
+function installOeapFetch(): void {
+  const marker = "__oeap_fetch_installed__";
+  const target = window as typeof window & {
+    [marker]?: boolean;
+  };
+
+  if (target[marker]) {
+    return;
+  }
+
+  target[marker] = true;
+
+  window.fetch = (async (
+    input: RequestInfo | URL,
+    init: RequestInit = {}
+  ) => {
+    const normalized = normalizeInput(input);
+
+    if (!isOeapApiRequest(normalized)) {
+      return nativeFetch(normalized, init);
+    }
+
+    return nativeFetch(normalized, {
+      ...init,
+      headers: authHeaders(init.headers)
+    });
+  }) as typeof window.fetch;
+}
+
+function isOeapApiRequest(
+  input: RequestInfo | URL
+): boolean {
+  const value =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
+
+  if (
+    value.startsWith("/api/") ||
+    value === "/health" ||
+    value.startsWith("/invite/")
+  ) {
+    return true;
+  }
+
+  return (
+    value === API_BASE ||
+    value.startsWith(`${API_BASE}/`)
+  );
 }
 
 function normalizeInput(
@@ -124,7 +181,15 @@ function normalizeInput(
     );
   }
 
-  return input;
+  const normalizedUrl = normalizeAbsoluteUrl(
+    input.url
+  );
+
+  if (normalizedUrl === input.url) {
+    return input;
+  }
+
+  return new Request(normalizedUrl, input);
 }
 
 function normalizeAbsoluteUrl(
