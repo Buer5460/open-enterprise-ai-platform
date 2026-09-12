@@ -1,5 +1,38 @@
 const AUTH_TOKEN_KEY = "oeap.auth.token";
 
+function importRedirectSession(): void {
+  try {
+    const hash = window.location.hash;
+
+    if (!hash.startsWith("#oeap_session=")) {
+      return;
+    }
+
+    const token = decodeURIComponent(
+      hash.slice("#oeap_session=".length)
+    ).trim();
+
+    if (token) {
+      window.localStorage.setItem(
+        AUTH_TOKEN_KEY,
+        token
+      );
+    }
+
+    window.history.replaceState(
+      null,
+      document.title,
+      `${window.location.pathname}${window.location.search}`
+    );
+  } catch {
+    // Ignore unavailable browser storage/history APIs.
+  }
+}
+
+if (typeof window !== "undefined") {
+  importRedirectSession();
+}
+
 export function getAuthToken(): string | undefined {
   try {
     return window.localStorage.getItem(
