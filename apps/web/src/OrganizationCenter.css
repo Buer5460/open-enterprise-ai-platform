@@ -1,0 +1,405 @@
+.organizationCenter {
+  width: 100%;
+}
+
+.orgHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+.orgHeading > div:first-child > span {
+  display: block;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  margin-bottom: 8px;
+}
+
+.orgHeading h1 {
+  margin: 0 0 8px;
+}
+
+.orgHeading p {
+  max-width: 760px;
+  margin: 0;
+  color: #7a8394;
+  line-height: 1.7;
+}
+
+.orgIdentity {
+  min-width: 230px;
+  padding: 16px 18px;
+  border: 1px solid #e5eaf1;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.orgIdentity strong,
+.orgIdentity small,
+.orgIdentity em {
+  display: block;
+}
+
+.orgIdentity strong {
+  margin-bottom: 4px;
+}
+
+.orgIdentity small {
+  color: #8a93a3;
+  word-break: break-all;
+}
+
+.orgIdentity em {
+  width: fit-content;
+  margin-top: 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.orgMessage {
+  margin-bottom: 16px;
+  padding: 11px 13px;
+  border-radius: 9px;
+  background: #eff6ff;
+  color: #315dba;
+  font-size: 12px;
+}
+
+.orgStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 13px;
+  margin-bottom: 18px;
+}
+
+.orgStats div,
+.orgPanel {
+  border: 1px solid #e6ebf2;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.orgStats div {
+  padding: 18px;
+}
+
+.orgStats strong {
+  display: block;
+  font-size: 24px;
+}
+
+.orgStats span {
+  color: #8a93a3;
+  font-size: 12px;
+}
+
+.orgGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.orgGrid.lower {
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
+}
+
+.orgPanel {
+  padding: 21px;
+}
+
+.orgPanel h3 {
+  margin: 0 0 6px;
+}
+
+.orgPanel > p,
+.orgPanelHeading p {
+  margin: 0;
+  color: #818a9b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.orgPanelHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.memberTable {
+  display: flex;
+  flex-direction: column;
+}
+
+.memberRow {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.4fr) 140px 90px minmax(120px, .8fr) 60px;
+  gap: 10px;
+  align-items: center;
+  padding: 13px 0;
+  border-top: 1px solid #edf0f4;
+}
+
+.memberRow:first-child {
+  border-top: 0;
+}
+
+.memberProfile strong,
+.memberProfile span,
+.memberProfile small {
+  display: block;
+}
+
+.memberProfile strong {
+  margin-bottom: 3px;
+}
+
+.memberProfile span {
+  color: #697386;
+  font-size: 12px;
+}
+
+.memberProfile small {
+  margin-top: 4px;
+  color: #a0a8b7;
+  font-size: 9px;
+  word-break: break-all;
+}
+
+.memberRow select,
+.addMemberPanel input,
+.addMemberPanel select,
+.customRoleForm input {
+  width: 100%;
+  border: 1px solid #dfe4ec;
+  border-radius: 8px;
+  background: #fff;
+  padding: 9px 10px;
+  outline: none;
+}
+
+.memberState,
+.removeMember,
+.customRoleForm button,
+.primaryOrgButton {
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.memberState {
+  border: 1px solid #e5e7eb;
+  background: #f7f9fc;
+  color: #667085;
+  padding: 8px;
+}
+
+.memberState.active {
+  border-color: #bbf7d0;
+  background: #ecfdf3;
+  color: #15803d;
+}
+
+.removeMember {
+  border: 1px solid #f0caca;
+  background: #fff;
+  color: #c24141;
+  padding: 8px;
+}
+
+.memberState:disabled,
+.removeMember:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.appAccess {
+  position: relative;
+}
+
+.appAccess summary {
+  cursor: pointer;
+  color: #2563eb;
+  font-size: 12px;
+}
+
+.appAccess[open] {
+  padding: 8px;
+  border: 1px solid #dfe4ec;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(24, 39, 75, .08);
+}
+
+.appAccess label {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin-top: 8px;
+  color: #586174;
+  font-size: 11px;
+}
+
+.addMemberPanel label {
+  display: block;
+  margin-top: 13px;
+}
+
+.addMemberPanel label span {
+  display: block;
+  margin-bottom: 6px;
+  color: #586174;
+  font-size: 12px;
+}
+
+.primaryOrgButton {
+  width: 100%;
+  margin-top: 16px;
+  border: 0;
+  background: #2563eb;
+  color: #fff;
+  padding: 11px;
+}
+
+.primaryOrgButton:disabled {
+  opacity: .6;
+}
+
+.roleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.roleCard {
+  padding: 14px;
+  border: 1px solid #e8ecf2;
+  border-radius: 10px;
+  background: #fbfcfe;
+}
+
+.roleCard > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.roleCard span {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #2563eb;
+  font-size: 9px;
+}
+
+.roleCard code {
+  display: block;
+  margin-top: 9px;
+  color: #778195;
+  font-size: 10px;
+  line-height: 1.6;
+  white-space: normal;
+}
+
+.customRoleForm {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) 100px;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #edf0f4;
+}
+
+.customRoleForm button {
+  border: 0;
+  background: #111827;
+  color: #fff;
+}
+
+.auditList {
+  margin-top: 14px;
+}
+
+.auditList > div {
+  padding: 11px 0;
+  border-top: 1px solid #edf0f4;
+}
+
+.auditList strong,
+.auditList span,
+.auditList small {
+  display: block;
+}
+
+.auditList strong {
+  font-size: 12px;
+}
+
+.auditList span {
+  margin-top: 3px;
+  color: #667085;
+  font-size: 10px;
+  word-break: break-all;
+}
+
+.auditList small {
+  margin-top: 4px;
+  color: #9aa1af;
+  font-size: 9px;
+}
+
+.auditEmpty,
+.orgEmpty {
+  padding: 48px 20px;
+  border: 1px dashed #dfe4ec;
+  border-radius: 13px;
+  background: #fff;
+  color: #8c95a6;
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .orgGrid,
+  .orgGrid.lower {
+    grid-template-columns: 1fr;
+  }
+
+  .memberRow {
+    grid-template-columns: 1fr 130px 85px;
+  }
+
+  .appAccess,
+  .removeMember {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .orgHeading {
+    flex-direction: column;
+  }
+
+  .orgIdentity {
+    width: 100%;
+  }
+
+  .orgStats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .memberRow,
+  .customRoleForm {
+    grid-template-columns: 1fr;
+  }
+}
