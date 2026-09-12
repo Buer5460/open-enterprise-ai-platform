@@ -29,7 +29,12 @@ export function registerPackageProvenanceRoutes(input: {
       identity.organizationId,
       request.params.packageId
     );
-    if (!directory) return reply.code(404).send({ ok: false, error: "Published package not found" });
+    if (!directory) {
+      return reply.code(404).send({
+        ok: false,
+        error: "Published package not found"
+      });
+    }
     return {
       ok: true,
       provenance: await readPackageProvenance(directory)
@@ -46,17 +51,28 @@ export function registerPackageProvenanceRoutes(input: {
       identity.organizationId,
       request.params.packageId
     );
-    if (!directory) return reply.code(404).send({ ok: false, error: "Published package not found" });
+    if (!directory) {
+      return reply.code(404).send({
+        ok: false,
+        error: "Published package not found"
+      });
+    }
 
     try {
       return {
         ok: true,
-        provenance: await signPackageDirectory(input.repoRoot, directory)
+        provenance: await signPackageDirectory(
+          input.repoRoot,
+          directory,
+          identity.organizationId
+        )
       };
     } catch (error) {
       return reply.code(400).send({
         ok: false,
-        error: error instanceof Error ? error.message : "Package signing failed"
+        error: error instanceof Error
+          ? error.message
+          : "Package signing failed"
       });
     }
   });
@@ -71,10 +87,19 @@ export function registerPackageProvenanceRoutes(input: {
       identity.organizationId,
       request.params.packageId
     );
-    if (!directory) return reply.code(404).send({ ok: false, error: "Published package not found" });
+    if (!directory) {
+      return reply.code(404).send({
+        ok: false,
+        error: "Published package not found"
+      });
+    }
     return {
       ok: true,
-      ...(await verifyPackageDirectory(input.repoRoot, directory))
+      ...(await verifyPackageDirectory(
+        input.repoRoot,
+        directory,
+        identity.organizationId
+      ))
     };
   });
 }
