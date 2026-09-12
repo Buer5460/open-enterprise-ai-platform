@@ -11,5 +11,8 @@
     "dev": "echo \"Platform development environment not configured yet\"",
     "build": "echo \"Platform build not configured yet\"",
     "test": "echo \"Platform tests not configured yet\""
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
   }
 }
