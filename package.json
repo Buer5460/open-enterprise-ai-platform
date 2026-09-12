@@ -1,0 +1,15 @@
+{
+  "name": "open-enterprise-ai-platform",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "echo \"Platform development environment not configured yet\"",
+    "build": "echo \"Platform build not configured yet\"",
+    "test": "echo \"Platform tests not configured yet\""
+  }
+}
