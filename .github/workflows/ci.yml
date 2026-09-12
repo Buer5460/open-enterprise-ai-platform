@@ -29,22 +29,29 @@ jobs:
         run: corepack pnpm install --frozen-lockfile
 
       - name: Build workspace
-        run: corepack pnpm -r build
+        run: corepack pnpm build
 
-      - name: Run deterministic local tests
-        run: |
-          if [ -f scripts/test-action-gateway.mjs ]; then node scripts/test-action-gateway.mjs; fi
-          if [ -f scripts/test-installable-skill.mjs ]; then node scripts/test-installable-skill.mjs; fi
-          if [ -f scripts/test-growth-agent.mjs ]; then node scripts/test-growth-agent.mjs; fi
-          if [ -f scripts/test-growth-workflow.mjs ]; then node scripts/test-growth-workflow.mjs; fi
-          if [ -f scripts/test-developer-studio.mjs ]; then node scripts/test-developer-studio.mjs; fi
-          if [ -f scripts/test-tenancy.mjs ]; then node scripts/test-tenancy.mjs; fi
-          if [ -f scripts/test-auth-session.mjs ]; then node scripts/test-auth-session.mjs; fi
-          if [ -f scripts/test-invitations.mjs ]; then node scripts/test-invitations.mjs; fi
-          if [ -f scripts/test-invitation-delivery.mjs ]; then node scripts/test-invitation-delivery.mjs; fi
-          if [ -f scripts/test-mail-settings.mjs ]; then node scripts/test-mail-settings.mjs; fi
-          if [ -f scripts/test-production-security.mjs ]; then node scripts/test-production-security.mjs; fi
+      - name: Run deterministic test suite
+        run: corepack pnpm test
 
-      - name: Note AI-runtime integration tests
+      - name: Validate shell scripts
         run: |
-          echo "DeepSeek Harness integration tests are intentionally excluded from public CI because they require an external Harness checkout and credentials/runtime configuration."
+          bash -n scripts/start-local.sh
+          bash -n scripts/test-ci.sh
+          bash -n scripts/backup-data.sh
+          bash -n scripts/restore-data.sh
+
+      - name: Validate Compose configuration
+        run: |
+          cp .env.example .env
+          docker compose config >/dev/null
+
+      - name: Build API container
+        run: docker build --target api -t oeap-api-ci .
+
+      - name: Build Web container
+        run: docker build --target web -t oeap-web-ci .
+
+      - name: Note external AI-runtime integration
+        run: |
+          echo "DeepSeek Harness live integration is intentionally not executed in public CI because it requires an external Harness checkout and provider credentials."
