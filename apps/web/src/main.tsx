@@ -3,6 +3,10 @@ import ReactDOM from "react-dom/client";
 import "./styles.css";
 import { DataEntityPage } from "./DataEntityPage";
 import { AppRevisionPanel } from "./AppRevisionPanel";
+import {
+  PlatformWorkspace,
+  type PlatformView
+} from "./PlatformWorkspace";
 
 type Role = {
   name: string;
@@ -53,6 +57,10 @@ type AppManifest = {
 
 const API = "http://127.0.0.1:8787";
 
+type RootView =
+  | "workbench"
+  | PlatformView;
+
 function Platform() {
   const [apps, setApps] =
     React.useState<AppManifest[]>([]);
@@ -71,6 +79,9 @@ function Platform() {
 
   const [activePage, setActivePage] =
     React.useState("overview");
+
+  const [rootView, setRootView] =
+    React.useState<RootView>("workbench");
 
   const loadApps = React.useCallback(async () => {
     const response = await fetch(
@@ -229,6 +240,7 @@ function Platform() {
               onClick={() => {
                 setSelectedApp(null);
                 setActivePage("overview");
+                setRootView("workbench");
               }}
             >
               ← 返回工作台
@@ -372,16 +384,110 @@ function Platform() {
         </div>
 
         <nav>
-          <button className="active">▣ 工作台</button>
-          <button>◈ 我的应用</button>
-          <button>◎ Agent</button>
-          <button>◆ Skills</button>
-          <button>⇄ Workflows</button>
-          <button>⌘ Connectors</button>
-          <button>▦ 数据中心</button>
+          <button
+            className={
+              rootView === "workbench"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setRootView("workbench")
+            }
+          >
+            ▣ 工作台
+          </button>
+
+          <button
+            onClick={() =>
+              setRootView("workbench")
+            }
+          >
+            ◈ 我的应用
+          </button>
+
+          <button
+            className={
+              rootView === "agents"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setRootView("agents")
+            }
+          >
+            ◎ Agent
+          </button>
+
+          <button
+            className={
+              rootView === "skills"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setRootView("skills")
+            }
+          >
+            ◆ Skills
+          </button>
+
+          <button
+            className={
+              rootView === "workflows"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setRootView("workflows")
+            }
+          >
+            ⇄ Workflows
+          </button>
+
+          <button
+            className={
+              rootView === "connectors"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setRootView("connectors")
+            }
+          >
+            ⌘ Connectors
+          </button>
+
+          <button>
+            ▦ 数据中心
+          </button>
+
           <div className="navDivider" />
-          <button>◇ Marketplace</button>
-          <button>&lt;/&gt; Developer</button>
+
+          <button
+            className={
+              rootView === "marketplace"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setRootView("marketplace")
+            }
+          >
+            ◇ Marketplace
+          </button>
+
+          <button
+            className={
+              rootView === "developer"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setRootView("developer")
+            }
+          >
+            &lt;/&gt; Developer
+          </button>
         </nav>
 
         <div className="sidebarFooter">
@@ -390,154 +496,196 @@ function Platform() {
       </aside>
 
       <main className="main">
-        <header>
-          <div>
-            <h1>企业 AI 工作台</h1>
-            <p>
-              用自然语言创建、运行和扩展属于自己的企业应用。
-            </p>
-          </div>
-
-          <button
-            className="createButton"
-            onClick={() => {
-              document
-                .querySelector<HTMLInputElement>(
-                  ".promptBox input"
-                )
-                ?.focus();
+        {rootView === "workbench" ? (
+          <Workbench
+            apps={apps}
+            loading={loading}
+            description={description}
+            creating={creating}
+            setDescription={setDescription}
+            createApp={createApp}
+            openApp={(item) => {
+              setSelectedApp(item);
+              setActivePage("overview");
             }}
-          >
-            ＋ 创建应用
-          </button>
-        </header>
-
-        <section className="hero">
-          <div className="heroLabel">
-            AI APP BUILDER
-          </div>
-
-          <h2>
-            你想为自己的企业做一个什么应用？
-          </h2>
-
-          <p>
-            描述业务需求，AI 将帮助你完成需求分析、数据模型、页面、Agent、Skill、Workflow 和 Connector 设计。
-          </p>
-
-          <div className="promptBox">
-            <input
-              placeholder="例如：帮我做一个旅行社客户和订单管理系统……"
-              value={description}
-              onChange={(event) =>
-                setDescription(event.target.value)
-              }
-              disabled={creating}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  void createApp();
-                }
-              }}
-            />
-
-            <button
-              onClick={() => void createApp()}
-              disabled={creating}
-            >
-              {creating
-                ? "AI 正在创建…"
-                : "开始创建"}
-            </button>
-          </div>
-        </section>
-
-        <section className="stats">
-          <div>
-            <strong>{apps.length}</strong>
-            <span>已安装应用</span>
-          </div>
-          <div>
-            <strong>6</strong>
-            <span>Package 类型</span>
-          </div>
-          <div>
-            <strong>1</strong>
-            <span>AI Runtime</span>
-          </div>
-          <div>
-            <strong>Online</strong>
-            <span>DeepSeek Harness</span>
-          </div>
-        </section>
-
-        <section className="appsSection">
-          <div className="sectionHeader">
-            <div>
-              <h3>我的应用</h3>
-              <p>
-                AI 创建或安装到当前平台的企业应用
-              </p>
-            </div>
-          </div>
-
-          {loading && (
-            <div className="empty">
-              正在加载应用……
-            </div>
-          )}
-
-          <div className="appGrid">
-            {apps.map((item) => (
-              <article
-                className="appCard"
-                key={item.id}
-              >
-                <div className="appTop">
-                  <div className="appIcon">
-                    {item.displayName?.[0] ?? item.name[0]}
-                  </div>
-                  <span className="status">
-                    ● 已启用
-                  </span>
-                </div>
-
-                <h4>
-                  {item.displayName ?? item.name}
-                </h4>
-
-                <p className="description">
-                  {item.description}
-                </p>
-
-                <div className="appMeta">
-                  <span>
-                    页面 {item.navigation?.length ?? 0}
-                  </span>
-                  <span>
-                    角色 {item.metadata?.roles?.length ?? 0}
-                  </span>
-                  <span>
-                    数据实体 {item.metadata?.entities?.length ?? 0}
-                  </span>
-                </div>
-
-                <div className="cardFooter">
-                  <span>v{item.version}</span>
-                  <button
-                    onClick={() => {
-                      setSelectedApp(item);
-                      setActivePage("overview");
-                    }}
-                  >
-                    打开应用 →
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+          />
+        ) : (
+          <PlatformWorkspace
+            view={rootView}
+          />
+        )}
       </main>
     </div>
+  );
+}
+
+function Workbench({
+  apps,
+  loading,
+  description,
+  creating,
+  setDescription,
+  createApp,
+  openApp
+}: {
+  apps: AppManifest[];
+  loading: boolean;
+  description: string;
+  creating: boolean;
+  setDescription: (value: string) => void;
+  createApp: () => Promise<void>;
+  openApp: (item: AppManifest) => void;
+}) {
+  return (
+    <>
+      <header>
+        <div>
+          <h1>企业 AI 工作台</h1>
+          <p>
+            用自然语言创建、运行和扩展属于自己的企业应用。
+          </p>
+        </div>
+
+        <button
+          className="createButton"
+          onClick={() => {
+            document
+              .querySelector<HTMLInputElement>(
+                ".promptBox input"
+              )
+              ?.focus();
+          }}
+        >
+          ＋ 创建应用
+        </button>
+      </header>
+
+      <section className="hero">
+        <div className="heroLabel">
+          AI APP BUILDER
+        </div>
+
+        <h2>
+          你想为自己的企业做一个什么应用？
+        </h2>
+
+        <p>
+          描述业务需求，AI 将帮助你完成需求分析、数据模型、页面、Agent、Skill、Workflow 和 Connector 设计。
+        </p>
+
+        <div className="promptBox">
+          <input
+            placeholder="例如：帮我做一个旅行社客户和订单管理系统……"
+            value={description}
+            onChange={(event) =>
+              setDescription(
+                event.target.value
+              )
+            }
+            disabled={creating}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                void createApp();
+              }
+            }}
+          />
+
+          <button
+            onClick={() => void createApp()}
+            disabled={creating}
+          >
+            {creating
+              ? "AI 正在创建…"
+              : "开始创建"}
+          </button>
+        </div>
+      </section>
+
+      <section className="stats">
+        <div>
+          <strong>{apps.length}</strong>
+          <span>已安装应用</span>
+        </div>
+        <div>
+          <strong>6</strong>
+          <span>Package 类型</span>
+        </div>
+        <div>
+          <strong>1</strong>
+          <span>AI Runtime</span>
+        </div>
+        <div>
+          <strong>Online</strong>
+          <span>DeepSeek Harness</span>
+        </div>
+      </section>
+
+      <section className="appsSection">
+        <div className="sectionHeader">
+          <div>
+            <h3>我的应用</h3>
+            <p>
+              AI 创建或安装到当前平台的企业应用
+            </p>
+          </div>
+        </div>
+
+        {loading && (
+          <div className="empty">
+            正在加载应用……
+          </div>
+        )}
+
+        <div className="appGrid">
+          {apps.map((item) => (
+            <article
+              className="appCard"
+              key={item.id}
+            >
+              <div className="appTop">
+                <div className="appIcon">
+                  {item.displayName?.[0] ?? item.name[0]}
+                </div>
+                <span className="status">
+                  ● 已启用
+                </span>
+              </div>
+
+              <h4>
+                {item.displayName ?? item.name}
+              </h4>
+
+              <p className="description">
+                {item.description}
+              </p>
+
+              <div className="appMeta">
+                <span>
+                  页面 {item.navigation?.length ?? 0}
+                </span>
+                <span>
+                  角色 {item.metadata?.roles?.length ?? 0}
+                </span>
+                <span>
+                  数据实体 {item.metadata?.entities?.length ?? 0}
+                </span>
+              </div>
+
+              <div className="cardFooter">
+                <span>v{item.version}</span>
+                <button
+                  onClick={() =>
+                    openApp(item)
+                  }
+                >
+                  打开应用 →
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
 
