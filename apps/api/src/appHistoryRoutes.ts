@@ -8,46 +8,52 @@ import {
 } from "node:fs/promises";
 import { join } from "node:path";
 
-import {
-  appPackageBuilder
-} from "@oeap/app-package-builder";
-import type {
-  AppBlueprint
-} from "@oeap/app-builder";
+import { appPackageBuilder } from "@oeap/app-package-builder";
+import type { AppBlueprint } from "@oeap/app-builder";
 
-import {
-  TenancyStore
-} from "./tenancyStore.js";
-import {
-  memberFrom,
-  organizationFrom
-} from "./tenancyRoutes.js";
+import { TenancyStore } from "./tenancyStore.js";
+import { memberFrom, organizationFrom } from "./tenancyRoutes.js";
+import { runtimePath } from "./runtimePaths.js";
 
 export function registerAppHistoryRoutes(input: {
   app: FastifyInstance;
   repoRoot: string;
 }) {
-  const generatedAppsRoot = join(
-    input.repoRoot,
-    ".tmp",
-    "generated-apps"
-  );
   const tenancy = new TenancyStore(
-    join(
+    runtimePath(
       input.repoRoot,
-      ".tmp",
       "tenancy",
       "tenancy.sqlite"
     )
   );
+
+  function generatedAppsRoot(
+    organizationId: string
+  ): string {
+    if (organizationId === "org_local") {
+      return runtimePath(
+        input.repoRoot,
+        "generated-apps"
+      );
+    }
+
+    return runtimePath(
+      input.repoRoot,
+      "organizations",
+      safeIdentifier(organizationId),
+      "generated-apps"
+    );
+  }
 
   input.app.get<{
     Params: { appId: string };
   }>(
     "/api/apps/:appId/versions",
     async (request, reply) => {
+      const organizationId = organizationFrom(request);
+      const root = generatedAppsRoot(organizationId);
       const located = await findApp(
-        generatedAppsRoot,
+        root,
         request.params.appId
       );
 
@@ -76,6 +82,7 @@ export function registerAppHistoryRoutes(input: {
 
       return {
         ok: true,
+        organizationId,
         appId: request.params.appId,
         currentVersion:
           located.manifest.version,
@@ -102,8 +109,10 @@ export function registerAppHistoryRoutes(input: {
   }>(
     "/api/apps/:appId/versions/:version",
     async (request, reply) => {
+      const organizationId = organizationFrom(request);
+      const root = generatedAppsRoot(organizationId);
       const located = await findApp(
-        generatedAppsRoot,
+        root,
         request.params.appId
       );
 
@@ -126,10 +135,12 @@ export function registerAppHistoryRoutes(input: {
         });
       }
 
-      const requested =
-        safeVersion(request.params.version);
-      const current =
-        String(located.manifest.version);
+      const requested = safeVersion(
+        request.params.version
+      );
+      const current = String(
+        located.manifest.version
+      );
 
       const base =
         requested === safeVersion(current)
@@ -153,6 +164,7 @@ export function registerAppHistoryRoutes(input: {
 
         return {
           ok: true,
+          organizationId,
           current:
             requested === safeVersion(current),
           manifest,
@@ -175,8 +187,10 @@ export function registerAppHistoryRoutes(input: {
   }>(
     "/api/apps/:appId/versions/:version/restore",
     async (request, reply) => {
+      const organizationId = organizationFrom(request);
+      const root = generatedAppsRoot(organizationId);
       const located = await findApp(
-        generatedAppsRoot,
+        root,
         request.params.appId
       );
 
@@ -199,14 +213,15 @@ export function registerAppHistoryRoutes(input: {
         });
       }
 
-      const targetVersion =
-        safeVersion(request.params.version);
-      const currentVersion =
-        String(located.manifest.version);
+      const targetVersion = safeVersion(
+        request.params.version
+      );
+      const currentVersion = String(
+        located.manifest.version
+      );
 
       if (
-        targetVersion ===
-        safeVersion(currentVersion)
+        targetVersion === safeVersion(currentVersion)
       ) {
         return reply.code(400).send({
           ok: false,
@@ -245,12 +260,13 @@ export function registerAppHistoryRoutes(input: {
         publisher:
           located.manifest.publisher || "local",
         version: nextVersion,
-        outputDir: generatedAppsRoot,
+        outputDir: root,
         directoryName: located.directoryName
       });
 
       return {
         ok: true,
+        organizationId,
         restoredFrom: request.params.version,
         previousVersion: currentVersion,
         version: nextVersion,
@@ -407,6 +423,13 @@ function bumpPatchVersion(
 
 function safeVersion(value: string): string {
   return value.replace(/[^0-9A-Za-z_.-]/g, "_");
+}
+
+function safeIdentifier(value: unknown): string {
+  return String(value).replace(
+    /[^A-Za-z0-9_.-]/g,
+    "_"
+  );
 }
 
 function compareVersions(
