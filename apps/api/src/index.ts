@@ -27,6 +27,10 @@ import {
 } from "./invitationDeliveryRoutes.js";
 
 import {
+  registerMailSettingsRoutes
+} from "./mailSettingsRoutes.js";
+
+import {
   registerPlatformRoutes
 } from "./platformRoutes.js";
 
@@ -80,6 +84,12 @@ registerTenancyRoutes({
   repoRoot
 });
 
+const mailSettingsStore =
+  registerMailSettingsRoutes({
+    app,
+    repoRoot
+  });
+
 registerInvitationRoutes({
   app,
   repoRoot,
@@ -89,7 +99,8 @@ registerInvitationRoutes({
 
 registerInvitationDeliveryRoutes({
   app,
-  repoRoot
+  repoRoot,
+  mailSettingsStore
 });
 
 await app.listen({
