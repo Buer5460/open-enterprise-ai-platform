@@ -18,6 +18,57 @@
   border-radius: inherit;
 }
 
+.authBrandCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -2px 0 16px;
+  padding: 13px 14px;
+  border: 1px solid var(--oeap-primary-soft-2);
+  border-radius: 11px;
+  background: linear-gradient(
+    135deg,
+    var(--oeap-primary-soft),
+    #fff
+  );
+}
+
+.authBrandLogo {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 11px;
+  background: var(--oeap-primary);
+  color: #fff;
+  font-weight: 800;
+}
+
+.authBrandLogo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+
+.authBrandCard strong,
+.authBrandCard span {
+  display: block;
+}
+
+.authBrandCard strong {
+  color: #172033;
+  font-size: 13px;
+}
+
+.authBrandCard span {
+  margin-top: 4px;
+  color: #718096;
+  font-size: 10px;
+}
+
 nav button:hover,
 nav button.active,
 .backButton.active {
@@ -30,7 +81,8 @@ nav button.active,
 .saveButton,
 .primaryOrgButton,
 .inviteCreateButton,
-.mailSaveButton {
+.mailSaveButton,
+.brandSaveButton {
   background: var(--oeap-primary) !important;
 }
 
