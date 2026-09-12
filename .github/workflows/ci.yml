@@ -43,6 +43,7 @@ jobs:
           if [ -f scripts/test-invitations.mjs ]; then node scripts/test-invitations.mjs; fi
           if [ -f scripts/test-invitation-delivery.mjs ]; then node scripts/test-invitation-delivery.mjs; fi
           if [ -f scripts/test-mail-settings.mjs ]; then node scripts/test-mail-settings.mjs; fi
+          if [ -f scripts/test-production-security.mjs ]; then node scripts/test-production-security.mjs; fi
 
       - name: Note AI-runtime integration tests
         run: |
