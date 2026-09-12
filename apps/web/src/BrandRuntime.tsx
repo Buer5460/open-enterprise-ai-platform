@@ -1,5 +1,6 @@
 import React from "react";
 import { apiFetch } from "./apiClient";
+import "./BrandRuntime.css";
 
 const API = "http://127.0.0.1:8787";
 
@@ -72,6 +73,7 @@ export function BrandProvider(props: {
   }, [apply]);
 
   React.useEffect(() => {
+    applyBrandToDocument(DEFAULT_BRAND);
     void reload();
 
     const onUpdated = (event: Event) => {
