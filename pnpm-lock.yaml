@@ -18,6 +18,15 @@ importers:
         specifier: workspace:*
         version: link:../package-spec
 
+  packages/connector-runtime:
+    dependencies:
+      '@oeap/capability-registry':
+        specifier: workspace:*
+        version: link:../capability-registry
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../package-spec
+
   packages/package-spec: {}
 
 packages:
