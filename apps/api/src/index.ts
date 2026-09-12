@@ -13,63 +13,51 @@ import {
 import {
   registerAuthRoutes
 } from "./authRoutes.js";
-
 import {
   registerAppHistoryRoutes
 } from "./appHistoryRoutes.js";
-
 import {
   registerAppRoutes
 } from "./appRoutes.js";
-
 import {
   registerBrandSettingsRoutes
 } from "./brandSettingsRoutes.js";
-
 import {
   registerConnectorSecretRoutes
 } from "./connectorSecretRoutes.js";
-
 import {
   registerDeploymentRoutes
 } from "./deploymentRoutes.js";
-
 import {
   registerFileRoutes
 } from "./fileRoutes.js";
-
 import {
   registerGitHubPublisherRoutes
 } from "./githubPublisherRoutes.js";
-
 import {
   registerInvitationRoutes
 } from "./invitationRoutes.js";
-
 import {
   registerInvitationDeliveryRoutes
 } from "./invitationDeliveryRoutes.js";
-
 import {
   registerKnowledgeRoutes
 } from "./knowledgeRoutes.js";
-
 import {
   registerMailSettingsRoutes
 } from "./mailSettingsRoutes.js";
-
 import {
   registerOperationsRoutes
 } from "./operationsRoutes.js";
-
 import {
   registerPackageProvenanceRoutes
 } from "./packageProvenanceRoutes.js";
-
 import {
   registerPlatformRoutes
 } from "./platformRoutes.js";
-
+import {
+  registerRemotePackageRoutes
+} from "./remotePackageRoutes.js";
 import {
   registerTenancyRoutes
 } from "./tenancyRoutes.js";
@@ -105,19 +93,16 @@ registerAuthRoutes({
   repoRoot
 });
 
-// Register operational response hooks before the business routes so that
-// protected API activity is captured after authentication resolves identity.
 registerOperationsRoutes({
   app,
   repoRoot
 });
 
-const appRoutes =
-  registerAppRoutes({
-    app,
-    repoRoot,
-    openEnterpriseRoot
-  });
+const appRoutes = registerAppRoutes({
+  app,
+  repoRoot,
+  openEnterpriseRoot
+});
 
 registerAppHistoryRoutes({
   app,
@@ -149,6 +134,11 @@ registerPackageProvenanceRoutes({
   repoRoot
 });
 
+registerRemotePackageRoutes({
+  app,
+  repoRoot
+});
+
 registerPlatformRoutes({
   app,
   repoRoot,
@@ -161,17 +151,15 @@ registerTenancyRoutes({
   repoRoot
 });
 
-const brandSettingsStore =
-  registerBrandSettingsRoutes({
-    app,
-    repoRoot
-  });
+const brandSettingsStore = registerBrandSettingsRoutes({
+  app,
+  repoRoot
+});
 
-const mailSettingsStore =
-  registerMailSettingsRoutes({
-    app,
-    repoRoot
-  });
+const mailSettingsStore = registerMailSettingsRoutes({
+  app,
+  repoRoot
+});
 
 registerDeploymentRoutes({
   app,
@@ -264,7 +252,6 @@ function requestBodyLimit(): number {
       ? Math.min(requestedMb, 25)
       : 10;
 
-  // JSON/base64 encoding adds roughly 33%; keep a small envelope for metadata.
   return Math.ceil(
     (fileMb * 4 / 3 + 1) * 1024 * 1024
   );
