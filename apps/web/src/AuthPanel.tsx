@@ -261,9 +261,7 @@ export function AuthPanel() {
       setAuthToken(undefined);
       setSession(null);
       setCanManageInvites(false);
-      setMessage(
-        "当前会话已注销。刷新页面后，本地开发模式会重新建立 Owner 会话。"
-      );
+      setMessage("当前会话已注销。");
     }
   }
 
@@ -277,16 +275,36 @@ export function AuthPanel() {
       return;
     }
 
-    const response = await fetch(
-      `${API}/api/auth/${provider.id}/start`
-    );
-    const result = await response.json();
+    setMessage(`正在准备 ${provider.name} 登录…`);
 
-    setMessage(
-      response.ok
-        ? `${provider.name} 已配置，可进入 OAuth / SSO 回调阶段。`
-        : result.error ?? `${provider.name} 尚未配置。`
-    );
+    try {
+      const response = await fetch(
+        `${API}/api/auth/${provider.id}/start`
+      );
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(
+          result.error ?? `${provider.name} 尚未配置。`
+        );
+      }
+
+      if (!result.authorizationUrl) {
+        throw new Error(
+          `${provider.name} 未返回授权地址。`
+        );
+      }
+
+      window.location.assign(
+        String(result.authorizationUrl)
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : `${provider.name} 登录启动失败。`
+      );
+    }
   }
 
   function toggleInviteApp(
@@ -495,7 +513,7 @@ export function AuthPanel() {
               {provider.id === "local"
                 ? "本地"
                 : provider.configured
-                  ? "已配置"
+                  ? "点击登录"
                   : "待配置"}
             </em>
           </button>
