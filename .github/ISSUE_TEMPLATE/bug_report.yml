@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a reproducible problem in OEAP
+title: "[Bug]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve OEAP. Please include enough detail to reproduce the issue.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Provide minimal steps, commands, or inputs.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: OEAP version / commit
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node.js, pnpm, DeepSeek Harness version, and relevant package versions.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Remove API keys, tokens, customer data, and other secrets before pasting logs.
