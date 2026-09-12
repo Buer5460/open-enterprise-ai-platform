@@ -26,10 +26,16 @@ type DBValue =
   | null;
 
 function safeName(value: string): string {
-  return value.replace(
+  const normalized = value.replace(
     /[^a-zA-Z0-9_]/g,
     "_"
   );
+
+  if (!normalized) {
+    throw new Error("Invalid database identifier");
+  }
+
+  return normalized;
 }
 
 function sqlType(type: string): string {
@@ -38,7 +44,8 @@ function sqlType(type: string): string {
   if (
     value.includes("number") ||
     value.includes("int") ||
-    value.includes("amount")
+    value.includes("amount") ||
+    value.includes("price")
   ) {
     return "REAL";
   }
@@ -93,20 +100,46 @@ export class AppDatabase {
       const table =
         safeName(entity.name);
 
-      const columns =
+      const declaredColumns =
         entity.fields.map(
           (field) =>
             `"${safeName(field.name)}" ${sqlType(field.type)}`
         );
 
+      const optionalColumnsSql =
+        declaredColumns.length > 0
+          ? `,\n${declaredColumns.join(",\n")}`
+          : "";
+
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS "${table}" (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          ${columns.join(",")},
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+          ${optionalColumnsSql}
         )
       `);
+
+      const existingColumns =
+        new Set(
+          this.getAllColumns(table)
+        );
+
+      for (const field of entity.fields) {
+        const column =
+          safeName(field.name);
+
+        if (existingColumns.has(column)) {
+          continue;
+        }
+
+        this.db.exec(`
+          ALTER TABLE "${table}"
+          ADD COLUMN "${column}" ${sqlType(field.type)}
+        `);
+
+        existingColumns.add(column);
+      }
     }
   }
 
@@ -332,7 +365,7 @@ export class AppDatabase {
     return Number(result.changes) > 0;
   }
 
-  private getSearchableColumns(
+  private getAllColumns(
     table: string
   ): string[] {
     const columns = this.db
@@ -349,9 +382,15 @@ export class AppDatabase {
           String(column.name ?? "")
         )
       )
+      .filter(Boolean);
+  }
+
+  private getSearchableColumns(
+    table: string
+  ): string[] {
+    return this.getAllColumns(table)
       .filter(
         (column) =>
-          column &&
           ![
             "id",
             "created_at",
