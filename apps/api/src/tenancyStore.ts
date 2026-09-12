@@ -528,6 +528,34 @@ export class TenancyStore {
     return this.requireMember(memberId);
   }
 
+  grantMemberAppAccess(
+    memberId: string,
+    appId: string,
+    actorMemberId?: string
+  ): OrganizationMember {
+    const member = this.requireMember(memberId);
+
+    if (member.appIds.includes("*") || member.appIds.includes(appId)) {
+      return member;
+    }
+
+    this.db.prepare(`
+      INSERT OR IGNORE INTO member_app_access (member_id, app_id)
+      VALUES (?, ?)
+    `).run(memberId, appId);
+
+    this.audit(
+      member.organizationId,
+      actorMemberId,
+      "member.app_access.granted",
+      "member",
+      memberId,
+      { appId }
+    );
+
+    return this.requireMember(memberId);
+  }
+
   authorize(input: {
     organizationId: string;
     memberId: string;
