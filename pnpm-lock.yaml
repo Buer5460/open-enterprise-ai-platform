@@ -12,6 +12,21 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  packages/action-gateway:
+    dependencies:
+      '@oeap/approval-engine':
+        specifier: workspace:*
+        version: link:../approval-engine
+      '@oeap/audit-log':
+        specifier: workspace:*
+        version: link:../audit-log
+      '@oeap/connector-runtime':
+        specifier: workspace:*
+        version: link:../connector-runtime
+      '@oeap/permission-engine':
+        specifier: workspace:*
+        version: link:../permission-engine
+
   packages/approval-engine:
     dependencies:
       '@oeap/permission-engine':
