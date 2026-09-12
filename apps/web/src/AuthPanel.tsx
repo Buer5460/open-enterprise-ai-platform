@@ -4,6 +4,10 @@ import {
   getAuthToken,
   setAuthToken
 } from "./apiClient";
+import {
+  BrandMark,
+  useBrand
+} from "./BrandRuntime";
 import "./AuthPanel.css";
 
 const API = "http://127.0.0.1:8787";
@@ -72,6 +76,7 @@ type Invitation = {
 };
 
 export function AuthPanel() {
+  const { brand } = useBrand();
   const [providers, setProviders] =
     React.useState<Provider[]>([]);
   const [session, setSession] =
@@ -420,6 +425,16 @@ export function AuthPanel() {
         </div>
       </div>
 
+      <div className="authBrandCard">
+        <BrandMark className="authBrandLogo" />
+        <div>
+          <strong>
+            {brand.loginTitle || brand.shortName || brand.organizationName}
+          </strong>
+          <span>{brand.loginSubtitle}</span>
+        </div>
+      </div>
+
       {session?.authenticated && (
         <div className="authSessionCard">
           <div>
@@ -435,7 +450,8 @@ export function AuthPanel() {
           <div>
             <small>组织</small>
             <strong>
-              {session.organization?.name ??
+              {brand.organizationName ||
+                session.organization?.name ??
                 session.session?.organizationId}
             </strong>
           </div>
