@@ -29,6 +29,8 @@ importers:
 
   packages/package-spec: {}
 
+  packages/permission-engine: {}
+
 packages:
 
   '@typescript/typescript-aix-ppc64@7.0.2':
