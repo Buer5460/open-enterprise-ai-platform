@@ -1,0 +1,383 @@
+.platformWorkspace {
+  width: 100%;
+}
+
+.workspaceHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.workspaceEyebrow {
+  display: block;
+  margin-bottom: 8px;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+}
+
+.workspaceHeading h1 {
+  margin: 0 0 8px;
+}
+
+.workspaceHeading p {
+  margin: 0;
+  max-width: 760px;
+  color: #7a8394;
+  line-height: 1.7;
+}
+
+.workspaceMetric {
+  min-width: 150px;
+  padding: 16px 18px;
+  border: 1px solid #e6ebf2;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.workspaceMetric strong {
+  display: block;
+  font-size: 25px;
+}
+
+.workspaceMetric span {
+  color: #8a93a3;
+  font-size: 12px;
+}
+
+.catalogToolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.catalogToolbar input,
+.catalogToolbar select {
+  border: 1px solid #dfe4ec;
+  border-radius: 10px;
+  background: #fff;
+  padding: 11px 13px;
+  outline: none;
+}
+
+.catalogToolbar input {
+  flex: 1;
+}
+
+.catalogToolbar input:focus,
+.catalogToolbar select:focus,
+.developerForm input:focus,
+.developerForm select:focus,
+.developerForm textarea:focus {
+  border-color: #2563eb;
+}
+
+.catalogStats {
+  display: grid;
+  grid-template-columns:
+    repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.catalogStats div {
+  padding: 13px 14px;
+  border: 1px solid #e7ebf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.catalogStats strong {
+  display: block;
+  font-size: 19px;
+}
+
+.catalogStats span {
+  color: #8a93a3;
+  font-size: 11px;
+}
+
+.packageGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fill, minmax(270px, 1fr));
+  gap: 15px;
+}
+
+.packageCard {
+  padding: 19px;
+  border: 1px solid #e6ebf2;
+  border-radius: 13px;
+  background: #fff;
+  transition: .2s ease;
+}
+
+.packageCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(24, 39, 75, .07);
+}
+
+.packageCardTop,
+.packageCard footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.packageType,
+.packageStatus {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.packageType {
+  background: #eef4ff;
+  color: #2563eb;
+}
+
+.packageType-agent {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.packageType-skill {
+  background: #ecfeff;
+  color: #0f766e;
+}
+
+.packageType-workflow {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.packageType-connector {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.packageType-data-provider {
+  background: #fdf2f8;
+  color: #be185d;
+}
+
+.packageStatus-enabled {
+  background: #ecfdf3;
+  color: #16a34a;
+}
+
+.packageStatus-draft {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.packageStatus-available {
+  background: #f3f4f6;
+  color: #606878;
+}
+
+.packageCard h3 {
+  margin: 15px 0 5px;
+  font-size: 17px;
+}
+
+.packageCard code {
+  color: #7c8596;
+  font-size: 11px;
+}
+
+.packageCard p {
+  min-height: 48px;
+  margin: 12px 0;
+  color: #677185;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.packageTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 25px;
+}
+
+.packageTags span {
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #f7f9fc;
+  color: #737d90;
+  font-size: 10px;
+}
+
+.packageCard footer {
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #edf0f4;
+  color: #98a1b1;
+  font-size: 11px;
+}
+
+.workspaceEmpty {
+  padding: 55px 25px;
+  border: 1px dashed #dfe4ec;
+  border-radius: 13px;
+  background: #fff;
+  color: #8c95a6;
+  text-align: center;
+}
+
+.workspaceEmpty.compact {
+  padding: 35px 20px;
+}
+
+.developerLayout {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.developerForm,
+.developerDrafts {
+  border: 1px solid #e6ebf2;
+  border-radius: 14px;
+  background: #fff;
+  padding: 21px;
+}
+
+.developerForm h3,
+.developerDrafts h3 {
+  margin: 0 0 6px;
+}
+
+.developerForm > p,
+.developerDraftHeader p {
+  margin: 0 0 18px;
+  color: #818a9b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.developerForm label {
+  display: block;
+  margin-bottom: 13px;
+}
+
+.developerForm label span {
+  display: block;
+  margin-bottom: 6px;
+  color: #586174;
+  font-size: 12px;
+}
+
+.developerForm input,
+.developerForm select,
+.developerForm textarea {
+  width: 100%;
+  border: 1px solid #dfe4ec;
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 11px;
+  outline: none;
+  resize: vertical;
+}
+
+.developerCreateButton {
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  background: #2563eb;
+  color: #fff;
+  padding: 11px;
+  cursor: pointer;
+}
+
+.developerCreateButton:disabled {
+  opacity: .6;
+}
+
+.developerMessage {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #eff5ff;
+  color: #315dba;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.developerDraftItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 15px 0;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.developerDraftItem:last-child {
+  border-bottom: 0;
+}
+
+.developerDraftItem strong,
+.developerDraftItem code,
+.developerDraftItem small {
+  display: block;
+}
+
+.developerDraftItem code {
+  margin-top: 4px;
+  color: #667085;
+  font-size: 11px;
+}
+
+.developerDraftItem small {
+  margin-top: 5px;
+  color: #98a1b1;
+  line-height: 1.45;
+}
+
+.developerDraftItem button {
+  border: 1px solid #f0caca;
+  border-radius: 7px;
+  background: #fff;
+  color: #c24141;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+@media (max-width: 1100px) {
+  .catalogStats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .developerLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .workspaceHeading,
+  .catalogToolbar {
+    flex-direction: column;
+  }
+
+  .workspaceMetric {
+    width: 100%;
+  }
+
+  .catalogStats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .catalogToolbar input,
+  .catalogToolbar select {
+    width: 100%;
+  }
+}
