@@ -3,6 +3,10 @@ import {
   apiFetch,
   apiUrl
 } from "./apiClient";
+import {
+  ProductionLogin,
+  resolveAuthGate
+} from "./ProductionLogin";
 import "./BrandRuntime.css";
 
 export type BrandSettings = {
@@ -30,6 +34,10 @@ const DEFAULT_BRAND: BrandSettings = {
   invitationFooter: "由 OpenEnterpriseAI 提供企业 AI 能力"
 };
 
+type GateResult = Awaited<
+  ReturnType<typeof resolveAuthGate>
+>;
+
 const BrandContext = React.createContext<{
   brand: BrandSettings;
   reload: () => Promise<void>;
@@ -43,6 +51,10 @@ export function BrandProvider(props: {
 }) {
   const [brand, setBrand] =
     React.useState<BrandSettings>(DEFAULT_BRAND);
+  const [gateState, setGateState] =
+    React.useState<GateResult["state"]>("checking");
+  const [providers, setProviders] =
+    React.useState<GateResult["providers"]>([]);
 
   const apply = React.useCallback(
     (next: Partial<BrandSettings>) => {
@@ -73,7 +85,7 @@ export function BrandProvider(props: {
       }
 
       const publicResponse = await fetch(
-        apiUrl("/api/brand/public")
+        apiUrl("/api/auth/brand")
       );
       const publicResult =
         await publicResponse.json();
@@ -93,9 +105,23 @@ export function BrandProvider(props: {
     }
   }, [apply]);
 
+  const checkAuth = React.useCallback(async () => {
+    try {
+      const result = await resolveAuthGate();
+      setProviders(result.providers);
+      setGateState(result.state);
+    } catch {
+      // If the API is temporarily unavailable we keep the user out of a
+      // production workspace rather than rendering protected screens.
+      setProviders([]);
+      setGateState("login");
+    }
+  }, []);
+
   React.useEffect(() => {
     applyBrandToDocument(DEFAULT_BRAND);
     void reload();
+    void checkAuth();
 
     const onUpdated = (event: Event) => {
       const custom = event as CustomEvent<
@@ -110,6 +136,7 @@ export function BrandProvider(props: {
 
     const onAuthChanged = () => {
       void reload();
+      void checkAuth();
     };
 
     window.addEventListener(
@@ -131,13 +158,44 @@ export function BrandProvider(props: {
         onAuthChanged
       );
     };
-  }, [apply, reload]);
+  }, [apply, checkAuth, reload]);
 
   return (
     <BrandContext.Provider
       value={{ brand, reload }}
     >
-      {props.children}
+      {gateState === "checking" ? (
+        <div className="oeapBootScreen">
+          <div className="oeapBootMark">
+            {brand.logoUrl ? (
+              <img
+                src={brand.logoUrl}
+                alt={brand.shortName || brand.organizationName}
+              />
+            ) : (
+              <strong>
+                {(
+                  brand.shortName ||
+                  brand.organizationName ||
+                  "O"
+                ).slice(0, 1).toUpperCase()}
+              </strong>
+            )}
+          </div>
+          <strong>
+            {brand.shortName || brand.organizationName}
+          </strong>
+          <span>正在检查企业会话…</span>
+        </div>
+      ) : gateState === "login" ? (
+        <ProductionLogin
+          brand={brand}
+          providers={providers}
+          onRetry={() => void checkAuth()}
+        />
+      ) : (
+        props.children
+      )}
     </BrandContext.Provider>
   );
 }
