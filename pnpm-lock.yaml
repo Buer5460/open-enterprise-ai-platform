@@ -45,6 +45,15 @@ importers:
         specifier: workspace:*
         version: link:../skill-runtime
 
+  packages/app-package-builder:
+    dependencies:
+      '@oeap/app-builder':
+        specifier: workspace:*
+        version: link:../app-builder
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../package-spec
+
   packages/approval-engine:
     dependencies:
       '@oeap/permission-engine':
