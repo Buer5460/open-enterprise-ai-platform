@@ -66,6 +66,15 @@ importers:
 
   packages/harness-adapter: {}
 
+  packages/official/ai-generate-skill:
+    dependencies:
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../package-spec
+      '@oeap/skill-runtime':
+        specifier: workspace:*
+        version: link:../../skill-runtime
+
   packages/official/deepseek-harness-connector:
     dependencies:
       '@oeap/connector-runtime':
