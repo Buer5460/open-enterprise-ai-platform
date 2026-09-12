@@ -61,6 +61,15 @@ importers:
 
   packages/event-bus: {}
 
+  packages/official/growth-agent:
+    dependencies:
+      '@oeap/agent-runtime':
+        specifier: workspace:*
+        version: link:../../agent-runtime
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../package-spec
+
   packages/official/social-first-touch:
     dependencies:
       '@oeap/package-spec':
