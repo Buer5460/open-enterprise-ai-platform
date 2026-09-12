@@ -352,6 +352,95 @@
   cursor: pointer;
 }
 
+.dataCenterStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.dataCenterStats div {
+  padding: 18px;
+  border: 1px solid #e7ebf1;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.dataCenterStats strong {
+  display: block;
+  font-size: 24px;
+}
+
+.dataCenterStats span {
+  color: #8a93a3;
+  font-size: 12px;
+}
+
+.dataAppGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.dataAppCard {
+  padding: 20px;
+  border: 1px solid #e6ebf2;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.dataAppHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.dataAppHeader h3 {
+  margin: 0 0 4px;
+}
+
+.dataAppHeader span {
+  color: #98a1b1;
+  font-size: 11px;
+}
+
+.dataAppHeader > strong {
+  color: #2563eb;
+  font-size: 18px;
+}
+
+.dataEntityList > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 0;
+  border-top: 1px solid #edf0f4;
+}
+
+.dataEntityList strong,
+.dataEntityList small {
+  display: block;
+}
+
+.dataEntityList strong {
+  font-size: 13px;
+}
+
+.dataEntityList small {
+  margin-top: 3px;
+  color: #9aa1af;
+  font-size: 10px;
+}
+
+.dataEntityList > div > span {
+  color: #667085;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 @media (max-width: 1100px) {
   .catalogStats {
     grid-template-columns: repeat(3, 1fr);
@@ -372,7 +461,8 @@
     width: 100%;
   }
 
-  .catalogStats {
+  .catalogStats,
+  .dataCenterStats {
     grid-template-columns: repeat(2, 1fr);
   }
 
