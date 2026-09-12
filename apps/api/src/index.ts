@@ -39,6 +39,10 @@ import {
 } from "./fileRoutes.js";
 
 import {
+  registerGitHubPublisherRoutes
+} from "./githubPublisherRoutes.js";
+
+import {
   registerInvitationRoutes
 } from "./invitationRoutes.js";
 
@@ -127,6 +131,11 @@ registerKnowledgeRoutes({
 });
 
 registerConnectorSecretRoutes({
+  app,
+  repoRoot
+});
+
+registerGitHubPublisherRoutes({
   app,
   repoRoot
 });
