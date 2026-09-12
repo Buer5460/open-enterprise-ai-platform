@@ -198,6 +198,30 @@ function getDatabase(
   return database;
 }
 
+async function withAppDatabase(
+  appId: string,
+  reply: any
+) {
+  const manifest =
+    await findApp(appId);
+
+  if (!manifest) {
+    reply
+      .code(404)
+      .send({
+        ok: false,
+        error: "App not found"
+      });
+
+    return undefined;
+  }
+
+  return {
+    manifest,
+    database: getDatabase(manifest)
+  };
+}
+
 app.get("/health", async () => {
   return {
     ok: true,
@@ -275,32 +299,100 @@ app.get<{
     appId: string;
     entity: string;
   };
+  Querystring: {
+    q?: string;
+    page?: string;
+    pageSize?: string;
+  };
 }>(
   "/api/apps/:appId/data/:entity",
   async (request, reply) => {
-    const manifest =
-      await findApp(
-        request.params.appId
+    const context =
+      await withAppDatabase(
+        request.params.appId,
+        reply
       );
 
-    if (!manifest) {
-      return reply
-        .code(404)
-        .send({
-          ok: false,
-          error: "App not found"
-        });
+    if (!context) {
+      return;
     }
 
-    const database =
-      getDatabase(manifest);
+    const page = Math.max(
+      Number(request.query.page ?? 1) || 1,
+      1
+    );
+
+    const pageSize = Math.min(
+      Math.max(
+        Number(request.query.pageSize ?? 10) || 10,
+        1
+      ),
+      100
+    );
+
+    const query =
+      request.query.q?.trim();
 
     return {
       ok: true,
       rows:
-        database.list(
-          request.params.entity
-        )
+        context.database.list(
+          request.params.entity,
+          {
+            query,
+            limit: pageSize,
+            offset:
+              (page - 1) * pageSize
+          }
+        ),
+      total:
+        context.database.count(
+          request.params.entity,
+          query
+        ),
+      page,
+      pageSize
+    };
+  }
+);
+
+app.get<{
+  Params: {
+    appId: string;
+    entity: string;
+    id: string;
+  };
+}>(
+  "/api/apps/:appId/data/:entity/:id",
+  async (request, reply) => {
+    const context =
+      await withAppDatabase(
+        request.params.appId,
+        reply
+      );
+
+    if (!context) {
+      return;
+    }
+
+    const row =
+      context.database.get(
+        request.params.entity,
+        Number(request.params.id)
+      );
+
+    if (!row) {
+      return reply
+        .code(404)
+        .send({
+          ok: false,
+          error: "Row not found"
+        });
+    }
+
+    return {
+      ok: true,
+      row
     };
   }
 );
@@ -310,38 +402,110 @@ app.post<{
     appId: string;
     entity: string;
   };
-
-  Body: Record<
-    string,
-    unknown
-  >;
+  Body: Record<string, unknown>;
 }>(
   "/api/apps/:appId/data/:entity",
   async (request, reply) => {
-    const manifest =
-      await findApp(
-        request.params.appId
+    const context =
+      await withAppDatabase(
+        request.params.appId,
+        reply
       );
 
-    if (!manifest) {
-      return reply
-        .code(404)
-        .send({
-          ok: false,
-          error: "App not found"
-        });
+    if (!context) {
+      return;
     }
-
-    const database =
-      getDatabase(manifest);
 
     return {
       ok: true,
       row:
-        database.create(
+        context.database.create(
           request.params.entity,
           request.body ?? {}
         )
+    };
+  }
+);
+
+app.put<{
+  Params: {
+    appId: string;
+    entity: string;
+    id: string;
+  };
+  Body: Record<string, unknown>;
+}>(
+  "/api/apps/:appId/data/:entity/:id",
+  async (request, reply) => {
+    const context =
+      await withAppDatabase(
+        request.params.appId,
+        reply
+      );
+
+    if (!context) {
+      return;
+    }
+
+    const row =
+      context.database.update(
+        request.params.entity,
+        Number(request.params.id),
+        request.body ?? {}
+      );
+
+    if (!row) {
+      return reply
+        .code(404)
+        .send({
+          ok: false,
+          error: "Row not found"
+        });
+    }
+
+    return {
+      ok: true,
+      row
+    };
+  }
+);
+
+app.delete<{
+  Params: {
+    appId: string;
+    entity: string;
+    id: string;
+  };
+}>(
+  "/api/apps/:appId/data/:entity/:id",
+  async (request, reply) => {
+    const context =
+      await withAppDatabase(
+        request.params.appId,
+        reply
+      );
+
+    if (!context) {
+      return;
+    }
+
+    const deleted =
+      context.database.delete(
+        request.params.entity,
+        Number(request.params.id)
+      );
+
+    if (!deleted) {
+      return reply
+        .code(404)
+        .send({
+          ok: false,
+          error: "Row not found"
+        });
+    }
+
+    return {
+      ok: true
     };
   }
 );
