@@ -355,7 +355,7 @@ function maxFileBytes(): number {
   const mb = Number(process.env.OEAP_MAX_FILE_MB || 10);
   const normalized =
     Number.isFinite(mb) && mb > 0
-      ? Math.min(mb, 50)
+      ? Math.min(mb, 25)
       : 10;
   return Math.floor(normalized * 1024 * 1024);
 }
