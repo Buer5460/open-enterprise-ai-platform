@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import "./styles.css";
 import { DataEntityPage } from "./DataEntityPage";
 import { AppRevisionPanel } from "./AppRevisionPanel";
+import { OrganizationCenter } from "./OrganizationCenter";
 import {
   PlatformWorkspace,
   type PlatformView
@@ -59,6 +60,7 @@ const API = "http://127.0.0.1:8787";
 
 type RootView =
   | "workbench"
+  | "organization"
   | PlatformView;
 
 function Platform() {
@@ -500,7 +502,18 @@ function Platform() {
         </nav>
 
         <div className="sidebarFooter">
-          ⚙ 设置
+          <button
+            className={
+              rootView === "organization"
+                ? "backButton active"
+                : "backButton"
+            }
+            onClick={() =>
+              setRootView("organization")
+            }
+          >
+            ⚙ 企业与权限
+          </button>
         </div>
       </aside>
 
@@ -518,6 +531,8 @@ function Platform() {
               setActivePage("overview");
             }}
           />
+        ) : rootView === "organization" ? (
+          <OrganizationCenter />
         ) : (
           <PlatformWorkspace
             view={rootView}
