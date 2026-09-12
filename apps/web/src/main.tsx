@@ -4,6 +4,7 @@ import "./styles.css";
 import { DataEntityPage } from "./DataEntityPage";
 import { AppRevisionPanel } from "./AppRevisionPanel";
 import { OrganizationCenter } from "./OrganizationCenter";
+import { FileCenter } from "./FileCenter";
 import {
   PlatformWorkspace,
   type PlatformView
@@ -26,8 +27,12 @@ type Entity = {
   description?: string;
   fields?: Array<{
     name: string;
+    label?: string;
     type: string;
     required?: boolean;
+    options?: string[];
+    relationEntity?: string;
+    relationDisplayField?: string;
   }>;
 };
 
@@ -67,6 +72,7 @@ const API = "http://127.0.0.1:8787";
 type RootView =
   | "workbench"
   | "organization"
+  | "files"
   | PlatformView;
 
 function Platform() {
@@ -323,7 +329,9 @@ function Platform() {
                       <small>
                         {(entity.fields ?? [])
                           .slice(0, 6)
-                          .map((field) => field.name)
+                          .map((field) =>
+                            field.label || field.name
+                          )
                           .join(" · ")}
                       </small>
                     </div>
@@ -470,6 +478,19 @@ function Platform() {
             ▦ 数据中心
           </button>
 
+          <button
+            className={
+              rootView === "files"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setRootView("files")
+            }
+          >
+            ▤ 文件中心
+          </button>
+
           <div className="navDivider" />
 
           <button
@@ -536,6 +557,8 @@ function Platform() {
           />
         ) : rootView === "organization" ? (
           <OrganizationCenter />
+        ) : rootView === "files" ? (
+          <FileCenter />
         ) : (
           <PlatformWorkspace
             view={rootView}
