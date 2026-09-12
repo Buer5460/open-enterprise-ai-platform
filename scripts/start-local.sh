@@ -32,23 +32,14 @@ fi
 
 cd "$PLATFORM"
 
-# 编译 API 及其所有 workspace 依赖，再编译 Web
-# 这样 data-runtime 等底层包更新后不会继续使用旧的 dist。
-corepack pnpm --filter @oeap/api... build >/dev/null 2>&1
-API_BUILD_STATUS=$?
+# 编译整个 OEAP workspace。
+# Marketplace 可以动态启用官方 Package，因此不能只编译 API 的直接依赖。
+corepack pnpm -r build >/dev/null 2>&1
+BUILD_STATUS=$?
 
-corepack pnpm --filter @oeap/web build >/dev/null 2>&1
-WEB_BUILD_STATUS=$?
-
-if [ "$API_BUILD_STATUS" -ne 0 ]; then
-  echo "❌ API 或其依赖编译失败"
-  corepack pnpm --filter @oeap/api... build
-  exit 1
-fi
-
-if [ "$WEB_BUILD_STATUS" -ne 0 ]; then
-  echo "❌ Web 编译失败"
-  corepack pnpm --filter @oeap/web build
+if [ "$BUILD_STATUS" -ne 0 ]; then
+  echo "❌ OEAP workspace 编译失败"
+  corepack pnpm -r build
   exit 1
 fi
 
