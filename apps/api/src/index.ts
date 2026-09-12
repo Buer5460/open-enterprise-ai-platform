@@ -63,6 +63,10 @@ import {
 } from "./operationsRoutes.js";
 
 import {
+  registerPackageProvenanceRoutes
+} from "./packageProvenanceRoutes.js";
+
+import {
   registerPlatformRoutes
 } from "./platformRoutes.js";
 
@@ -136,6 +140,11 @@ registerConnectorSecretRoutes({
 });
 
 registerGitHubPublisherRoutes({
+  app,
+  repoRoot
+});
+
+registerPackageProvenanceRoutes({
   app,
   repoRoot
 });
