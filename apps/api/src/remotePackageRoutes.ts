@@ -7,11 +7,10 @@ import { randomUUID } from "node:crypto";
 import {
   cp,
   mkdir,
-  readFile,
   rm,
   writeFile
 } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { ConnectorSecretStore } from "./connectorSecretStore.js";
 import {
@@ -346,13 +345,9 @@ async function downloadGitHubDirectory(input: {
         input.target,
         ...safeRelative.split("/")
       );
-      await mkdir(
-        destination.slice(
-          0,
-          destination.length - safeRelative.split("/").at(-1)!.length
-        ),
-        { recursive: true }
-      );
+      await mkdir(dirname(destination), {
+        recursive: true
+      });
       await writeFile(destination, content);
     }
   }
