@@ -8,7 +8,7 @@ import { join } from "node:path";
 import {
   TenancyStore,
   type MemberStatus
-} from "@oeap/tenancy-runtime";
+} from "./tenancyStore.js";
 
 export interface TenancyRoutesOptions {
   app: FastifyInstance;
