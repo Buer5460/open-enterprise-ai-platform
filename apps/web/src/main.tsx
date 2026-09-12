@@ -5,6 +5,11 @@ import { DataEntityPage } from "./DataEntityPage";
 import { AppRevisionPanel } from "./AppRevisionPanel";
 import { OrganizationCenter } from "./OrganizationCenter";
 import { FileCenter } from "./FileCenter";
+import { OperationsCenter } from "./OperationsCenter";
+import {
+  ProductionLogin,
+  resolveAuthGate
+} from "./ProductionLogin";
 import {
   PlatformWorkspace,
   type PlatformView
@@ -73,7 +78,73 @@ type RootView =
   | "workbench"
   | "organization"
   | "files"
+  | "operations"
   | PlatformView;
+
+function AuthenticatedPlatform() {
+  const { brand } = useBrand();
+  const [gate, setGate] = React.useState<
+    Awaited<ReturnType<typeof resolveAuthGate>> | null
+  >(null);
+  const [error, setError] = React.useState("");
+
+  const check = React.useCallback(async () => {
+    try {
+      setError("");
+      setGate(await resolveAuthGate());
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "无法检查登录状态"
+      );
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void check();
+    const onAuthChanged = () => void check();
+    window.addEventListener("oeap-auth-changed", onAuthChanged);
+    return () => window.removeEventListener("oeap-auth-changed", onAuthChanged);
+  }, [check]);
+
+  if (error) {
+    return (
+      <main className="productionLogin">
+        <section className="productionLoginCard">
+          <h1>无法连接 OEAP</h1>
+          <p>{error}</p>
+          <button className="productionLoginRetry" onClick={() => void check()}>
+            重新检查
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  if (!gate || gate.state === "checking") {
+    return (
+      <main className="productionLogin">
+        <section className="productionLoginCard">
+          <h1>{brand.loginTitle || brand.organizationName}</h1>
+          <p>正在检查企业身份与安全会话…</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (gate.state === "login") {
+    return (
+      <ProductionLogin
+        brand={brand}
+        providers={gate.providers}
+        onRetry={() => void check()}
+      />
+    );
+  }
+
+  return <Platform />;
+}
 
 function Platform() {
   const { brand } = useBrand();
@@ -491,6 +562,19 @@ function Platform() {
             ▤ 文件中心
           </button>
 
+          <button
+            className={
+              rootView === "operations"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setRootView("operations")
+            }
+          >
+            ◉ 运营与审批
+          </button>
+
           <div className="navDivider" />
 
           <button
@@ -559,6 +643,8 @@ function Platform() {
           <OrganizationCenter />
         ) : rootView === "files" ? (
           <FileCenter />
+        ) : rootView === "operations" ? (
+          <OperationsCenter />
         ) : (
           <PlatformWorkspace
             view={rootView}
@@ -750,7 +836,7 @@ ReactDOM
   .render(
     <React.StrictMode>
       <BrandProvider>
-        <Platform />
+        <AuthenticatedPlatform />
       </BrandProvider>
     </React.StrictMode>
   );
