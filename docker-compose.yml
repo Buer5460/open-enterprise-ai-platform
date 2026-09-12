@@ -1,0 +1,53 @@
+services:
+  api:
+    build:
+      context: .
+      target: api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      OEAP_DEPLOYMENT_MODE: production
+      OEAP_LOCAL_AUTH: disabled
+      OEAP_API_HOST: 0.0.0.0
+      OEAP_API_PORT: 8787
+      OEAP_TRUST_PROXY: "true"
+      # The application currently persists operational state beneath /app/.tmp.
+      # The named volume below makes that state durable across container updates.
+      OEAP_DATA_DIR: /app/.tmp
+    volumes:
+      - oeap-data:/app/.tmp
+      # Optional DeepSeek Harness checkout. Set OEAP_HARNESS_HOST_PATH in .env
+      # to a Linux-side checkout that has already been installed and built.
+      - ${OEAP_HARNESS_HOST_PATH:-./.harness-placeholder}:/deepseek-harness:ro
+      - oeap-dsh:/.dsh-dev
+    expose:
+      - "8787"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8787/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  web:
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${OEAP_HTTP_PORT:-8080}:8080"
+
+volumes:
+  oeap-data:
+  oeap-dsh:
