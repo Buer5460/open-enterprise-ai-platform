@@ -65,6 +65,15 @@ importers:
 
   packages/permission-engine: {}
 
+  packages/skill-runtime:
+    dependencies:
+      '@oeap/action-gateway':
+        specifier: workspace:*
+        version: link:../action-gateway
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../package-spec
+
 packages:
 
   '@typescript/typescript-aix-ppc64@7.0.2':
