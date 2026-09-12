@@ -1,5 +1,6 @@
 import React from "react";
 import { AuthPanel } from "./AuthPanel";
+import { MailSettingsPanel } from "./MailSettingsPanel";
 import { apiFetch } from "./apiClient";
 import "./OrganizationCenter.css";
 
@@ -354,6 +355,7 @@ export function OrganizationCenter() {
       </div>
 
       <AuthPanel />
+      <MailSettingsPanel />
 
       {message && (
         <div className="orgMessage">
