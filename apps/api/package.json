@@ -10,7 +10,13 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
-    "fastify": "^5.6.0"
+    "fastify": "^5.6.0",
+    "@oeap/permission-engine": "workspace:*",
+    "@oeap/package-manager": "workspace:*",
+    "@oeap/deepseek-harness-connector": "workspace:*",
+    "@oeap/ai-generate-skill": "workspace:*",
+    "@oeap/app-builder": "workspace:*",
+    "@oeap/app-package-builder": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.20.0",

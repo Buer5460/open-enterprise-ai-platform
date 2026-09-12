@@ -31,18 +31,75 @@ function Platform() {
   const [loading, setLoading] =
     React.useState(true);
 
-  React.useEffect(() => {
-    fetch(
+  const [description, setDescription] =
+    React.useState("");
+
+  const [creating, setCreating] =
+    React.useState(false);
+
+  const loadApps = React.useCallback(() => {
+    return fetch(
       "http://127.0.0.1:8787/api/apps"
     )
       .then((response) => response.json())
       .then((data) => {
         setApps(data.apps ?? []);
-      })
+      });
+  }, []);
+
+  React.useEffect(() => {
+    loadApps()
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [loadApps]);
+
+  async function createApp() {
+    if (!description.trim()) {
+      alert("请先描述你想创建的企业应用。");
+      return;
+    }
+
+    setCreating(true);
+
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8787/api/apps/generate",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            description
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        throw new Error(
+          result.error ?? "应用创建失败"
+        );
+      }
+
+      setDescription("");
+      await loadApps();
+
+      alert(
+        `应用「${result.app.displayName ?? result.app.name}」创建成功`
+      );
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "应用创建失败"
+      );
+    } finally {
+      setCreating(false);
+    }
+  }
 
   return (
     <div className="shell">
@@ -114,9 +171,11 @@ function Platform() {
           <button
             className="createButton"
             onClick={() => {
-              alert(
-                "下一阶段将接入 AI App Builder"
-              );
+              document
+                .querySelector<HTMLInputElement>(
+                  ".promptBox input"
+                )
+                ?.focus();
             }}
           >
             ＋ 创建应用
@@ -140,11 +199,23 @@ function Platform() {
           <div className="promptBox">
             <input
               placeholder="例如：帮我做一个旅行社客户和订单管理系统……"
-              disabled
+              value={description}
+              onChange={(event) =>
+                setDescription(event.target.value)
+              }
+              disabled={creating}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  void createApp();
+                }
+              }}
             />
 
-            <button>
-              开始创建
+            <button
+              onClick={() => void createApp()}
+              disabled={creating}
+            >
+              {creating ? "AI 正在创建…" : "开始创建"}
             </button>
           </div>
         </section>
