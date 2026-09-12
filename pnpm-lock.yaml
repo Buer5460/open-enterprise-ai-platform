@@ -101,6 +101,21 @@ importers:
         specifier: workspace:*
         version: link:../package-spec
 
+  packages/workflow-engine:
+    dependencies:
+      '@oeap/agent-runtime':
+        specifier: workspace:*
+        version: link:../agent-runtime
+      '@oeap/event-bus':
+        specifier: workspace:*
+        version: link:../event-bus
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../package-spec
+      '@oeap/skill-runtime':
+        specifier: workspace:*
+        version: link:../skill-runtime
+
 packages:
 
   '@typescript/typescript-aix-ppc64@7.0.2':
