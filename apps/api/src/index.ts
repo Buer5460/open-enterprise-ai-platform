@@ -23,6 +23,10 @@ import {
 } from "./invitationRoutes.js";
 
 import {
+  registerInvitationDeliveryRoutes
+} from "./invitationDeliveryRoutes.js";
+
+import {
   registerPlatformRoutes
 } from "./platformRoutes.js";
 
@@ -81,6 +85,11 @@ registerInvitationRoutes({
   repoRoot,
   loadApps:
     appRoutes.loadApps
+});
+
+registerInvitationDeliveryRoutes({
+  app,
+  repoRoot
 });
 
 await app.listen({
