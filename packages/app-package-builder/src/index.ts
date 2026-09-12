@@ -1,5 +1,6 @@
 import {
   mkdir,
+  readFile,
   writeFile
 } from "node:fs/promises";
 
@@ -64,6 +65,11 @@ export class AppPackageBuilder {
       {
         recursive: true
       }
+    );
+
+    await archiveCurrentVersion(
+      directory,
+      version
     );
 
     const recommended =
@@ -204,6 +210,77 @@ ${options.packageId}
       manifest
     };
   }
+}
+
+async function archiveCurrentVersion(
+  directory: string,
+  nextVersion: string
+): Promise<void> {
+  const manifestPath = join(
+    directory,
+    "oeap.package.json"
+  );
+  const blueprintPath = join(
+    directory,
+    "app.blueprint.json"
+  );
+
+  try {
+    const [manifestRaw, blueprintRaw] =
+      await Promise.all([
+        readFile(manifestPath, "utf8"),
+        readFile(blueprintPath, "utf8")
+      ]);
+
+    const currentManifest =
+      JSON.parse(manifestRaw) as {
+        version?: string;
+      };
+    const currentVersion =
+      String(currentManifest.version || "").trim();
+
+    if (
+      !currentVersion ||
+      currentVersion === nextVersion
+    ) {
+      return;
+    }
+
+    const versionDirectory = join(
+      directory,
+      ".oeap-versions",
+      safeVersion(currentVersion)
+    );
+
+    await mkdir(versionDirectory, {
+      recursive: true
+    });
+
+    await Promise.all([
+      writeFile(
+        join(versionDirectory, "oeap.package.json"),
+        manifestRaw,
+        "utf8"
+      ),
+      writeFile(
+        join(versionDirectory, "app.blueprint.json"),
+        blueprintRaw,
+        "utf8"
+      ),
+      writeFile(
+        join(versionDirectory, "archived-at.txt"),
+        new Date().toISOString(),
+        "utf8"
+      )
+    ]);
+  } catch {
+    // A first build has no previous version to archive. Corrupt legacy
+    // snapshots must not prevent the current app from being rebuilt.
+  }
+}
+
+function safeVersion(value: string): string {
+  return value.replace(/[^0-9A-Za-z_.-]/g, "_");
 }
 
 export const appPackageBuilder =
