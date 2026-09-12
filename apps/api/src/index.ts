@@ -11,6 +11,10 @@ import {
 } from "node:url";
 
 import {
+  registerAuthRoutes
+} from "./authRoutes.js";
+
+import {
   registerAppRoutes
 } from "./appRoutes.js";
 
@@ -43,6 +47,11 @@ app.get("/health", async () => ({
   ok: true,
   service: "oeap-api"
 }));
+
+registerAuthRoutes({
+  app,
+  repoRoot
+});
 
 const appRoutes =
   registerAppRoutes({
