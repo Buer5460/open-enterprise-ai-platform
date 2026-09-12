@@ -1,0 +1,265 @@
+.deploymentPanel {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid #edf0f4;
+}
+
+.deploymentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.deploymentHeader > div:first-child > span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--oeap-primary);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+
+.deploymentHeader h3 {
+  margin: 0 0 6px;
+}
+
+.deploymentHeader p {
+  margin: 0;
+  max-width: 760px;
+  color: #7d8798;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.deploymentSummary {
+  min-width: 145px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  text-align: right;
+}
+
+.deploymentSummary strong,
+.deploymentSummary small,
+.deploymentSummary em {
+  display: block;
+}
+
+.deploymentSummary strong {
+  color: var(--oeap-primary-dark);
+  font-size: 24px;
+}
+
+.deploymentSummary small {
+  margin-top: 2px;
+  color: #8993a4;
+  font-size: 9px;
+}
+
+.deploymentSummary em {
+  margin-top: 8px;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.deploymentSummary em.production {
+  color: #16803d;
+}
+
+.deploymentSummary em.development {
+  color: #c2410c;
+}
+
+.deploymentStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.deploymentStats > div {
+  padding: 12px;
+  border: 1px solid #e8ecf2;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.deploymentStats strong,
+.deploymentStats span {
+  display: block;
+}
+
+.deploymentStats strong {
+  font-size: 16px;
+}
+
+.deploymentStats span {
+  margin-top: 3px;
+  color: #8a93a3;
+  font-size: 9px;
+}
+
+.deploymentChecks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.deploymentCheck {
+  padding: 13px;
+  border: 1px solid #e7ebf1;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.deploymentCheck.pass {
+  border-color: #d5f0df;
+  background: #fbfffc;
+}
+
+.deploymentCheck.warning {
+  border-color: #f3dfbd;
+  background: #fffdf8;
+}
+
+.deploymentCheck.fail {
+  border-color: #f4caca;
+  background: #fffafa;
+}
+
+.deploymentCheck.info {
+  border-color: #dce6f7;
+  background: #fbfdff;
+}
+
+.deploymentCheckTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.deploymentCheckTop strong {
+  font-size: 11px;
+}
+
+.deploymentCheckTop em {
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.deploymentCheck.pass .deploymentCheckTop em {
+  color: #16803d;
+}
+
+.deploymentCheck.warning .deploymentCheckTop em {
+  color: #b45309;
+}
+
+.deploymentCheck.fail .deploymentCheckTop em {
+  color: #c2413b;
+}
+
+.deploymentCheck.info .deploymentCheckTop em {
+  color: #315dba;
+}
+
+.deploymentCheck p {
+  margin: 7px 0 0;
+  color: #626d80;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.deploymentCheck small {
+  display: block;
+  margin-top: 7px;
+  color: #8c95a4;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.deploymentProviders {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #edf0f4;
+}
+
+.deploymentProviders > span {
+  margin-right: 3px;
+  color: #596477;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.deploymentProviders em {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #778191;
+  font-size: 9px;
+  font-style: normal;
+}
+
+.deploymentProviders em.configured {
+  background: #ecfdf3;
+  color: #16803d;
+}
+
+.deploymentProviders button {
+  margin-left: auto;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #fff;
+  color: #536175;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.deploymentEmpty {
+  padding: 18px;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #7d8798;
+  font-size: 10px;
+  text-align: center;
+}
+
+.deploymentEmpty.error {
+  background: #fff7f7;
+  color: #b42318;
+}
+
+@media (max-width: 900px) {
+  .deploymentStats,
+  .deploymentChecks {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .deploymentHeader {
+    flex-direction: column;
+  }
+
+  .deploymentSummary {
+    width: 100%;
+    text-align: left;
+  }
+
+  .deploymentStats,
+  .deploymentChecks {
+    grid-template-columns: 1fr;
+  }
+
+  .deploymentProviders button {
+    margin-left: 0;
+  }
+}
