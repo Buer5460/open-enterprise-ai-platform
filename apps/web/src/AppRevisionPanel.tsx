@@ -1,33 +1,8 @@
 import React from "react";
 
-type AppManifest = {
-  id: string;
-  displayName?: string;
-  name: string;
-  description?: string;
-  version: string;
-  publisher: string;
-  status: string;
-  navigation?: Array<{
-    id: string;
-    label: string;
-    path: string;
-  }>;
-  metadata?: {
-    roles?: unknown[];
-    entities?: unknown[];
-    workflows?: unknown[];
-    recommendedPackages?: {
-      skills?: unknown[];
-      agents?: unknown[];
-      connectors?: unknown[];
-    };
-  };
-};
-
 type Props = {
-  app: AppManifest;
-  onUpdated: (app: AppManifest) => void;
+  app: any;
+  onUpdated: (app: any) => void;
 };
 
 export function AppRevisionPanel({
