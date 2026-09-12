@@ -53,6 +53,13 @@ export function registerAuthRoutes(
   );
 
   app.addHook("preHandler", async (request) => {
+    // In production, client-supplied identity headers are never trusted.
+    // Only a server-validated session may populate the tenancy identity.
+    if (productionAuthMode()) {
+      delete request.headers["x-oeap-org"];
+      delete request.headers["x-oeap-member"];
+    }
+
     const token = bearerToken(
       request.headers.authorization
     );
@@ -79,7 +86,11 @@ export function registerAuthRoutes(
       ok: true,
       providers: providerDescriptors(),
       localDevelopmentMode:
-        localAuthEnabled()
+        localAuthEnabled(),
+      deploymentMode:
+        productionAuthMode()
+          ? "production"
+          : "development"
     })
   );
 
@@ -357,8 +368,28 @@ function requiredEnvironment(
   }
 }
 
-function localAuthEnabled(): boolean {
-  return process.env.OEAP_LOCAL_AUTH !== "disabled";
+export function localAuthEnabled(): boolean {
+  const configured =
+    process.env.OEAP_LOCAL_AUTH
+      ?.trim()
+      .toLowerCase();
+
+  if (configured === "enabled") {
+    return true;
+  }
+
+  if (configured === "disabled") {
+    return false;
+  }
+
+  // Safe default: local bootstrap identity is development-only.
+  return !productionAuthMode();
+}
+
+export function productionAuthMode(): boolean {
+  return process.env.OEAP_DEPLOYMENT_MODE
+    ?.trim()
+    .toLowerCase() === "production";
 }
 
 function sessionFrom(
