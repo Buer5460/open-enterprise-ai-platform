@@ -18,6 +18,10 @@ import {
   registerPlatformRoutes
 } from "./platformRoutes.js";
 
+import {
+  registerTenancyRoutes
+} from "./tenancyRoutes.js";
+
 const app = Fastify({
   logger: true
 });
@@ -52,6 +56,11 @@ registerPlatformRoutes({
   repoRoot,
   loadApps:
     appRoutes.loadApps
+});
+
+registerTenancyRoutes({
+  app,
+  repoRoot
 });
 
 await app.listen({
