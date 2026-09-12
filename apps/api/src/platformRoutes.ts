@@ -24,6 +24,10 @@ import {
   deleteDeveloperPackage,
   discoverOfficialPackages,
   listDeveloperPackages,
+  listPublishedPackages,
+  publishDeveloperPackage,
+  unpublishDeveloperPackage,
+  validateDeveloperPackage,
   type DeveloperPackageInput,
   type MarketplacePackage,
   type PlatformPackageType
@@ -93,10 +97,12 @@ export function registerPlatformRoutes(
       const [
         official,
         developer,
+        published,
         apps
       ] = await Promise.all([
         discoverOfficialPackages(repoRoot),
         listDeveloperPackages(repoRoot),
+        listPublishedPackages(repoRoot),
         loadApps()
       ]);
 
@@ -134,7 +140,8 @@ export function registerPlatformRoutes(
       const packages = [
         ...official,
         ...generated,
-        ...developer
+        ...developer,
+        ...published
       ].map((item) => {
         const status =
           runtimeStatus.get(item.id);
@@ -150,14 +157,18 @@ export function registerPlatformRoutes(
           : item;
       });
 
-      const counts = packages.reduce(
-        (acc, item) => {
-          acc[item.type] =
-            (acc[item.type] ?? 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>
-      );
+      const counts = packages
+        .filter(
+          (item) => item.status !== "draft"
+        )
+        .reduce(
+          (acc, item) => {
+            acc[item.type] =
+              (acc[item.type] ?? 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>
+        );
 
       return {
         ok: true,
@@ -377,6 +388,10 @@ export function registerPlatformRoutes(
       packages:
         await listDeveloperPackages(
           repoRoot
+        ),
+      published:
+        await listPublishedPackages(
+          repoRoot
         )
     })
   );
@@ -428,6 +443,93 @@ export function registerPlatformRoutes(
       return {
         ok: true,
         package: created
+      };
+    }
+  );
+
+  app.post<{
+    Params: {
+      packageId: string;
+    };
+  }>(
+    "/api/developer/packages/:packageId/validate",
+    async (request) => {
+      const validation =
+        await validateDeveloperPackage(
+          repoRoot,
+          request.params.packageId
+        );
+
+      return {
+        ok: validation.valid,
+        ...validation
+      };
+    }
+  );
+
+  app.post<{
+    Params: {
+      packageId: string;
+    };
+  }>(
+    "/api/developer/packages/:packageId/publish",
+    async (request, reply) => {
+      try {
+        const published =
+          await publishDeveloperPackage(
+            repoRoot,
+            request.params.packageId
+          );
+
+        return {
+          ok: true,
+          package: published,
+          channel: "local-marketplace",
+          githubPublisher: {
+            configured: false,
+            message:
+              "GitHub publishing is intentionally delegated to a publisher connector so credentials are never stored in package source."
+          }
+        };
+      } catch (error) {
+        return reply
+          .code(400)
+          .send({
+            ok: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Publish failed"
+          });
+      }
+    }
+  );
+
+  app.delete<{
+    Params: {
+      packageId: string;
+    };
+  }>(
+    "/api/developer/packages/:packageId/publish",
+    async (request, reply) => {
+      const deleted =
+        await unpublishDeveloperPackage(
+          repoRoot,
+          request.params.packageId
+        );
+
+      if (!deleted) {
+        return reply
+          .code(404)
+          .send({
+            ok: false,
+            error:
+              "Published package not found"
+          });
+      }
+
+      return {
+        ok: true
       };
     }
   );
