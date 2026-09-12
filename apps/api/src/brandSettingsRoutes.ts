@@ -38,43 +38,52 @@ export function registerBrandSettingsRoutes(
   );
   const store = createBrandSettingsStore(repoRoot);
 
+  const publicBrand = async () => {
+    const organizationId =
+      process.env.OEAP_DEFAULT_ORG_ID?.trim() ||
+      "org_local";
+
+    let organizationName = "OpenEnterpriseAI";
+
+    try {
+      organizationName = tenancy
+        .getContext(organizationId)
+        .organization.name;
+    } catch {
+      // Keep generic public branding when the configured org does not exist.
+    }
+
+    const stored = store.get(organizationId);
+
+    return {
+      ok: true,
+      organizationId,
+      settings: {
+        organizationName:
+          stored.organizationName || organizationName,
+        shortName:
+          stored.shortName || organizationName,
+        logoUrl: stored.logoUrl || "",
+        primaryColor:
+          stored.primaryColor || "#2563EB",
+        loginTitle:
+          stored.loginTitle || "OpenEnterpriseAI",
+        loginSubtitle:
+          stored.loginSubtitle || "AI 原生企业应用平台"
+      }
+    };
+  };
+
   app.get(
     "/api/brand/public",
-    async () => {
-      const organizationId =
-        process.env.OEAP_DEFAULT_ORG_ID?.trim() ||
-        "org_local";
+    publicBrand
+  );
 
-      let organizationName = "OpenEnterpriseAI";
-
-      try {
-        organizationName = tenancy
-          .getContext(organizationId)
-          .organization.name;
-      } catch {
-        // Keep generic public branding when the configured org does not exist.
-      }
-
-      const stored = store.get(organizationId);
-
-      return {
-        ok: true,
-        organizationId,
-        settings: {
-          organizationName:
-            stored.organizationName || organizationName,
-          shortName:
-            stored.shortName || organizationName,
-          logoUrl: stored.logoUrl || "",
-          primaryColor:
-            stored.primaryColor || "#2563EB",
-          loginTitle:
-            stored.loginTitle || "OpenEnterpriseAI",
-          loginSubtitle:
-            stored.loginSubtitle || "AI 原生企业应用平台"
-        }
-      };
-    }
+  // This alias lives under /api/auth so the production authentication guard
+  // can intentionally expose only non-sensitive brand fields before login.
+  app.get(
+    "/api/auth/brand",
+    publicBrand
   );
 
   app.get(
