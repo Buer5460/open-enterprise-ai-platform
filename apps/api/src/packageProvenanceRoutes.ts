@@ -1,7 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { join } from "node:path";
 import {
-  listPublishedPackages
+  publishedPackageDirectory
 } from "./platformCatalog.js";
 import {
   readPackageProvenance,
@@ -25,7 +24,11 @@ export function registerPackageProvenanceRoutes(input: {
   }>("/api/developer/packages/:packageId/provenance", async (request, reply) => {
     const identity = requireRead(tenancy, request, reply);
     if (!identity) return;
-    const directory = await publishedDirectory(input.repoRoot, request.params.packageId);
+    const directory = await publishedPackageDirectory(
+      input.repoRoot,
+      identity.organizationId,
+      request.params.packageId
+    );
     if (!directory) return reply.code(404).send({ ok: false, error: "Published package not found" });
     return {
       ok: true,
@@ -38,7 +41,11 @@ export function registerPackageProvenanceRoutes(input: {
   }>("/api/developer/packages/:packageId/provenance/sign", async (request, reply) => {
     const identity = requireManage(tenancy, request, reply);
     if (!identity) return;
-    const directory = await publishedDirectory(input.repoRoot, request.params.packageId);
+    const directory = await publishedPackageDirectory(
+      input.repoRoot,
+      identity.organizationId,
+      request.params.packageId
+    );
     if (!directory) return reply.code(404).send({ ok: false, error: "Published package not found" });
 
     try {
@@ -59,19 +66,17 @@ export function registerPackageProvenanceRoutes(input: {
   }>("/api/developer/packages/:packageId/provenance/verify", async (request, reply) => {
     const identity = requireRead(tenancy, request, reply);
     if (!identity) return;
-    const directory = await publishedDirectory(input.repoRoot, request.params.packageId);
+    const directory = await publishedPackageDirectory(
+      input.repoRoot,
+      identity.organizationId,
+      request.params.packageId
+    );
     if (!directory) return reply.code(404).send({ ok: false, error: "Published package not found" });
     return {
       ok: true,
       ...(await verifyPackageDirectory(input.repoRoot, directory))
     };
   });
-}
-
-async function publishedDirectory(repoRoot: string, packageId: string) {
-  const published = await listPublishedPackages(repoRoot);
-  const item = published.find((candidate) => candidate.id === packageId);
-  return item?.directory ? join(repoRoot, item.directory) : undefined;
 }
 
 function requireRead(
