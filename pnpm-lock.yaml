@@ -27,6 +27,15 @@ importers:
         specifier: workspace:*
         version: link:../permission-engine
 
+  packages/agent-runtime:
+    dependencies:
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../package-spec
+      '@oeap/skill-runtime':
+        specifier: workspace:*
+        version: link:../skill-runtime
+
   packages/approval-engine:
     dependencies:
       '@oeap/permission-engine':
