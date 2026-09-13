@@ -9,6 +9,8 @@ import {
 import { dirname, extname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { runtimeStoragePath } from "./storagePath.js";
+
 export interface StoredFile {
   id: string;
   organizationId: string;
@@ -23,14 +25,20 @@ export interface StoredFile {
 
 export class EnterpriseFileStore {
   private readonly db: DatabaseSync;
+  private readonly filesRoot: string;
 
   constructor(
-    private readonly databasePath: string,
-    private readonly filesRoot: string
+    databasePath: string,
+    filesRoot: string
   ) {
-    mkdirSync(dirname(databasePath), { recursive: true });
-    mkdirSync(filesRoot, { recursive: true });
-    this.db = new DatabaseSync(databasePath);
+    const resolvedDatabasePath =
+      runtimeStoragePath(databasePath);
+    this.filesRoot =
+      runtimeStoragePath(filesRoot);
+
+    mkdirSync(dirname(resolvedDatabasePath), { recursive: true });
+    mkdirSync(this.filesRoot, { recursive: true });
+    this.db = new DatabaseSync(resolvedDatabasePath);
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS enterprise_files (
         id TEXT PRIMARY KEY,
