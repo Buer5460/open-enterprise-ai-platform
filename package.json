@@ -13,7 +13,8 @@
     "test": "bash scripts/test-ci.sh",
     "start:api": "corepack pnpm --filter @oeap/api start",
     "backup": "bash scripts/backup-data.sh",
-    "restore": "bash scripts/restore-data.sh"
+    "restore": "bash scripts/restore-data.sh",
+    "preflight:production": "node scripts/production-preflight.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.2",
