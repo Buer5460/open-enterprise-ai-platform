@@ -82,6 +82,17 @@ A tagged Release repeats the version contract, build, deterministic test suite, 
 - Secrets must not be committed to Git.
 - Backup/restore operates on the persistent runtime data root.
 
+## Security-review package
+
+The repository now includes a review-ready security package:
+
+- [`docs/threat-model.md`](threat-model.md) — assets, trust boundaries, threats, mitigations, invariants and residual risk.
+- [`docs/security-review-checklist.md`](security-review-checklist.md) — executable independent review / penetration-test checklist and severity guide.
+- [`SECURITY.md`](../SECURITY.md) — reporting policy, security boundaries and known limitations.
+- [`docs/production-checklist.md`](production-checklist.md) — deployment-side production controls.
+
+The package is intended to make an independent review reproducible against a specific RC commit/tag; it is not a self-certification.
+
 ## Known external/GA gates
 
 The following are deliberately **not** self-certified by the repository and must be completed by the deployment owner before 1.0 General Availability or an Internet-facing production rollout:
@@ -96,6 +107,6 @@ The following are deliberately **not** self-certified by the repository and must
 
 ## Release decision
 
-`1.0.0-rc.1` can be published when all automated gates are green. It should remain a prerelease until the external security-review gate has been completed and deployment-specific production controls have been validated.
+`1.0.0-rc.1` has completed the repository-owned code, compatibility, security-regression and release-readiness gates. The controlled `[release]` workflow repeats the release test/build/container gates and publishes `v1.0.0-rc.1` as a prerelease only if they succeed.
 
-A future `1.0.0` GA tag must not be created merely by changing the version number; the external gates above should be explicitly signed off by the project/deployment owner.
+It must remain a prerelease until the external security-review gate has been completed and deployment-specific production controls have been validated. A future `1.0.0` GA tag must not be created merely by changing the version number; the external gates above should be explicitly signed off by the project/deployment owner.
