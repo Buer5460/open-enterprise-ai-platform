@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Build workspace
+        run: corepack pnpm build
+
+      - name: Run deterministic tests
+        run: corepack pnpm test
+
+      - name: Validate Compose
+        run: |
+          cp .env.example .env
+          docker compose config >/dev/null
+
+      - name: Build containers
+        run: |
+          docker build --target api -t oeap-api:${GITHUB_REF_NAME} .
+          docker build --target web -t oeap-web:${GITHUB_REF_NAME} .
+
+      - name: Create source archive
+        run: |
+          git archive --format=tar.gz --prefix=open-enterprise-ai-platform-${GITHUB_REF_NAME}/ -o oeap-${GITHUB_REF_NAME}.tar.gz HEAD
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            oeap-${GITHUB_REF_NAME}.tar.gz \
+            --title "OEAP ${GITHUB_REF_NAME}" \
+            --generate-notes
