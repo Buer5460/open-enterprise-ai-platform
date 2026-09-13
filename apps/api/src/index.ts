@@ -217,6 +217,37 @@ function corsOriginPolicy():
       .map((value) => value.trim())
       .filter(Boolean) ?? [];
 
+  if (deploymentMode() === "production") {
+    for (const origin of configured) {
+      if (origin === "*") {
+        throw new Error(
+          "OEAP_CORS_ORIGINS must not contain '*' in production"
+        );
+      }
+
+      let url: URL;
+      try {
+        url = new URL(origin);
+      } catch {
+        throw new Error(
+          `Invalid production CORS origin: ${origin}`
+        );
+      }
+
+      if (url.protocol !== "https:") {
+        throw new Error(
+          `Production CORS origins must use HTTPS: ${origin}`
+        );
+      }
+
+      if (url.pathname !== "/" || url.search || url.hash) {
+        throw new Error(
+          `CORS origins must be origin-only URLs without path/query/hash: ${origin}`
+        );
+      }
+    }
+  }
+
   if (configured.length === 1) {
     return configured[0];
   }
