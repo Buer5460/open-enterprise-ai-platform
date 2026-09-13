@@ -27,6 +27,9 @@ import {
   registerAppLifecycleRoutes
 } from "./appLifecycleRoutes.js";
 import {
+  registerAppPreferenceRoutes
+} from "./appPreferenceRoutes.js";
+import {
   registerAppRoutes
 } from "./appRoutes.js";
 import {
@@ -193,6 +196,13 @@ const appRoutes = registerAppRoutes({
   app,
   repoRoot,
   openEnterpriseRoot
+});
+
+registerAppPreferenceRoutes({
+  app,
+  repoRoot,
+  loadApps:
+    appRoutes.loadApps
 });
 
 registerUsabilityRoutes({
