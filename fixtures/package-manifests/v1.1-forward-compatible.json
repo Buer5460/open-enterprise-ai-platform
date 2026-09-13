@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.1",
+  "id": "fixture.connector.v1-1",
+  "type": "connector",
+  "name": "fixture-connector-v1-1",
+  "displayName": "Fixture Connector v1.1",
+  "description": "Forward-compatible Package 1.x fixture with an unknown optional field.",
+  "version": "1.1.0",
+  "publisher": "oeap-fixtures",
+  "license": "Apache-2.0",
+  "permissions": [],
+  "dependencies": [],
+  "futureOptionalField": {
+    "enabled": true
+  }
+}
