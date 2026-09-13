@@ -3,7 +3,6 @@ import type {
   FastifyReply,
   FastifyRequest
 } from "fastify";
-import { join } from "node:path";
 
 import {
   MailDeliveryService,
@@ -12,6 +11,7 @@ import {
 import {
   MailSettingsStore
 } from "./mailSettingsStore.js";
+import { runtimePath } from "./runtimePaths.js";
 import {
   TenancyStore
 } from "./tenancyStore.js";
@@ -29,18 +29,8 @@ export function createMailSettingsStore(
   repoRoot: string
 ): MailSettingsStore {
   return new MailSettingsStore(
-    join(
-      repoRoot,
-      ".tmp",
-      "settings",
-      "mail-settings.enc"
-    ),
-    join(
-      repoRoot,
-      ".tmp",
-      "settings",
-      "mail-settings.key"
-    )
+    runtimePath(repoRoot, "settings", "mail-settings.enc"),
+    runtimePath(repoRoot, "settings", "mail-settings.key")
   );
 }
 
@@ -49,12 +39,7 @@ export function registerMailSettingsRoutes(
 ): MailSettingsStore {
   const { app, repoRoot } = options;
   const tenancy = new TenancyStore(
-    join(
-      repoRoot,
-      ".tmp",
-      "tenancy",
-      "tenancy.sqlite"
-    )
+    runtimePath(repoRoot, "tenancy", "tenancy.sqlite")
   );
   const settingsStore =
     createMailSettingsStore(repoRoot);
