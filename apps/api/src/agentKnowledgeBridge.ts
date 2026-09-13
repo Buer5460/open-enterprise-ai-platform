@@ -54,7 +54,7 @@ export function registerAgentKnowledgeBridge(input: {
         enterpriseKnowledgeContext:
           context.context,
         enterpriseKnowledgeDocuments:
-          context.matches.map((item: any) => ({
+          context.hits.map((item) => ({
             id: item.documentId,
             title: item.title,
             source: item.source,
