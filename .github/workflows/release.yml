@@ -27,11 +27,19 @@ jobs:
       - name: Install dependencies
         run: corepack pnpm install --frozen-lockfile
 
+      - name: Verify tag and release version contract
+        run: node scripts/test-release-version.mjs
+
       - name: Build workspace
         run: corepack pnpm build
 
       - name: Run deterministic tests
         run: corepack pnpm test
+
+      - name: Run real browser end-to-end smoke test
+        env:
+          OEAP_REQUIRE_BROWSER_E2E: "1"
+        run: node scripts/test-browser-e2e.mjs
 
       - name: Validate Compose
         run: |
@@ -51,7 +59,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          EXTRA_ARGS=()
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            EXTRA_ARGS+=(--prerelease)
+          fi
+
           gh release create "$GITHUB_REF_NAME" \
             oeap-${GITHUB_REF_NAME}.tar.gz \
             --title "OEAP ${GITHUB_REF_NAME}" \
-            --generate-notes
+            --generate-notes \
+            "${EXTRA_ARGS[@]}"
