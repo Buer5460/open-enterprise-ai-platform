@@ -77,6 +77,8 @@ export function registerDeploymentRoutes(
         options.brandSettingsStore.get(
           identity.organizationId
         );
+      const publicWeb = process.env.OEAP_PUBLIC_WEB_URL;
+      const publicApi = process.env.OEAP_PUBLIC_API_URL;
 
       const providers = authProviderState();
       const checks: DeploymentCheck[] = [
@@ -96,18 +98,18 @@ export function registerDeploymentRoutes(
         publicUrlCheck(
           "public-web-url",
           "公开 Web 地址",
-          process.env.OEAP_PUBLIC_WEB_URL,
+          publicWeb,
           production,
           "OEAP_PUBLIC_WEB_URL"
         ),
         publicUrlCheck(
           "public-api-url",
           "公开 API 地址",
-          process.env.OEAP_PUBLIC_API_URL,
+          publicApi,
           production,
           "OEAP_PUBLIC_API_URL"
         ),
-        corsCheck(production),
+        corsCheck(production, publicWeb, publicApi),
         mailCheck(production, mail.activeProvider),
         brandCheck(brand),
         settingsKeyCheck(
@@ -283,54 +285,169 @@ function publicUrlCheck(
   production: boolean,
   variable: string
 ): DeploymentCheck {
-  if (value?.trim()) {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
     return {
       id,
       title,
-      status: "pass",
-      summary: "已配置公开访问地址。"
+      status: production ? "fail" : "info",
+      summary:
+        production
+          ? "生产环境缺少公开访问地址。"
+          : "本地开发暂不需要公开访问地址。",
+      action:
+        production
+          ? `设置 ${variable}。`
+          : undefined
+    };
+  }
+
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return {
+      id,
+      title,
+      status: production ? "fail" : "warning",
+      summary: "公开访问地址格式无效。",
+      action: `修正 ${variable}。`
+    };
+  }
+
+  if (production && url.protocol !== "https:") {
+    return {
+      id,
+      title,
+      status: "fail",
+      summary: "生产公开访问地址必须使用 HTTPS。",
+      action: `将 ${variable} 设置为 HTTPS 地址。`
     };
   }
 
   return {
     id,
     title,
-    status: production ? "fail" : "info",
+    status: "pass",
     summary:
       production
-        ? "生产环境缺少公开访问地址。"
-        : "本地开发暂不需要公开访问地址。",
-    action:
-      production
-        ? `设置 ${variable}。`
-        : undefined
+        ? "已配置 HTTPS 公开访问地址。"
+        : "已配置公开访问地址。"
   };
 }
 
 function corsCheck(
-  production: boolean
+  production: boolean,
+  publicWeb?: string,
+  publicApi?: string
 ): DeploymentCheck {
   const origins =
-    process.env.OEAP_CORS_ORIGINS?.trim();
+    process.env.OEAP_CORS_ORIGINS
+      ?.split(",")
+      .map((value) => value.trim())
+      .filter(Boolean) ?? [];
 
-  if (origins) {
+  if (!production) {
+    return {
+      id: "cors",
+      title: "CORS 白名单",
+      status: origins.length > 0 ? "pass" : "warning",
+      summary:
+        origins.length > 0
+          ? "已配置允许访问 API 的 Web Origin。"
+          : "开发模式未限制 CORS Origin。"
+    };
+  }
+
+  const webOrigin = originOf(publicWeb);
+  const apiOrigin = originOf(publicApi);
+
+  if (webOrigin && apiOrigin && webOrigin === apiOrigin) {
+    if (origins.includes("*")) {
+      return {
+        id: "cors",
+        title: "CORS 白名单",
+        status: "fail",
+        summary: "生产环境禁止使用 CORS 通配符 *。",
+        action: "删除通配符；同源部署无需配置 OEAP_CORS_ORIGINS。"
+      };
+    }
+
     return {
       id: "cors",
       title: "CORS 白名单",
       status: "pass",
-      summary: "已配置允许访问 API 的 Web Origin。"
+      summary:
+        origins.length === 0
+          ? "Web 与 API 同源，CORS 已按 fail-closed 方式关闭。"
+          : "Web 与 API 同源，并配置了显式 CORS Origin。"
+    };
+  }
+
+  if (origins.length === 0) {
+    return {
+      id: "cors",
+      title: "CORS 白名单",
+      status: "fail",
+      summary:
+        "Web 与 API 非同源，但没有配置 CORS Origin 白名单。",
+      action:
+        "设置 OEAP_CORS_ORIGINS 为实际 Web HTTPS Origin。"
+    };
+  }
+
+  if (origins.includes("*")) {
+    return {
+      id: "cors",
+      title: "CORS 白名单",
+      status: "fail",
+      summary: "生产环境禁止使用 CORS 通配符 *。",
+      action: "只保留可信的 Web HTTPS Origin。"
+    };
+  }
+
+  const invalid = origins.find((origin) => {
+    const parsed = originOf(origin);
+    return !parsed || !parsed.startsWith("https://");
+  });
+
+  if (invalid) {
+    return {
+      id: "cors",
+      title: "CORS 白名单",
+      status: "fail",
+      summary: `CORS Origin 无效或不是 HTTPS：${invalid}`,
+      action: "修正 OEAP_CORS_ORIGINS。"
+    };
+  }
+
+  if (webOrigin && !origins.includes(webOrigin)) {
+    return {
+      id: "cors",
+      title: "CORS 白名单",
+      status: "fail",
+      summary: "CORS 白名单未包含当前公开 Web Origin。",
+      action: `将 ${webOrigin} 加入 OEAP_CORS_ORIGINS。`
     };
   }
 
   return {
     id: "cors",
     title: "CORS 白名单",
-    status: production ? "fail" : "warning",
-    summary:
-      "当前没有显式 CORS Origin 白名单。",
-    action:
-      "生产部署设置 OEAP_CORS_ORIGINS，并限制为实际前端域名。"
+    status: "pass",
+    summary: "已配置受限的 HTTPS CORS Origin 白名单。"
   };
+}
+
+function originOf(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  try {
+    return new URL(trimmed).origin;
+  } catch {
+    return undefined;
+  }
 }
 
 function mailCheck(
