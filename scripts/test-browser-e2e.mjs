@@ -112,12 +112,39 @@ try {
   });
 
   await waitForText(client, "AI 工作台");
+  await waitForText(client, "开始使用 OEAP");
+  await waitForText(client, "客户经营 CRM");
+
   let text = await bodyText(client);
   assert.match(text, /企业与权限/);
   assert.match(text, /Marketplace/);
   assert.match(text, /企业知识库/);
   assert.match(text, /运营与审批/);
   assert.match(text, /Developer/);
+  assert.match(text, /AI 未连接/);
+  assert.doesNotMatch(
+    text,
+    /Online\s*DeepSeek Harness/,
+    "Workbench must not fake an online AI runtime"
+  );
+
+  await clickButton(client, "一键创建");
+  await waitForText(client, "打开应用");
+  text = await bodyText(client);
+  assert.match(text, /客户经营 CRM/);
+  assert.match(text, /1\s*已安装应用/);
+
+  await clickButton(client, "打开应用");
+  await waitForText(client, "应用概览");
+  await clickButton(client, "客户管理");
+  await waitForText(client, "新增数据");
+  text = await bodyText(client);
+  assert.match(text, /Customer/);
+  assert.match(text, /客户名称/);
+  assert.match(text, /客户状态/);
+
+  await clickButton(client, "返回工作台");
+  await waitForText(client, "AI 工作台");
 
   await clickButton(client, "企业与权限");
   await waitForText(client, "成员与应用权限");
@@ -136,7 +163,7 @@ try {
     `Browser emitted runtime exceptions: ${browserErrors.join(" | ")}`
   );
 
-  console.log("✅ REAL BROWSER E2E TEST PASSED");
+  console.log("✅ REAL BROWSER + DAY-ONE TEMPLATE E2E TEST PASSED");
 } catch (error) {
   console.error(logs);
   throw error;
