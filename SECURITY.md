@@ -1,6 +1,6 @@
 # Security Policy
 
-OEAP `1.0.0-rc.1` is a self-hosted release candidate with explicit identity, tenancy, authorization, secret-storage, persistence and Package supply-chain boundaries. The 1.x Package/SDK compatibility contract is frozen for the RC, but General Availability still requires independent security review and deployment-specific validation.
+OEAP `1.0.0-rc.2` is a self-hosted release candidate with explicit identity, tenancy, authorization, secret-storage, persistence, backup/recovery and Package supply-chain boundaries. The 1.x Package/SDK compatibility contract is frozen for the RC, but General Availability still requires independent security review and deployment-specific validation.
 
 See also:
 
@@ -68,7 +68,17 @@ See [docs/package-supply-chain.md](docs/package-supply-chain.md).
 - Cross-origin production deployments require explicit HTTPS origin allowlists.
 - Production reverse-proxy configuration adds CSP and standard browser security headers.
 - `/health` is a liveness endpoint; `/ready` is a public infrastructure readiness probe that fails unsafe/incomplete production configuration without exposing tenant data.
+- `pnpm preflight:production -- --env-file .env` validates Production configuration without printing secret values; `--live` additionally checks the deployed Web/API boundary.
 - Runtime state should be mounted through persistent `OEAP_DATA_DIR` storage and backed up.
+
+### Backup and recovery
+
+- Filesystem backups refuse a reachable running API to reduce inconsistent SQLite copies.
+- Backup targets inside `OEAP_DATA_DIR`, filesystem-root runtime data, links and special files are rejected.
+- New backups include a SHA-256 sidecar.
+- Restore verifies integrity when a sidecar exists and validates archive paths/types before changing runtime data.
+- Restore rejects absolute/`..` traversal paths, symbolic/hard links and special/device files.
+- Restore extracts to staging and creates a pre-restore safety copy before replacing current runtime data.
 
 ## Secrets
 
@@ -83,8 +93,9 @@ Never commit:
 - DeepSeek Harness/provider credentials
 - Local SQLite databases containing real business data
 - OEAP signing private keys
+- Runtime encrypted stores and backup archives
 
-If a secret is accidentally committed, revoke or rotate it. Deleting it from the latest commit is not enough because it may remain in Git history.
+CI contains a repository-hygiene gate that rejects tracked runtime-state/secrets and common high-confidence credential patterns. If a secret is accidentally committed, revoke or rotate it. Deleting it from the latest commit is not enough because it may remain in Git history.
 
 ## Current limitations / residual risks
 
@@ -96,7 +107,7 @@ The following remain deployment or post-1.0 infrastructure/security areas:
 - Row/field-level data-security policy is not yet a general platform primitive.
 - Distributed rate limiting, queue isolation and horizontal runtime state are post-1.0 infrastructure work.
 - Production-grade PostgreSQL/object-storage/vector-store backends are post-1.0 work.
-- A formal independent external security assessment has not yet been completed for `1.0.0-rc.1`.
+- A formal independent external security assessment has not yet been completed for `1.0.0-rc.2`.
 
 These are explicit boundaries, not assumptions that the missing controls are unnecessary.
 
@@ -115,6 +126,9 @@ Current CI includes:
 - Package provenance/static scan/supply-chain tests
 - Package SemVer dependency edge cases
 - Runtime data-root persistence tests
+- Backup/restore integrity and archive-traversal tests
+- Repository runtime-state/credential hygiene scanning
+- Production Preflight regression
 - Built API E2E
 - Real headless Chrome workspace navigation/runtime-exception detection
 - Docker Compose and production container builds
@@ -126,6 +140,7 @@ Green CI is required for release candidates, but it is not a substitute for an i
 Before routing users to a production deployment:
 
 1. Complete [docs/production-checklist.md](docs/production-checklist.md).
-2. Confirm `/ready` returns HTTP 200 in the actual deployment.
-3. Validate OAuth/OIDC, DNS/TLS, backup/restore and required mail/AI integrations with deployment-owned credentials.
-4. For General Availability or high-impact production use, complete the independent review described in [docs/security-review-checklist.md](docs/security-review-checklist.md).
+2. Run Production Preflight against the actual configuration and again with `--live` after DNS/TLS is active.
+3. Confirm `/ready` returns HTTP 200 in the actual deployment.
+4. Validate OAuth/OIDC, DNS/TLS, backup/restore and required mail/AI integrations with deployment-owned credentials.
+5. For General Availability or high-impact production use, complete the independent review described in [docs/security-review-checklist.md](docs/security-review-checklist.md).
