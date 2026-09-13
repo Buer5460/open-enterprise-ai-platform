@@ -21,6 +21,7 @@ run_if_present scripts/test-growth-agent.mjs
 run_if_present scripts/test-growth-workflow.mjs
 run_if_present scripts/test-agent-context-enrichment.mjs
 run_if_present scripts/test-package-compatibility.mjs
+run_if_present scripts/test-marketplace-registry-protocol.mjs
 run_if_present scripts/test-semver-range.mjs
 run_if_present scripts/test-sdk-contract.mjs
 run_if_present scripts/test-runtime-storage-path.mjs
