@@ -4,17 +4,24 @@ on:
   push:
     tags:
       - "v*"
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   release:
+    if: >-
+      github.ref_type == 'tag' ||
+      contains(github.event.head_commit.message, '[release]')
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -24,48 +31,96 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
+      - name: Resolve release version
+        id: release
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v${VERSION}"
+
+          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" != "$TAG" ]]; then
+            echo "Release tag $GITHUB_REF_NAME does not match package version $TAG" >&2
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Skip duplicate release
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release $TAG already exists; validation/publishing will be skipped."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install dependencies
+        if: steps.existing.outputs.exists != 'true'
         run: corepack pnpm install --frozen-lockfile
 
-      - name: Verify tag and release version contract
+      - name: Verify release version contract
+        if: steps.existing.outputs.exists != 'true'
         run: node scripts/test-release-version.mjs
 
       - name: Build workspace
+        if: steps.existing.outputs.exists != 'true'
         run: corepack pnpm build
 
       - name: Run deterministic tests
+        if: steps.existing.outputs.exists != 'true'
         run: corepack pnpm test
 
       - name: Run real browser end-to-end smoke test
+        if: steps.existing.outputs.exists != 'true'
         env:
           OEAP_REQUIRE_BROWSER_E2E: "1"
         run: node scripts/test-browser-e2e.mjs
 
       - name: Validate Compose
+        if: steps.existing.outputs.exists != 'true'
         run: |
           cp .env.example .env
           docker compose config >/dev/null
 
       - name: Build containers
+        if: steps.existing.outputs.exists != 'true'
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
         run: |
-          docker build --target api -t oeap-api:${GITHUB_REF_NAME} .
-          docker build --target web -t oeap-web:${GITHUB_REF_NAME} .
+          docker build --target api -t oeap-api:${TAG} .
+          docker build --target web -t oeap-web:${TAG} .
 
       - name: Create source archive
+        if: steps.existing.outputs.exists != 'true'
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
         run: |
-          git archive --format=tar.gz --prefix=open-enterprise-ai-platform-${GITHUB_REF_NAME}/ -o oeap-${GITHUB_REF_NAME}.tar.gz HEAD
+          git archive --format=tar.gz \
+            --prefix=open-enterprise-ai-platform-${TAG}/ \
+            -o oeap-${TAG}.tar.gz HEAD
 
       - name: Publish GitHub Release
+        if: steps.existing.outputs.exists != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
         run: |
           EXTRA_ARGS=()
-          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+          if [[ "$VERSION" == *-* ]]; then
             EXTRA_ARGS+=(--prerelease)
           fi
 
-          gh release create "$GITHUB_REF_NAME" \
-            oeap-${GITHUB_REF_NAME}.tar.gz \
-            --title "OEAP ${GITHUB_REF_NAME}" \
+          gh release create "$TAG" \
+            oeap-${TAG}.tar.gz \
+            --target "$GITHUB_SHA" \
+            --title "OEAP ${TAG}" \
             --generate-notes \
             "${EXTRA_ARGS[@]}"
