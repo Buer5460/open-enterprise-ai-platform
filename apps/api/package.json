@@ -16,6 +16,7 @@
     "@oeap/package-spec": "workspace:*",
     "@oeap/agent-runtime": "workspace:*",
     "@oeap/deepseek-harness-connector": "workspace:*",
+    "@oeap/harness-adapter": "workspace:*",
     "@oeap/ai-generate-skill": "workspace:*",
     "@oeap/app-builder": "workspace:*",
     "@oeap/app-package-builder": "workspace:*",
