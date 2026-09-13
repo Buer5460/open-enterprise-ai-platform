@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "id": "fixture.app.v1",
+  "type": "app",
+  "name": "fixture-app-v1",
+  "displayName": "Fixture App v1",
+  "description": "Stable App Package schema 1.0 fixture.",
+  "version": "1.4.2",
+  "publisher": "oeap-fixtures",
+  "license": "Apache-2.0",
+  "permissions": [],
+  "dependencies": []
+}
