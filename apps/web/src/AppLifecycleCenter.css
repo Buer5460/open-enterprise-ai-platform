@@ -1,0 +1,142 @@
+.appLifecycleCenter {
+  margin: 22px 0;
+  padding: 22px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+.appLifecycleHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.appLifecycleHeading span {
+  display: block;
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.appLifecycleHeading h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 22px;
+}
+
+.appLifecycleHeading p {
+  margin: 8px 0 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.appLifecycleHeading button,
+.appLifecycleRow button {
+  border: 1px solid #d8e0ea;
+  border-radius: 9px;
+  background: #fff;
+  padding: 8px 12px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.appLifecycleRow button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.appLifecycleMessage {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+}
+
+.appLifecycleGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.appLifecyclePanel {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.appLifecyclePanelTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.appLifecyclePanelTitle h4 {
+  margin: 0;
+  color: #0f172a;
+}
+
+.appLifecyclePanelTitle span {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.appLifecycleList {
+  display: grid;
+  gap: 8px;
+}
+
+.appLifecycleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.appLifecycleRow:last-child {
+  border-bottom: 0;
+}
+
+.appLifecycleRow > div {
+  display: grid;
+  gap: 3px;
+}
+
+.appLifecycleRow strong {
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.appLifecycleRow span {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.appLifecycleEmpty {
+  padding: 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+}
+
+@media (max-width: 780px) {
+  .appLifecycleHeading {
+    flex-direction: column;
+  }
+
+  .appLifecycleGrid {
+    grid-template-columns: 1fr;
+  }
+}
