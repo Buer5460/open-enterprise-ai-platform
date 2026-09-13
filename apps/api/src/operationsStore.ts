@@ -3,6 +3,8 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { runtimeStoragePath } from "./storagePath.js";
+
 export type ApprovalStatus =
   | "pending"
   | "approved"
@@ -41,8 +43,9 @@ export class OperationsStore {
   private readonly db: DatabaseSync;
 
   constructor(path: string) {
-    mkdirSync(dirname(path), { recursive: true });
-    this.db = new DatabaseSync(path);
+    const resolvedPath = runtimeStoragePath(path);
+    mkdirSync(dirname(resolvedPath), { recursive: true });
+    this.db = new DatabaseSync(resolvedPath);
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS operation_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
