@@ -45,13 +45,20 @@ export const skill: SkillExecutor<
   manifest,
 
   async execute(input, context) {
+    const preferredProvider =
+      typeof context.metadata?.preferredProvider === "string"
+        ? context.metadata.preferredProvider.trim()
+        : undefined;
+
     const result = await context.action<
       AIGenerateInput,
       AIGenerateOutput
     >({
       action: "ai.generate",
       capability: "ai.generate",
-      input
+      input,
+      preferredProvider:
+        preferredProvider || undefined
     });
 
     if (
