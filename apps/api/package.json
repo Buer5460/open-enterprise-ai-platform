@@ -13,6 +13,7 @@
     "fastify": "^5.6.0",
     "@oeap/permission-engine": "workspace:*",
     "@oeap/package-manager": "workspace:*",
+    "@oeap/agent-runtime": "workspace:*",
     "@oeap/deepseek-harness-connector": "workspace:*",
     "@oeap/ai-generate-skill": "workspace:*",
     "@oeap/app-builder": "workspace:*",
