@@ -2,6 +2,67 @@
 
 All notable changes to Open Enterprise AI Platform (OEAP) are documented here.
 
+## 1.0.0-rc.1 — Stable Contract Release Candidate
+
+OEAP 1.0.0-rc.1 freezes the first stable Package/SDK contracts and closes the internal engineering work required for a 1.0 release candidate. It is intended for controlled self-hosted evaluation before 1.0 General Availability.
+
+### Compatibility and release contracts
+
+- Package Manifest `1.x` compatibility rules are explicit and covered by fixtures/regression tests.
+- Public TypeScript SDK 1.x method contract is frozen and continuously tested.
+- Platform, API, Web, CLI, SDK and Package Spec release versions are required to match.
+- Git tags must match the repository SemVer version before Release publishing.
+- Release-candidate tags are automatically marked as GitHub prereleases.
+- Application Blueprint/runtime migration guarantees and platform upgrade/rollback procedures are documented.
+
+### Authentication and production hardening
+
+- Production Local Development login is hard-disabled in code even if an unsafe environment override attempts to enable it.
+- Production ignores client-selected organization/member identity and requires authenticated Session identity.
+- Existing SSO identities resolve through stable provider-subject bindings before email lookup; email is used only for first binding.
+- A stale/disabled external identity binding fails closed instead of silently rebinding by email.
+- GitHub first-login enterprise matching requires an address returned by GitHub as verified.
+- OAuth state/PKCE state uses the configured runtime data root.
+- Production public Web/API URLs must be valid HTTPS URLs.
+- Production CORS is fail-closed: wildcard origins are rejected; cross-origin deployments require explicit trusted HTTPS origins.
+- `/ready` is a public infrastructure probe while still failing when required production identity/public URL configuration is unsafe or incomplete.
+
+### Package supply-chain hardening
+
+- Remote GitHub Package import continues to require static scanning, trusted Ed25519 provenance and publisher fingerprint validation.
+- Remote imports reject symlinks/submodules and enforce file-count/per-file/aggregate size bounds.
+- Package dependency evaluation now uses a fail-closed SemVer range evaluator.
+- Correct zero-major caret semantics are enforced (`^0.2.0` does not accept `0.9.0`, `^0.0.3` does not accept `0.0.4`).
+- Exact, wildcard, caret, tilde, comparator, AND/OR and prerelease range behavior is regression-tested.
+
+### Runtime persistence and deployment
+
+- Core Session, tenancy, OAuth flow, branding, mail, file, operations, invitation, knowledge and Package assets consistently honor `OEAP_DATA_DIR`.
+- Deployment readiness checks use the same runtime data root as the actual stores.
+- Built API end-to-end tests verify that critical state is persisted under a custom runtime data directory.
+- `/health` reports the repository platform version; `/ready` validates runtime data writability and production configuration.
+
+### End-to-end quality gates
+
+The CI release gate now includes:
+
+- frozen-lockfile install
+- full workspace TypeScript/Vite build
+- deterministic runtime/RBAC/auth/invitation/mail/supply-chain/multi-tenant tests
+- Package compatibility and SemVer dependency tests
+- SDK 1.x contract tests
+- built API end-to-end test
+- real headless Chrome rendering/navigation of the enterprise workspace
+- uncaught browser runtime-exception detection
+- shell-script validation
+- Docker Compose validation
+- API Docker image build
+- Web Docker image build
+
+### GA boundary
+
+1.0.0-rc.1 does **not** self-certify an independent security review or external production services. 1.0 General Availability still requires an independent security review plus deployment-owned OAuth/OIDC credentials, production DNS/TLS, backup/restore validation, mail credentials when automatic mail is used, and a configured AI runtime/provider when AI generation is enabled.
+
 ## 0.9.0 — Production Candidate
 
 OEAP 0.9.0 is the first production-candidate release of the self-hosted platform. It closes the initial platform scope around AI application generation, enterprise tenancy, package extensibility, security, deployment, and operations.
