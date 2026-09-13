@@ -34,6 +34,11 @@ jobs:
       - name: Run deterministic test suite
         run: corepack pnpm test
 
+      - name: Run real browser end-to-end smoke test
+        env:
+          OEAP_REQUIRE_BROWSER_E2E: "1"
+        run: node scripts/test-browser-e2e.mjs
+
       - name: Validate shell scripts
         run: |
           bash -n scripts/start-local.sh
