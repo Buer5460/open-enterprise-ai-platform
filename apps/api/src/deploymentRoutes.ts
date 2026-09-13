@@ -22,6 +22,7 @@ import {
   memberFrom,
   organizationFrom
 } from "./tenancyRoutes.js";
+import { runtimePath } from "./runtimePaths.js";
 
 export interface DeploymentRoutesOptions {
   app: FastifyInstance;
@@ -48,9 +49,8 @@ export function registerDeploymentRoutes(
   options: DeploymentRoutesOptions
 ) {
   const tenancy = new TenancyStore(
-    join(
+    runtimePath(
       options.repoRoot,
-      ".tmp",
       "tenancy",
       "tenancy.sqlite"
     )
@@ -208,11 +208,16 @@ function deploymentMode():
 function localAuthCheck(
   production: boolean
 ): DeploymentCheck {
-  const explicitlyDisabled =
-    process.env.OEAP_LOCAL_AUTH === "disabled";
+  const configured =
+    process.env.OEAP_LOCAL_AUTH
+      ?.trim()
+      .toLowerCase();
+  const enabled = production
+    ? configured === "enabled"
+    : configured !== "disabled";
 
   if (production) {
-    return explicitlyDisabled
+    return !enabled
       ? {
           id: "local-auth",
           title: "本地开发登录",
@@ -225,9 +230,9 @@ function localAuthCheck(
           title: "本地开发登录",
           status: "fail",
           summary:
-            "生产环境仍允许 Local Development 登录。",
+            "生产环境显式启用了 Local Development 登录。",
           action:
-            "设置 OEAP_LOCAL_AUTH=disabled，并启用企业 OAuth / OIDC。"
+            "移除 OEAP_LOCAL_AUTH=enabled 或设置 OEAP_LOCAL_AUTH=disabled，并启用企业 OAuth / OIDC。"
         };
   }
 
@@ -236,9 +241,9 @@ function localAuthCheck(
     title: "本地开发登录",
     status: "info",
     summary:
-      explicitlyDisabled
-        ? "本地开发登录已关闭。"
-        : "本地开发登录已启用，便于当前自托管开发。"
+      enabled
+        ? "本地开发登录已启用，便于当前自托管开发。"
+        : "本地开发登录已关闭。"
   };
 }
 
@@ -390,9 +395,8 @@ function settingsKeyCheck(
   repoRoot: string,
   production: boolean
 ): DeploymentCheck {
-  const settingsDir = join(
+  const settingsDir = runtimePath(
     repoRoot,
-    ".tmp",
     "settings"
   );
   const keys = [
@@ -409,7 +413,7 @@ function settingsKeyCheck(
         title: "本地敏感配置加密",
         status: "pass",
         summary:
-          "邮件与品牌配置的本地加密密钥已创建。"
+          "邮件与品牌配置的本地加密密钥已创建，并位于运行数据目录。"
       }
     : {
         id: "settings-keys",
@@ -418,7 +422,7 @@ function settingsKeyCheck(
         summary:
           "部分本地配置加密密钥尚未创建。",
         action:
-          "启动并保存一次企业配置后，确认 .tmp/settings 持久化且不进入 Git。"
+          "启动并保存一次企业配置后，确认运行数据目录中的 settings 已持久化且不进入 Git。"
       };
 }
 
