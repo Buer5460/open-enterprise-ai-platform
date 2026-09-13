@@ -1,1 +1,7 @@
-{"users":{},"rooms":{}}
+{
+  "users": {},
+  "rooms": {},
+  "races": [],
+  "purchases": [],
+  "meta": { "createdAt": 0 }
+}
