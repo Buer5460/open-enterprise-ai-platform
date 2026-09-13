@@ -4,6 +4,7 @@ import {
 } from "@oeap/package-spec";
 import {
   connectorRuntime,
+  type ConnectorContext,
   type ConnectorExecutor
 } from "@oeap/connector-runtime";
 
@@ -33,8 +34,22 @@ export interface OpenAICompatibleConnectorConfig {
   userAgent?: string;
 }
 
+export interface OpenAICompatibleDynamicConfig {
+  resolveConfig(
+    context?: ConnectorContext
+  ):
+    | OpenAICompatibleConnectorConfig
+    | undefined;
+  priority?: number;
+  userAgent?: string;
+}
+
+export type OpenAICompatibleRegistrationConfig =
+  | OpenAICompatibleConnectorConfig
+  | OpenAICompatibleDynamicConfig;
+
 export function registerOpenAICompatibleConnector(
-  config: OpenAICompatibleConnectorConfig
+  registration: OpenAICompatibleRegistrationConfig
 ): void {
   if (
     connectorRuntime
@@ -44,7 +59,13 @@ export function registerOpenAICompatibleConnector(
     return;
   }
 
-  const normalized = validateConfig(config);
+  const dynamic = isDynamicConfig(registration);
+  const staticConfig = dynamic
+    ? undefined
+    : validateConfig(registration);
+  const priority = dynamic
+    ? normalizedPriority(registration.priority)
+    : staticConfig!.priority;
 
   const executor: ConnectorExecutor = {
     id: "openai-compatible",
@@ -52,7 +73,7 @@ export function registerOpenAICompatibleConnector(
     version: manifest.version,
     transport: "rest",
 
-    async execute(capability, input) {
+    async execute(capability, input, context) {
       if (
         capability !== "ai.generate" &&
         capability !== "ai.task.run"
@@ -74,6 +95,49 @@ export function registerOpenAICompatibleConnector(
           error: {
             code: "INVALID_INPUT",
             message: "prompt is required"
+          }
+        };
+      }
+
+      let normalized: ReturnType<typeof validateConfig>;
+      try {
+        const resolved = dynamic
+          ? registration.resolveConfig(context)
+          : registration;
+
+        if (!resolved) {
+          return {
+            ok: false,
+            error: {
+              code: "AI_PROVIDER_NOT_CONFIGURED",
+              message:
+                "OpenAI-compatible provider is not configured for this organization"
+            },
+            metadata: {
+              provider: "openai-compatible"
+            }
+          };
+        }
+
+        normalized = validateConfig({
+          ...resolved,
+          priority,
+          userAgent:
+            resolved.userAgent ||
+            (dynamic ? registration.userAgent : undefined)
+        });
+      } catch (error) {
+        return {
+          ok: false,
+          error: {
+            code: "AI_PROVIDER_INVALID_CONFIG",
+            message:
+              error instanceof Error
+                ? error.message
+                : "OpenAI-compatible provider configuration is invalid"
+          },
+          metadata: {
+            provider: "openai-compatible"
           }
         };
       }
@@ -193,22 +257,35 @@ export function registerOpenAICompatibleConnector(
     capabilities: [
       {
         id: "ai.generate",
-        priority: normalized.priority,
+        priority,
         metadata: {
-          provider: "openai-compatible",
-          model: normalized.model
+          provider: "openai-compatible"
         }
       },
       {
         id: "ai.task.run",
-        priority: normalized.priority,
+        priority,
         metadata: {
-          provider: "openai-compatible",
-          model: normalized.model
+          provider: "openai-compatible"
         }
       }
     ]
   });
+}
+
+export function validateOpenAICompatibleConfig(
+  config: OpenAICompatibleConnectorConfig
+): {
+  endpoint: string;
+  model: string;
+  timeoutMs: number;
+} {
+  const normalized = validateConfig(config);
+  return {
+    endpoint: normalized.endpoint,
+    model: normalized.model,
+    timeoutMs: normalized.timeoutMs
+  };
 }
 
 function validateConfig(
@@ -233,6 +310,12 @@ function validateConfig(
     );
   }
 
+  if (url.username || url.password) {
+    throw new Error(
+      "OpenAI-compatible baseUrl must not contain embedded credentials"
+    );
+  }
+
   const local =
     url.hostname === "127.0.0.1" ||
     url.hostname === "localhost" ||
@@ -246,8 +329,12 @@ function validateConfig(
 
   url.search = "";
   url.hash = "";
+  const normalizedBase =
+    url.toString().replace(/\/+$/, "");
   const endpoint =
-    `${url.toString().replace(/\/+$/, "")}/chat/completions`;
+    normalizedBase.endsWith("/chat/completions")
+      ? normalizedBase
+      : `${normalizedBase}/chat/completions`;
 
   const requestedTimeout =
     Number(config.timeoutMs ?? 120_000);
@@ -264,14 +351,30 @@ function validateConfig(
     apiKey,
     model,
     timeoutMs,
-    priority:
-      Number.isFinite(config.priority)
-        ? Number(config.priority)
-        : 200,
+    priority: normalizedPriority(config.priority),
     userAgent:
       config.userAgent?.trim() ||
       "OEAP-OpenAI-Compatible/0.0.1"
   };
+}
+
+function normalizedPriority(
+  value: number | undefined
+): number {
+  return Number.isFinite(value)
+    ? Math.max(-10_000, Math.min(10_000, Number(value)))
+    : 90;
+}
+
+function isDynamicConfig(
+  value: OpenAICompatibleRegistrationConfig
+): value is OpenAICompatibleDynamicConfig {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "resolveConfig" in value &&
+    typeof (value as OpenAICompatibleDynamicConfig).resolveConfig === "function"
+  );
 }
 
 function extractPrompt(input: unknown): string {
