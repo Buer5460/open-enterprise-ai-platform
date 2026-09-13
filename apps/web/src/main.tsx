@@ -10,6 +10,10 @@ import { KnowledgeCenter } from "./KnowledgeCenter";
 import { ConnectorCredentials } from "./ConnectorCredentials";
 import { PublisherCenter } from "./PublisherCenter";
 import {
+  GettingStarted,
+  type UsabilityStatus
+} from "./GettingStarted";
+import {
   ProductionLogin,
   resolveAuthGate
 } from "./ProductionLogin";
@@ -153,6 +157,8 @@ function AuthenticatedPlatform() {
 function Platform() {
   const { brand } = useBrand();
   const [apps, setApps] = React.useState<AppManifest[]>([]);
+  const [usability, setUsability] =
+    React.useState<UsabilityStatus | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [description, setDescription] = React.useState("");
   const [creating, setCreating] = React.useState(false);
@@ -163,22 +169,53 @@ function Platform() {
   const loadApps = React.useCallback(async () => {
     const response = await apiFetch(apiUrl("/api/apps"));
     const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error ?? "应用列表加载失败");
+    }
+
     const nextApps: AppManifest[] = data.apps ?? [];
 
     setApps(nextApps);
     setSelectedApp((current) => {
       if (!current) return null;
-      return nextApps.find((item) => item.id === current.id) ?? current;
+      return nextApps.find((item) => item.id === current.id) ?? null;
     });
 
     return nextApps;
   }, []);
 
+  const loadUsability = React.useCallback(async () => {
+    try {
+      const response = await apiFetch(
+        apiUrl("/api/usability/status")
+      );
+      const result = await response.json();
+
+      if (response.ok && result.ok) {
+        setUsability(result as UsabilityStatus);
+        return result as UsabilityStatus;
+      }
+    } catch {
+      // Workbench/app data remains usable even when the status probe fails.
+    }
+    return null;
+  }, []);
+
+  const refreshWorkspace = React.useCallback(async () => {
+    await Promise.all([
+      loadApps(),
+      loadUsability()
+    ]);
+  }, [loadApps, loadUsability]);
+
   React.useEffect(() => {
-    loadApps().finally(() => {
-      setLoading(false);
-    });
-  }, [loadApps]);
+    refreshWorkspace()
+      .catch(() => undefined)
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [refreshWorkspace]);
 
   function applyUpdatedApp(updated: AppManifest) {
     setSelectedApp(updated);
@@ -193,6 +230,11 @@ function Platform() {
 
     if (!businessRequest) {
       alert("请先描述你想创建的企业应用。");
+      return;
+    }
+
+    if (usability?.ai.available === false) {
+      alert("AI Runtime 当前未连接。你可以先从业务模板一键创建应用。");
       return;
     }
 
@@ -214,7 +256,7 @@ function Platform() {
       }
 
       setDescription("");
-      await loadApps();
+      await refreshWorkspace();
       alert(`应用「${result.app.displayName ?? result.app.name}」创建成功`);
     } catch (error) {
       alert(error instanceof Error ? error.message : "应用创建失败");
@@ -393,11 +435,13 @@ function Platform() {
             brandTitle={brand.loginTitle}
             brandSubtitle={brand.loginSubtitle}
             apps={apps}
+            usability={usability}
             loading={loading}
             description={description}
             creating={creating}
             setDescription={setDescription}
             createApp={createApp}
+            refreshWorkspace={refreshWorkspace}
             openApp={(item) => {
               setSelectedApp(item);
               setActivePage("overview");
@@ -428,24 +472,31 @@ function Workbench({
   brandTitle,
   brandSubtitle,
   apps,
+  usability,
   loading,
   description,
   creating,
   setDescription,
   createApp,
+  refreshWorkspace,
   openApp
 }: {
   brandName: string;
   brandTitle: string;
   brandSubtitle: string;
   apps: AppManifest[];
+  usability: UsabilityStatus | null;
   loading: boolean;
   description: string;
   creating: boolean;
   setDescription: (value: string) => void;
   createApp: () => Promise<void>;
+  refreshWorkspace: () => Promise<void>;
   openApp: (item: AppManifest) => void;
 }) {
+  const aiUnavailable =
+    usability?.ai.available === false;
+
   return (
     <>
       <header>
@@ -464,43 +515,90 @@ function Workbench({
         </button>
       </header>
 
+      {usability?.firstRun && (
+        <GettingStarted
+          status={usability}
+          onChanged={refreshWorkspace}
+        />
+      )}
+
       <section className="hero">
         <div className="heroLabel">{brandTitle || "AI APP BUILDER"}</div>
         <h2>你想为自己的企业做一个什么应用？</h2>
-        <p>描述业务需求，AI 将帮助你完成需求分析、数据模型、页面、Agent、Skill、Workflow 和 Connector 设计。</p>
+        <p>
+          {aiUnavailable
+            ? "AI Runtime 当前未连接。你可以先从业务模板创建应用，连接 AI 后再通过自然语言持续修改。"
+            : "描述业务需求，AI 将帮助你完成需求分析、数据模型、页面、Agent、Skill、Workflow 和 Connector 设计。"}
+        </p>
 
         <div className="promptBox">
           <input
-            placeholder="例如：帮我做一个旅行社客户和订单管理系统……"
+            placeholder={
+              aiUnavailable
+                ? "AI Runtime 未连接，请先使用上方业务模板"
+                : "例如：帮我做一个旅行社客户和订单管理系统……"
+            }
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            disabled={creating}
+            disabled={creating || aiUnavailable}
             onKeyDown={(event) => {
               if (event.key === "Enter") void createApp();
             }}
           />
-          <button onClick={() => void createApp()} disabled={creating}>
-            {creating ? "AI 正在创建…" : "开始创建"}
+          <button
+            onClick={() => void createApp()}
+            disabled={creating || aiUnavailable}
+          >
+            {creating
+              ? "AI 正在创建…"
+              : aiUnavailable
+                ? "AI 未连接"
+                : "开始创建"}
           </button>
         </div>
       </section>
 
+      {!usability?.firstRun && (
+        <GettingStarted
+          status={usability}
+          onChanged={refreshWorkspace}
+        />
+      )}
+
       <section className="stats">
         <div><strong>{apps.length}</strong><span>已安装应用</span></div>
         <div><strong>6</strong><span>Package 类型</span></div>
-        <div><strong>1</strong><span>AI Runtime</span></div>
-        <div><strong>Online</strong><span>DeepSeek Harness</span></div>
+        <div>
+          <strong>{usability?.ai.available ? 1 : 0}</strong>
+          <span>AI Runtime</span>
+        </div>
+        <div>
+          <strong>
+            {usability
+              ? usability.ai.available
+                ? "Online"
+                : "Offline"
+              : "Checking"}
+          </strong>
+          <span>DeepSeek Harness</span>
+        </div>
       </section>
 
       <section className="appsSection">
         <div className="sectionHeader">
           <div>
             <h3>我的应用</h3>
-            <p>AI 创建或安装到当前平台的企业应用</p>
+            <p>AI 创建或从业务模板安装到当前平台的企业应用</p>
           </div>
         </div>
 
         {loading && <div className="empty">正在加载应用……</div>}
+
+        {!loading && apps.length === 0 && (
+          <div className="empty">
+            还没有企业应用。上方模板不依赖 AI，可以直接一键创建。
+          </div>
+        )}
 
         <div className="appGrid">
           {apps.map((item) => (
