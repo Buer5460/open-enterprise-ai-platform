@@ -215,10 +215,6 @@ export function registerAppLifecycleRoutes(
         { recursive: true }
       );
       await rename(archive, destination);
-      await rm(
-        join(destination, "app.lifecycle.json"),
-        { force: true }
-      );
 
       try {
         tenancy.grantMemberAppAccess(
@@ -240,6 +236,11 @@ export function registerAppLifecycleRoutes(
           error: "Restored app could not be loaded; archive was preserved"
         });
       }
+
+      await rm(
+        join(destination, "app.lifecycle.json"),
+        { force: true }
+      );
 
       return {
         ok: true,
