@@ -140,7 +140,8 @@ The authoritative GA tracker is GitHub issue #6.
 
 ## Marketplace ecosystem
 
-- [ ] Hosted Package registry protocol
+- [x] Hosted Package registry protocol
+- [ ] Hosted registry persistence and publication API
 - [ ] Public publisher profiles and package pages
 - [ ] Registry search/discovery API
 - [ ] Ratings/reviews and publisher reputation
@@ -148,6 +149,8 @@ The authoritative GA tracker is GitHub issue #6.
 - [ ] Subscription and metered pricing
 - [ ] Revenue sharing
 - [ ] Managed security-review program
+
+The registry protocol is defined as a separate commercial/discovery contract over the stable OEAP Package Manifest. Hosted persistence, discovery, entitlement and billing services follow as independent phases.
 
 ## Visual builders
 
