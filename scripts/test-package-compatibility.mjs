@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import {
   CURRENT_PACKAGE_SCHEMA,
   isPackageUpgradeCompatible,
@@ -45,8 +48,32 @@ assert.equal(
   true
 );
 
+for (const fixture of [
+  "v1.0-skill.json",
+  "v1.0-app.json",
+  "v1.1-forward-compatible.json"
+]) {
+  const manifest = JSON.parse(
+    readFileSync(
+      join(
+        process.cwd(),
+        "fixtures",
+        "package-manifests",
+        fixture
+      ),
+      "utf8"
+    )
+  );
+  const result = validatePackageCompatibility(manifest);
+  assert.equal(
+    result.compatible,
+    true,
+    `${fixture} must remain compatible with the OEAP 1.x Package contract`
+  );
+}
+
 assert.equal(isPackageUpgradeCompatible("1.2.0", "1.3.0"), true);
 assert.equal(isPackageUpgradeCompatible("1.2.0", "1.1.9"), false);
 assert.equal(isPackageUpgradeCompatible("1.2.0", "2.0.0"), false);
 
-console.log("✅ PACKAGE COMPATIBILITY TEST PASSED");
+console.log("✅ PACKAGE COMPATIBILITY + FIXTURE TEST PASSED");
