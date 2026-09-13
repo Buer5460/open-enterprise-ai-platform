@@ -6,6 +6,7 @@ export * from "./connector.js";
 export * from "./data-provider.js";
 export * from "./app.js";
 export * from "./compatibility.js";
+export * from "./marketplace.js";
 
 import type { OEAPSkillManifest } from "./skill.js";
 import type { OEAPAgentManifest } from "./agent.js";
