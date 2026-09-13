@@ -1,6 +1,6 @@
 # OEAP Roadmap
 
-OEAP has completed the initial platform scope and the internal 1.0 compatibility-stabilization work. The current release line is **1.0.0-rc.1**: code contracts, automated security gates, browser/API end-to-end tests and deployment artifacts are frozen for release-candidate evaluation. General availability still requires an independent external security review and real deployment-owned infrastructure validation.
+OEAP has completed the initial platform scope and the repository-owned 1.0 compatibility/security-stabilization work. The current release line is **1.0.0-rc.2**: stable contracts, automated security gates, browser/API end-to-end tests, hardened backup/restore, Production Preflight and deployment artifacts are frozen for release-candidate evaluation. General Availability still requires an independent external security review and real deployment-owned infrastructure validation.
 
 ## 0.9 — Platform foundation and production candidate
 
@@ -67,17 +67,19 @@ OEAP has completed the initial platform scope and the internal 1.0 compatibility
 - [x] Docker Compose deployment
 - [x] Nginx reverse proxy and web security headers
 - [x] Persistent runtime data directory
-- [x] Backup and restore scripts
+- [x] Hardened backup and restore with SHA-256/archive validation
+- [x] Production Preflight offline/live validation
+- [x] Repository runtime-state/secret hygiene gate
 - [x] `/health` and `/ready`
 - [x] Deterministic CI and container build validation
 - [x] Built-API end-to-end test
 - [x] Real Chrome browser end-to-end smoke test
 - [x] Automatic pnpm lockfile synchronization
-- [x] Tagged GitHub Release workflow
+- [x] Tagged/controlled GitHub Release workflow
 
 ## 1.0 — Stable contracts
 
-The 1.0 goal is compatibility stabilization rather than another large feature expansion.
+The 1.0 goal is compatibility and security stabilization rather than another large feature expansion.
 
 - [x] Freeze Package Manifest 1.x compatibility rules
 - [x] Freeze public TypeScript SDK APIs and add contract tests
@@ -88,12 +90,20 @@ The 1.0 goal is compatibility stabilization rather than another large feature ex
 - [x] Add release-version consistency checks for platform/API/Web/CLI/SDK/Package Spec
 - [x] Harden OAuth state, verified external identity binding and production auth defaults
 - [x] Harden remote Package provenance, static scan, path/size limits and SemVer dependency validation
+- [x] Add backup/restore integrity and archive-traversal protections
+- [x] Add repository credential/runtime-state leakage gate
+- [x] Add Production Preflight configuration/live-deployment checker
+- [x] Publish Threat Model and independent security-review checklist
+- [x] Track the external GA security/deployment gate separately from source-code work
 - [ ] Complete an independent external security review before declaring **1.0 General Availability**
 
-### 1.0.0-rc.1 release criteria
+### 1.0.0-rc.2 release criteria
 
 - [x] Workspace build passes on Node.js 24 / pnpm 11.7.0
 - [x] Deterministic regression suite passes
+- [x] Repository hygiene scan passes
+- [x] Production Preflight regression passes
+- [x] Backup/restore integrity/traversal regression passes
 - [x] Built API starts and passes critical session/RBAC/runtime probes
 - [x] Headless Chrome renders and navigates core workspace pages without uncaught runtime exceptions
 - [x] Docker Compose validates
@@ -101,7 +111,7 @@ The 1.0 goal is compatibility stabilization rather than another large feature ex
 - [x] Web Docker image builds
 - [x] Production readiness fails closed when identity/public URL configuration is unsafe or incomplete
 - [x] Release tags are required to match the platform SemVer version
-- [x] RC tags publish as GitHub prereleases
+- [x] RC releases publish as GitHub prereleases
 
 ## 1.0 GA deployment gates
 
@@ -113,6 +123,8 @@ These are environment/external-review requirements, not missing source-code feat
 - [ ] Production mail provider credentials configured if automatic invitations are required
 - [ ] Production backup/restore drill completed against the deployment data volume
 - [ ] AI runtime/provider credentials configured and tested if AI generation is enabled
+
+The authoritative GA tracker is GitHub issue #6.
 
 ## Post-1.0 — Scalable enterprise infrastructure
 
