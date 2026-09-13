@@ -3,6 +3,8 @@ import {
   apiFetch,
   apiUrl
 } from "./apiClient";
+import { BusinessOverview } from "./BusinessOverview";
+import { DataExchangeCenter } from "./DataExchangeCenter";
 import "./GettingStarted.css";
 
 export type UsabilityStatus = {
@@ -167,106 +169,115 @@ export function GettingStarted(props: {
     props.status?.ai.available ?? false;
 
   return (
-    <section className={
-      firstRun
-        ? "gettingStarted gettingStartedFirstRun"
-        : "gettingStarted"
-    }>
-      <div className="gettingStartedHeading">
-        <div>
-          <span>DAY-1 BUSINESS APPS</span>
-          <h3>
-            {firstRun
-              ? "开始使用 OEAP"
-              : "从业务模板创建应用"}
-          </h3>
-          <p>
-            {!permissionReady
-              ? "正在确认当前账号的应用管理权限…"
-              : canManage
-                ? "不需要先配置 AI。选择一个模板即可生成真实可用的业务应用；AI Runtime 就绪后，再用自然语言继续修改。"
-                : "你可以查看企业模板和 Runtime 状态；新建应用由 Owner / Admin 完成，已有应用仍按你的权限正常使用。"}
-          </p>
-        </div>
+    <>
+      <section className={
+        firstRun
+          ? "gettingStarted gettingStartedFirstRun"
+          : "gettingStarted"
+      }>
+        <div className="gettingStartedHeading">
+          <div>
+            <span>DAY-1 BUSINESS APPS</span>
+            <h3>
+              {firstRun
+                ? "开始使用 OEAP"
+                : "从业务模板创建应用"}
+            </h3>
+            <p>
+              {!permissionReady
+                ? "正在确认当前账号的应用管理权限…"
+                : canManage
+                  ? "不需要先配置 AI。选择一个模板即可生成真实可用的业务应用；AI Runtime 就绪后，再用自然语言继续修改。"
+                  : "你可以查看企业模板和 Runtime 状态；新建应用由 Owner / Admin 完成，已有应用仍按你的权限正常使用。"}
+            </p>
+          </div>
 
-        <div className={
-          aiAvailable
-            ? "aiRuntimeState online"
-            : "aiRuntimeState offline"
-        }>
-          <strong>
-            {aiAvailable
-              ? "● AI 已就绪"
-              : "○ AI 未连接"}
-          </strong>
-          <small>
-            {props.status?.ai.message ??
-              "正在检查 DeepSeek Harness Runtime…"}
-          </small>
-          <button
-            disabled={testingAI || !permissionReady || !canManage}
-            onClick={() => void testAI()}
-          >
-            {!permissionReady
-              ? "检查权限中…"
-              : !canManage
-                ? "仅管理员可测试"
-                : testingAI
-                  ? "测试中…"
-                  : "测试 AI"}
-          </button>
-        </div>
-      </div>
-
-      {message && (
-        <div className="gettingStartedMessage">
-          {message}
-        </div>
-      )}
-
-      <div className="templateGrid">
-        {templates.map((template) => (
-          <article
-            className="templateCard"
-            key={template.id}
-          >
-            <div className="templateCardTop">
-              <div className="templateIcon">
-                {template.icon}
-              </div>
-              <span>{template.category}</span>
-            </div>
-
-            <h4>{template.name}</h4>
-            <p>{template.description}</p>
-
-            <div className="templateMeta">
-              <span>{template.entities} 数据实体</span>
-              <span>{template.pages} 页面</span>
-              <span>{template.workflows} 流程</span>
-            </div>
-
+          <div className={
+            aiAvailable
+              ? "aiRuntimeState online"
+              : "aiRuntimeState offline"
+          }>
+            <strong>
+              {aiAvailable
+                ? "● AI 已就绪"
+                : "○ AI 未连接"}
+            </strong>
+            <small>
+              {props.status?.ai.message ??
+                "正在检查 DeepSeek Harness Runtime…"}
+            </small>
             <button
-              disabled={Boolean(installing) || !permissionReady || !canManage}
-              onClick={() => void install(template)}
+              disabled={testingAI || !permissionReady || !canManage}
+              onClick={() => void testAI()}
             >
               {!permissionReady
                 ? "检查权限中…"
                 : !canManage
-                  ? "仅管理员可创建"
-                  : installing === template.id
-                    ? "正在创建…"
-                    : "一键创建 →"}
+                  ? "仅管理员可测试"
+                  : testingAI
+                    ? "测试中…"
+                    : "测试 AI"}
             </button>
-          </article>
-        ))}
-      </div>
-
-      {!aiAvailable && (
-        <div className="runtimeHint">
-          AI Runtime 未连接不会影响模板应用、数据录入、文件、知识库、成员权限和运营审批等功能。
+          </div>
         </div>
+
+        {message && (
+          <div className="gettingStartedMessage">
+            {message}
+          </div>
+        )}
+
+        <div className="templateGrid">
+          {templates.map((template) => (
+            <article
+              className="templateCard"
+              key={template.id}
+            >
+              <div className="templateCardTop">
+                <div className="templateIcon">
+                  {template.icon}
+                </div>
+                <span>{template.category}</span>
+              </div>
+
+              <h4>{template.name}</h4>
+              <p>{template.description}</p>
+
+              <div className="templateMeta">
+                <span>{template.entities} 数据实体</span>
+                <span>{template.pages} 页面</span>
+                <span>{template.workflows} 流程</span>
+              </div>
+
+              <button
+                disabled={Boolean(installing) || !permissionReady || !canManage}
+                onClick={() => void install(template)}
+              >
+                {!permissionReady
+                  ? "检查权限中…"
+                  : !canManage
+                    ? "仅管理员可创建"
+                    : installing === template.id
+                      ? "正在创建…"
+                      : "一键创建 →"}
+              </button>
+            </article>
+          ))}
+        </div>
+
+        {!aiAvailable && (
+          <div className="runtimeHint">
+            AI Runtime 未连接不会影响模板应用、数据录入、文件、知识库、成员权限和运营审批等功能。
+          </div>
+        )}
+      </section>
+
+      {!firstRun && (
+        <>
+          <BusinessOverview />
+          <DataExchangeCenter />
+        </>
       )}
-    </section>
+    </>
   );
 }
