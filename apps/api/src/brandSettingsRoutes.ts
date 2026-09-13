@@ -3,12 +3,12 @@ import type {
   FastifyReply,
   FastifyRequest
 } from "fastify";
-import { join } from "node:path";
 
 import {
   BrandSettingsStore,
   type OrganizationBrandSettings
 } from "./brandSettingsStore.js";
+import { runtimePath } from "./runtimePaths.js";
 import { TenancyStore } from "./tenancyStore.js";
 import {
   memberFrom,
@@ -24,8 +24,8 @@ export function createBrandSettingsStore(
   repoRoot: string
 ): BrandSettingsStore {
   return new BrandSettingsStore(
-    join(repoRoot, ".tmp", "settings", "brand-settings.enc"),
-    join(repoRoot, ".tmp", "settings", "brand-settings.key")
+    runtimePath(repoRoot, "settings", "brand-settings.enc"),
+    runtimePath(repoRoot, "settings", "brand-settings.key")
   );
 }
 
@@ -34,7 +34,7 @@ export function registerBrandSettingsRoutes(
 ): BrandSettingsStore {
   const { app, repoRoot } = options;
   const tenancy = new TenancyStore(
-    join(repoRoot, ".tmp", "tenancy", "tenancy.sqlite")
+    runtimePath(repoRoot, "tenancy", "tenancy.sqlite")
   );
   const store = createBrandSettingsStore(repoRoot);
 
@@ -79,8 +79,6 @@ export function registerBrandSettingsRoutes(
     publicBrand
   );
 
-  // This alias lives under /api/auth so the production authentication guard
-  // can intentionally expose only non-sensitive brand fields before login.
   app.get(
     "/api/auth/brand",
     publicBrand
