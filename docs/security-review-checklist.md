@@ -1,6 +1,6 @@
 # OEAP Independent Security Review Checklist
 
-Use this checklist for a third-party review of OEAP `1.0.0-rc.1`. Record evidence, affected commit/version, severity, reproduction steps and remediation status for each finding.
+Use this checklist for a third-party review of OEAP `1.0.0-rc.2`. Record evidence, affected commit/version, severity, reproduction steps and remediation status for each finding.
 
 ## A. Authentication and Session Security
 
@@ -73,6 +73,8 @@ Create at least two organizations and multiple roles/members.
 - [ ] Verify GitHub Publisher/Marketplace tokens never reach browser responses/logs.
 - [ ] Review signing private-key custody and rotation procedure.
 - [ ] Confirm backups are classified as containing secrets even when some stores are encrypted.
+- [ ] Verify the repository hygiene gate rejects tracked `.env`, SQLite, encrypted runtime stores, private keys and backup archives.
+- [ ] Verify high-confidence credential patterns fail CI without exposing the matched secret value in logs.
 
 ## F. File and Attachment Security
 
@@ -132,6 +134,9 @@ Create at least two organizations and multiple roles/members.
 - [ ] Test Host/X-Forwarded-* handling with and without trusted proxy mode.
 - [ ] Test request body limits.
 - [ ] Confirm `/health` and `/ready` do not leak secrets or tenant data.
+- [ ] Run `pnpm preflight:production -- --env-file .env` and verify unsafe Production configuration fails closed.
+- [ ] Run Production Preflight with `--live` against the review environment and validate Web/API reachability and reported security headers.
+- [ ] Confirm Production Preflight never prints OAuth, mail or AI secret values.
 
 ## K. Persistence / Backup / Restore
 
@@ -139,10 +144,18 @@ Create at least two organizations and multiple roles/members.
 - [ ] Test an absolute data directory.
 - [ ] Test a relative data directory.
 - [ ] Confirm no critical state is accidentally left under the repository `.tmp` when `OEAP_DATA_DIR` is set.
-- [ ] Execute backup on a representative dataset.
-- [ ] Restore into a clean environment and validate Session/tenant/app/file/knowledge/Package state expectations.
-- [ ] Verify backup permissions and encryption policy.
-- [ ] Verify restore cannot write outside the intended runtime root.
+- [ ] Confirm backup refuses a reachable running OEAP API to reduce inconsistent SQLite copies.
+- [ ] Confirm backup target inside `OEAP_DATA_DIR` is rejected.
+- [ ] Confirm filesystem-root (`/`) runtime data configuration is rejected by backup/restore tooling.
+- [ ] Confirm symlinks and special/device/socket/FIFO files in runtime data are rejected from filesystem backup.
+- [ ] Execute a representative backup and verify the generated `.sha256` sidecar.
+- [ ] Modify the backup archive and confirm restore rejects the checksum mismatch before changing current data.
+- [ ] Test archive entries containing absolute paths and `..` traversal and confirm rejection before current data is modified.
+- [ ] Test symlink, hard-link and special/device archive entries and confirm rejection.
+- [ ] Confirm restore extracts to staging before switching live runtime data.
+- [ ] Confirm restore creates a pre-restore safety copy when current runtime data exists.
+- [ ] Restore into a clean environment and validate tenant/app/file/knowledge/Package state expectations.
+- [ ] Verify backup/archive file permissions and deployment-side encryption policy.
 
 ## L. Availability / Abuse
 
@@ -159,10 +172,11 @@ Create at least two organizations and multiple roles/members.
 - [ ] Review dependency provenance/supply-chain policy output.
 - [ ] Verify release version consistency test.
 - [ ] Verify tag/version mismatch blocks release.
-- [ ] Verify RC tags create prereleases.
+- [ ] Verify RC releases create GitHub prereleases.
 - [ ] Review GitHub Actions permissions for least privilege.
 - [ ] Verify Release workflow does not expose secrets to untrusted PR code.
-- [ ] Verify source archive matches the tagged commit.
+- [ ] Verify the source archive matches the released commit and its published SHA-256 digest.
+- [ ] Confirm `1.0.0-rc.2` is the exact reviewed source baseline before filing findings.
 
 ## Finding severity guide
 
@@ -175,7 +189,7 @@ Create at least two organizations and multiple roles/members.
 
 OEAP `1.0.0` GA should not be declared until:
 
-1. Independent review is completed against a specific RC commit/tag.
+1. Independent review is completed against the exact `v1.0.0-rc.2` tag or a later explicitly approved RC.
 2. Critical/High findings are remediated or explicitly risk-accepted by the deployment/project owner.
 3. Material Medium findings have remediation plans.
 4. Remediations pass the full OEAP CI/release gate.
