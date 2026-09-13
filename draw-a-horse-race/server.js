@@ -3,6 +3,7 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
+import QRCode from "qrcode";
 import { buildRacePlan } from "./src/race-engine.js";
 import {
   addPoints, addPointsWon, adminStats, claimDaily, getUser, leaderboard, loadRoomSnapshots,
@@ -50,12 +51,24 @@ function emitRoom(room){saveRoomSnapshot(room);io.to(room.code).emit("room:updat
 function findPlayer(room,userId){return room.players.find(p=>p.id===userId)}
 function adminGuard(req,res,next){if(!ADMIN_TOKEN)return res.status(503).json({ok:false,message:"ADMIN_TOKEN 未配置"});if(req.query.token!==ADMIN_TOKEN&&req.headers["x-admin-token"]!==ADMIN_TOKEN)return res.status(401).json({ok:false,message:"未授权"});next()}
 
-app.get("/api/health",(_,res)=>res.json({ok:true,service:"draw-a-horse-race",version:"1.0.0",rooms:rooms.size,payment:paymentConfig()}));
+app.get("/api/health",(_,res)=>res.json({ok:true,service:"draw-a-horse-race",version:"1.0.1",rooms:rooms.size,payment:paymentConfig()}));
 app.get("/api/config",(_,res)=>res.json({minPlayers:3,maxPlayers:8,dailyPoints:100,raceDurationMs:12000,payment:paymentConfig(),shop:Object.values(SHOP)}));
 app.get("/api/user/:userId",(req,res)=>res.json(getUser(req.params.userId)));
 app.put("/api/user/:userId",(req,res)=>res.json(updateUser(req.params.userId,{name:req.body?.name,horse:req.body?.horse?sanitizeHorse(req.body.horse):undefined})));
 app.post("/api/user/:userId/daily",(req,res)=>res.json(claimDaily(req.params.userId,String(req.body?.dateKey||new Date().toISOString().slice(0,10)))));
 app.get("/api/rooms",(_,res)=>res.json([...rooms.values()].filter(r=>r.status==="lobby").map(publicRoom)));
+app.get("/r/:code",(req,res)=>{const code=String(req.params.code||"").replace(/\D/g,"").slice(0,4);res.redirect(302,`/?room=${encodeURIComponent(code)}`)});
+app.get("/api/rooms/:code/qr.svg",async(req,res)=>{
+  const code=String(req.params.code||"");
+  const room=rooms.get(code);
+  if(!room)return res.status(404).type("text/plain").send("房间不存在或已过期");
+  const inviteUrl=`${PUBLIC_BASE_URL.replace(/\/$/,"")}/r/${encodeURIComponent(code)}`;
+  try{
+    const svg=await QRCode.toString(inviteUrl,{type:"svg",width:320,margin:2,errorCorrectionLevel:"M",color:{dark:"#111827",light:"#ffffff"}});
+    res.set("Cache-Control","no-store");
+    res.type("image/svg+xml").send(svg);
+  }catch(error){res.status(500).type("text/plain").send("二维码生成失败")}
+});
 app.get("/api/leaderboard",(_,res)=>res.json(leaderboard(50)));
 app.get("/api/races/recent",(_,res)=>res.json(recentRaces(20)));
 app.get("/api/payment/config",(_,res)=>res.json({...paymentConfig(),shop:Object.values(SHOP)}));
@@ -69,7 +82,7 @@ io.on("connection",socket=>{
     const code=newCode(),cleanHorse=sanitizeHorse(horse),name=String(playerName||cleanHorse.name||"房主").slice(0,12);
     updateUser(userId,{name,horse:cleanHorse});
     const room={code,hostId:userId,status:"lobby",createdAt:Date.now(),players:[{id:userId,socketId:socket.id,name,horse:cleanHorse,ready:true,bet:null}],race:null};
-    rooms.set(code,room);socket.join(code);emitRoom(room);ack({ok:true,room:publicRoom(room),shareUrl:`${PUBLIC_BASE_URL}/?room=${code}`});
+    rooms.set(code,room);socket.join(code);emitRoom(room);ack({ok:true,room:publicRoom(room),shareUrl:`${PUBLIC_BASE_URL.replace(/\/$/,"")}/r/${code}`});
   });
 
   socket.on("room:join",({code,userId,playerName,horse},ack=()=>{})=>{
