@@ -41,6 +41,9 @@ importers:
       '@oeap/package-manager':
         specifier: workspace:*
         version: link:../../packages/package-manager
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../packages/package-spec
       '@oeap/permission-engine':
         specifier: workspace:*
         version: link:../../packages/permission-engine
