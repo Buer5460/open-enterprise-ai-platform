@@ -3,12 +3,13 @@ import {
   randomBytes
 } from "node:crypto";
 import { mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import type {
   AuthProviderId
 } from "./authStore.js";
+import { runtimePath } from "./runtimePaths.js";
 
 export type ExternalAuthProvider = Exclude<
   AuthProviderId,
@@ -572,9 +573,8 @@ function createStore(
   repoRoot: string
 ): OAuthFlowStore {
   return new OAuthFlowStore(
-    join(
+    runtimePath(
       repoRoot,
-      ".tmp",
       "auth",
       "oauth-flows.sqlite"
     )
