@@ -122,6 +122,6 @@ The following are deliberately **not** self-certified by the repository and must
 
 ## Release decision
 
-`1.0.0-rc.2` is the repository-owned 1.0 engineering baseline. It can be published as the recommended prerelease only after the complete RC2 release gate succeeds.
+`1.0.0-rc.2` is the repository-owned 1.0 engineering baseline and recommended prerelease for independent review. The controlled release trigger is the `[release] OEAP 1.0.0-rc.2` commit; the Release workflow repeats version checks, builds, deterministic tests, real-browser E2E, Compose validation and both production container builds before creating the prerelease.
 
 It must remain a prerelease until the external security-review gate has been completed and deployment-specific production controls have been validated. A future `1.0.0` GA tag must not be created merely by changing the version number; the external gates above should be explicitly signed off by the project/deployment owner.
