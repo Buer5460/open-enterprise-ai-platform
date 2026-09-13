@@ -14,6 +14,8 @@ import {
 } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
+import { runtimeStoragePath } from "./storagePath.js";
+
 export interface InvitationDeliveryEvent {
   id: number;
   invitationId: string;
@@ -29,13 +31,15 @@ export class InvitationDeliveryStore {
   private readonly encryptionKey: Buffer;
 
   constructor(databasePath: string) {
-    mkdirSync(dirname(databasePath), {
+    const path = runtimeStoragePath(databasePath);
+
+    mkdirSync(dirname(path), {
       recursive: true
     });
 
-    this.db = new DatabaseSync(databasePath);
+    this.db = new DatabaseSync(path);
     this.encryptionKey = loadEncryptionKey(
-      `${databasePath}.invite-delivery-key`
+      `${path}.invite-delivery-key`
     );
 
     this.db.exec(`
