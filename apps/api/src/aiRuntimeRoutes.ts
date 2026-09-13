@@ -45,24 +45,17 @@ export function registerAIRuntimeRoutes(input: {
       );
       if (!identity) return;
 
-      const status = await getAIRuntimeStatus({
-        repoRoot: input.repoRoot,
-        openEnterpriseRoot:
-          input.openEnterpriseRoot,
-        organizationId:
-          identity.organizationId
-      });
-
       return {
         ok: true,
         organizationId:
           identity.organizationId,
-        ai: status,
-        settings:
-          getAIRuntimePublicSettings(
-            input.repoRoot,
+        ai: await getAIRuntimeStatus({
+          repoRoot: input.repoRoot,
+          openEnterpriseRoot:
+            input.openEnterpriseRoot,
+          organizationId:
             identity.organizationId
-          )
+        })
       };
     }
   );
