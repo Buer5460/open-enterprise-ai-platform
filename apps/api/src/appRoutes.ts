@@ -14,7 +14,8 @@ import { registerDeepSeekHarnessConnector } from "@oeap/deepseek-harness-connect
 import { packageModule as aiSkillPackage } from "@oeap/ai-generate-skill";
 import {
   appBuilder,
-  type AppBlueprint
+  type AppBlueprint,
+  type AppBuilderResult
 } from "@oeap/app-builder";
 import { appPackageBuilder } from "@oeap/app-package-builder";
 import { AppDatabase } from "@oeap/data-runtime";
@@ -294,6 +295,43 @@ export function registerAppRoutes(
     ].join("\n");
   }
 
+  async function runAI(
+    operation: () => Promise<AppBuilderResult>
+  ): Promise<AppBuilderResult> {
+    await initializeAI();
+    return operation();
+  }
+
+  function aiFailure(
+    reply: any,
+    error: unknown
+  ) {
+    const raw =
+      error instanceof Error
+        ? error.message
+        : String(error ?? "");
+    const lower = raw.toLowerCase();
+    const timeout =
+      lower.includes("timed out") ||
+      lower.includes("timeout");
+    const missing =
+      lower.includes("cli not built") ||
+      lower.includes("enoent") ||
+      lower.includes("not found");
+
+    return reply.code(503).send({
+      ok: false,
+      code: timeout
+        ? "AI_RUNTIME_TIMEOUT"
+        : "AI_RUNTIME_UNAVAILABLE",
+      error: timeout
+        ? "AI Runtime 调用超时，请稍后重试。"
+        : missing
+          ? "AI Runtime 尚未安装或构建。你仍可使用业务模板创建应用。"
+          : "AI Runtime 当前不可用。你仍可使用业务模板创建应用。"
+    });
+  }
+
   app.get(
     "/api/apps",
     async (request) => {
@@ -329,16 +367,22 @@ export function registerAppRoutes(
       }
 
       const organizationId = organizationFrom(request);
-      await initializeAI();
+      let generated: AppBuilderResult;
 
-      const generated = await appBuilder.build({
-        description: withKnowledgeContext({
-          organizationId,
-          query: description
-        }),
-        nameHint: request.body?.nameHint,
-        language: "zh-CN"
-      });
+      try {
+        generated = await runAI(() =>
+          appBuilder.build({
+            description: withKnowledgeContext({
+              organizationId,
+              query: description
+            }),
+            nameHint: request.body?.nameHint,
+            language: "zh-CN"
+          })
+        );
+      } catch (error) {
+        return aiFailure(reply, error);
+      }
 
       const built = await appPackageBuilder.build({
         blueprint: generated.blueprint,
@@ -430,21 +474,27 @@ export function registerAppRoutes(
         });
       }
 
-      await initializeAI();
       const currentBlueprint = await loadBlueprint(
         manifest,
         organizationId
       );
+      let revised: AppBuilderResult;
 
-      const revised = await appBuilder.revise({
-        blueprint: currentBlueprint,
-        instruction: withKnowledgeContext({
-          organizationId,
-          appId: request.params.appId,
-          query: instruction
-        }),
-        language: "zh-CN"
-      });
+      try {
+        revised = await runAI(() =>
+          appBuilder.revise({
+            blueprint: currentBlueprint,
+            instruction: withKnowledgeContext({
+              organizationId,
+              appId: request.params.appId,
+              query: instruction
+            }),
+            language: "zh-CN"
+          })
+        );
+      } catch (error) {
+        return aiFailure(reply, error);
+      }
 
       const nextVersion = bumpPatchVersion(
         String(manifest.version ?? "0.0.1")
