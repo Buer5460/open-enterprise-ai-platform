@@ -1,0 +1,120 @@
+.myAppsSection {
+  margin-top: 22px;
+}
+
+.myAppsHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+
+.myAppsHeading h3 {
+  margin: 0 0 5px;
+}
+
+.myAppsHeading p {
+  margin: 0;
+  color: #7c8798;
+  font-size: 11px;
+}
+
+.myAppsFilters {
+  display: flex;
+  gap: 8px;
+  min-width: min(480px, 50%);
+}
+
+.myAppsFilters input,
+.myAppsFilters select {
+  border: 1px solid #dfe5ef;
+  border-radius: 9px;
+  background: #fff;
+  color: #344054;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.myAppsFilters input {
+  flex: 1;
+  min-width: 180px;
+}
+
+.myAppsFilters input:focus,
+.myAppsFilters select:focus {
+  outline: 2px solid color-mix(in srgb, var(--brand-primary, #315efb) 16%, transparent);
+  border-color: var(--brand-primary, #315efb);
+}
+
+.myAppsMessage {
+  margin-bottom: 12px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: #fff7e8;
+  color: #835915;
+  font-size: 11px;
+}
+
+.myAppCard {
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.myAppCard:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(26, 45, 72, .07);
+}
+
+.myAppTopActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.favoriteButton {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  border: 1px solid #e1e6ef;
+  border-radius: 8px;
+  background: #fff;
+  color: #9aa4b2;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.favoriteButton.active {
+  border-color: #e9c46a;
+  background: #fff9e9;
+  color: #b7791f;
+}
+
+.favoriteButton:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+@media (max-width: 900px) {
+  .myAppsHeading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .myAppsFilters {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .myAppsFilters {
+    flex-direction: column;
+  }
+
+  .myAppsFilters input {
+    min-width: 0;
+  }
+}
