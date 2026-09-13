@@ -120,11 +120,15 @@ function authConfigurationCheck(): ReadyCheck {
     };
   }
 
-  if (process.env.OEAP_LOCAL_AUTH !== "disabled") {
+  const localAuth = process.env.OEAP_LOCAL_AUTH
+    ?.trim()
+    .toLowerCase();
+
+  if (localAuth === "enabled") {
     return {
       id: "authentication",
       status: "fail",
-      message: "Production requires OEAP_LOCAL_AUTH=disabled"
+      message: "Production must not explicitly enable Local Development login"
     };
   }
 
@@ -181,11 +185,28 @@ function publicUrlCheck(): ReadyCheck {
     };
   }
 
+  if (!securePublicUrl(web) || !securePublicUrl(api)) {
+    return {
+      id: "public-urls",
+      status: "fail",
+      message: "Production public URLs must use HTTPS"
+    };
+  }
+
   return {
     id: "public-urls",
     status: "pass",
-    message: "Production public URLs are configured"
+    message: "Production public URLs are configured with HTTPS"
   };
+}
+
+function securePublicUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function deploymentMode():
