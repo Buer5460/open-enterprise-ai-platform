@@ -70,6 +70,7 @@
     <div style="display:flex;justify-content:space-between;align-items:end;gap:10px"><div><div class="section-title">比赛房间</div><div id="roomStatus" class="sub">等待参赛者</div></div><div id="roomCode" class="room-code"></div></div>
     <div id="players" class="players"></div>
     <button id="shareBtn" class="btn secondary">邀请好友</button>
+    <button id="qrBtn" class="btn ghost">▦ 生成房间二维码</button>
     <button id="addBotBtn" class="btn secondary">+ 添加试玩马</button>
     <button id="betOpenBtn" class="btn ghost">🪙 积分竞猜</button>
     <button id="startRaceBtn" class="btn primary" disabled>至少 3 人才能开始</button>
@@ -97,6 +98,29 @@
   <section id="shop" class="screen"><div class="section-title">特效商店</div><div class="sub">商业化只卖皮肤、AI 和特效，不出售竞猜积分。</div><div id="shopList" class="rooms"></div><button class="btn secondary" data-go="home">返回</button></section>
 
   <div class="legal">竞猜积分为封闭式虚拟积分：不出售、不提现、不转账、不兑换现金。真实支付仅用于皮肤、AI、动画等虚拟商品。</div>
+</div>
+<div id="inviteModal" class="modal" aria-hidden="true">
+  <div class="modal-backdrop" data-invite-close></div>
+  <div class="invite-sheet" role="dialog" aria-modal="true" aria-labelledby="inviteTitle">
+    <button id="inviteCloseBtn" class="modal-close" aria-label="关闭">×</button>
+    <div class="invite-kicker">INVITE FRIENDS</div>
+    <h2 id="inviteTitle">邀请好友来画马比赛</h2>
+    <div id="inviteRoomNo" class="invite-room">房间</div>
+    <div class="qr-card"><img id="roomQr" alt="房间二维码"><div class="qr-caption">朋友可直接用手机相机、浏览器或微信扫一扫扫码进入</div></div>
+    <input id="inviteLink" class="invite-link" type="text" readonly aria-label="房间邀请链接">
+    <button id="wechatShareBtn" class="btn primary">微信分享</button>
+    <button id="systemShareBtn" class="btn secondary">系统分享</button>
+    <button id="copyLinkBtn" class="btn ghost">复制房间链接</button>
+    <div class="mini" style="margin-top:10px">二维码与链接都指向当前房间；未画马的好友会先画马，完成后自动进房。</div>
+  </div>
+</div>
+<div id="wechatGuide" class="wechat-guide" aria-hidden="true">
+  <div class="wechat-arrow">↗</div>
+  <div class="wechat-guide-card">
+    <b>在微信里请点右上角「···」</b>
+    <div>然后选择「转发给朋友」或「分享到朋友圈」</div>
+    <button id="wechatGuideClose" class="btn secondary">知道了</button>
+  </div>
 </div>
 <div id="toast" class="toast"></div>
 <script type="module" src="/app.js"></script>
