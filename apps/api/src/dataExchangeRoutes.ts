@@ -40,6 +40,12 @@ type ImportBody = {
   dryRun?: boolean;
 };
 
+type ImportError = {
+  row: number;
+  field?: string;
+  error: string;
+};
+
 const MAX_IMPORT_ROWS = 2_000;
 const MAX_EXPORT_ROWS = 5_000;
 const SYSTEM_COLUMNS = new Set([
@@ -62,56 +68,45 @@ export function registerDataExchangeRoutes(
   );
 
   app.get<{
-    Params: {
-      appId: string;
-      entity: string;
-    };
-    Querystring: {
-      format?: string;
-    };
+    Params: { appId: string; entity: string };
+    Querystring: { format?: string };
   }>(
     "/api/apps/:appId/data/:entity/export",
     async (request, reply) => {
       const context = await resolveContext(
         request,
         reply,
+        request.params.appId,
+        request.params.entity,
         "data.read"
       );
       if (!context) return;
 
-      const { manifest, database, entity } = context;
+      const totalAvailable =
+        context.database.count(context.entity.name);
       const rows = readAllRows(
-        database,
-        entity.name,
+        context.database,
+        context.entity.name,
         MAX_EXPORT_ROWS
       );
-      const format =
-        request.query.format === "json"
-          ? "json"
-          : "csv";
+      const truncated = totalAvailable > rows.length;
 
-      if (format === "json") {
+      if (request.query.format === "json") {
         return {
           ok: true,
-          appId: manifest.id,
-          entity: entity.name,
+          appId: context.manifest.id,
+          entity: context.entity.name,
           total: rows.length,
-          truncated:
-            database.count(entity.name) > rows.length,
+          totalAvailable,
+          truncated,
           rows
         };
       }
 
-      const fields = entityFields(entity);
-      const columns = [
-        "id",
-        ...fields.map((field) => field.name),
-        "created_at",
-        "updated_at"
-      ];
-      const csv = toCsv(columns, rows);
+      const fields = entityFields(context.entity);
+      const csv = toCsv(fields, rows);
       const filename = safeFilename(
-        `${manifest.displayName ?? manifest.name}-${entity.name}.csv`
+        `${context.manifest.displayName ?? context.manifest.name}-${context.entity.name}.csv`
       );
 
       reply.header(
@@ -126,18 +121,20 @@ export function registerDataExchangeRoutes(
         "X-OEAP-Export-Rows",
         String(rows.length)
       );
-      if (database.count(entity.name) > rows.length) {
+      reply.header(
+        "X-OEAP-Export-Total",
+        String(totalAvailable)
+      );
+      if (truncated) {
         reply.header("X-OEAP-Export-Truncated", "true");
       }
+
       return `\uFEFF${csv}`;
     }
   );
 
   app.post<{
-    Params: {
-      appId: string;
-      entity: string;
-    };
+    Params: { appId: string; entity: string };
     Body: ImportBody;
   }>(
     "/api/apps/:appId/data/:entity/import",
@@ -145,6 +142,8 @@ export function registerDataExchangeRoutes(
       const context = await resolveContext(
         request,
         reply,
+        request.params.appId,
+        request.params.entity,
         "data.write"
       );
       if (!context) return;
@@ -197,18 +196,23 @@ export function registerDataExchangeRoutes(
             validRows: validation.rows.length,
             errorCount: validation.errors.length,
             errors: validation.errors.slice(0, 100),
+            hasMoreErrors: validation.errors.length > 100,
             preview: validation.rows.slice(0, 20)
           });
       }
 
-      const created: unknown[] = [];
-      for (const row of validation.rows) {
-        created.push(
-          context.database.create(
-            context.entity.name,
-            row
-          )
+      let created: unknown[];
+      try {
+        created = context.database.createMany(
+          context.entity.name,
+          validation.rows
         );
+      } catch (error) {
+        return reply.code(500).send({
+          ok: false,
+          error:
+            `批量导入失败，事务已回滚：${errorMessage(error)}`
+        });
       }
 
       return {
@@ -225,18 +229,14 @@ export function registerDataExchangeRoutes(
   );
 
   async function resolveContext(
-    request: FastifyRequest<{
-      Params: {
-        appId: string;
-        entity: string;
-      };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply,
+    appId: string,
+    entityName: string,
     permission: "data.read" | "data.write"
   ) {
     const organizationId = organizationFrom(request);
     const memberId = memberFrom(request);
-    const appId = request.params.appId;
 
     if (!can(
       tenancy,
@@ -254,6 +254,7 @@ export function registerDataExchangeRoutes(
 
     const manifest = (await loadApps(organizationId))
       .find((item) => item.id === appId);
+
     if (!manifest) {
       reply.code(404).send({
         ok: false,
@@ -265,8 +266,9 @@ export function registerDataExchangeRoutes(
     const entity = (manifest.metadata?.entities ?? [])
       .find(
         (item: any) =>
-          String(item.name) === request.params.entity
+          String(item.name) === entityName
       );
+
     if (!entity) {
       reply.code(404).send({
         ok: false,
@@ -300,6 +302,7 @@ function appDatabase(
     organizationId === "org_local"
       ? `${safeAppId}.sqlite`
       : `${safeOrgId}__${safeAppId}.sqlite`;
+
   const database = new AppDatabase(
     runtimePath(repoRoot, "databases", filename)
   );
@@ -312,18 +315,17 @@ function appDatabase(
       })
     )
   );
+
   return database;
 }
 
-function entityFields(
-  entity: any
-): FieldDefinition[] {
+function entityFields(entity: any): FieldDefinition[] {
   return Array.isArray(entity?.fields)
     ? entity.fields.map((field: any) => ({
         name: String(field.name),
         label:
           typeof field.label === "string"
-            ? field.label
+            ? field.label.trim()
             : undefined,
         type: String(field.type ?? "string"),
         required: Boolean(field.required),
@@ -343,12 +345,17 @@ function readAllRows(
   let offset = 0;
 
   while (rows.length < maximum) {
+    const requested = Math.min(
+      100,
+      maximum - rows.length
+    );
     const page = database.list(entity, {
-      limit: Math.min(100, maximum - rows.length),
+      limit: requested,
       offset
     }) as Array<Record<string, unknown>>;
+
     rows.push(...page);
-    if (page.length < 100) break;
+    if (page.length < requested) break;
     offset += page.length;
   }
 
@@ -359,11 +366,19 @@ function parseImportRows(
   body: ImportBody,
   fields: FieldDefinition[]
 ): Array<Record<string, unknown>> {
-  if (body.format === "json") {
+  if (
+    body.format === "json" ||
+    (body.format === undefined && Array.isArray(body.rows))
+  ) {
     if (!Array.isArray(body.rows)) {
       throw new Error("JSON 导入需要 rows 数组");
     }
-    return body.rows;
+    return body.rows.map((row, index) => {
+      if (!row || typeof row !== "object" || Array.isArray(row)) {
+        throw new Error(`JSON 第 ${index + 1} 行必须是对象`);
+      }
+      return canonicalizeObject(row, fields);
+    });
   }
 
   if (typeof body.csv !== "string") {
@@ -386,7 +401,16 @@ function parseImportRows(
     .filter((values) =>
       values.some((value) => value.trim() !== "")
     )
-    .map((values) => {
+    .map((values, rowIndex) => {
+      const overflow = values
+        .slice(mapping.length)
+        .some((value) => value.trim() !== "");
+      if (overflow) {
+        throw new Error(
+          `CSV 第 ${rowIndex + 2} 行包含超出表头的额外列`
+        );
+      }
+
       const row: Record<string, unknown> = {};
       for (let index = 0; index < mapping.length; index += 1) {
         const fieldName = mapping[index];
@@ -397,17 +421,55 @@ function parseImportRows(
     });
 }
 
+function canonicalizeObject(
+  row: Record<string, unknown>,
+  fields: FieldDefinition[]
+): Record<string, unknown> {
+  const aliases = fieldAliases(fields);
+  const result: Record<string, unknown> = {};
+
+  for (const [rawKey, value] of Object.entries(row)) {
+    const normalized = rawKey.trim().toLowerCase();
+
+    if (SYSTEM_COLUMNS.has(normalized)) {
+      continue;
+    }
+
+    const canonical = aliases.get(normalized);
+    if (!canonical) {
+      result[rawKey] = value;
+      continue;
+    }
+
+    if (canonical in result) {
+      throw new Error(`JSON 导入存在重复字段：${rawKey}`);
+    }
+    result[canonical] = value;
+  }
+
+  return result;
+}
+
+function fieldAliases(
+  fields: FieldDefinition[]
+): Map<string, string> {
+  const aliases = new Map<string, string>();
+
+  for (const field of fields) {
+    aliases.set(field.name.toLowerCase(), field.name);
+    if (field.label) {
+      aliases.set(field.label.toLowerCase(), field.name);
+    }
+  }
+
+  return aliases;
+}
+
 function mapHeaders(
   headers: string[],
   fields: FieldDefinition[]
 ): string[] {
-  const aliases = new Map<string, string>();
-  for (const field of fields) {
-    aliases.set(field.name.toLowerCase(), field.name);
-    if (field.label?.trim()) {
-      aliases.set(field.label.trim().toLowerCase(), field.name);
-    }
-  }
+  const aliases = fieldAliases(fields);
   for (const system of SYSTEM_COLUMNS) {
     aliases.set(system, system);
   }
@@ -415,37 +477,41 @@ function mapHeaders(
   const mapped = headers.map((header) => {
     const normalized = header.trim().toLowerCase();
     const value = aliases.get(normalized);
+
     if (!value) {
       throw new Error(`未知导入列：${header}`);
     }
+
     return value;
   });
 
   const business = mapped.filter(
     (value) => !SYSTEM_COLUMNS.has(value)
   );
+
   if (new Set(business).size !== business.length) {
     throw new Error("导入文件存在重复字段列");
   }
+
   return mapped;
 }
 
 function validateRows(
   source: Array<Record<string, unknown>>,
   fields: FieldDefinition[]
-) {
+): {
+  rows: Array<Record<string, unknown>>;
+  errors: ImportError[];
+} {
   const fieldMap = new Map(
     fields.map((field) => [field.name, field])
   );
   const rows: Array<Record<string, unknown>> = [];
-  const errors: Array<{
-    row: number;
-    field?: string;
-    error: string;
-  }> = [];
+  const errors: ImportError[] = [];
 
   source.forEach((input, index) => {
-    const line = index + 2;
+    const line = index + 1;
+    const before = errors.length;
     const normalized: Record<string, unknown> = {};
 
     for (const key of Object.keys(input)) {
@@ -491,7 +557,9 @@ function validateRows(
       }
     }
 
-    rows.push(normalized);
+    if (errors.length === before) {
+      rows.push(normalized);
+    }
   });
 
   return { rows, errors };
@@ -544,7 +612,9 @@ function normalizeValue(
     const lower = text.toLowerCase();
     if (trueValues.has(lower)) return true;
     if (falseValues.has(lower)) return false;
-    throw new Error(`${field.label ?? field.name} 必须是 true/false、1/0 或 是/否`);
+    throw new Error(
+      `${field.label ?? field.name} 必须是 true/false、1/0 或 是/否`
+    );
   }
 
   if (type === "enum" && field.options?.length) {
@@ -557,11 +627,16 @@ function normalizeValue(
   }
 
   if (type === "json") {
-    if (typeof raw === "object") return raw;
+    if (typeof raw === "object" && raw !== null) {
+      return raw;
+    }
+
     try {
       return JSON.parse(text);
     } catch {
-      throw new Error(`${field.label ?? field.name} 不是有效 JSON`);
+      throw new Error(
+        `${field.label ?? field.name} 不是有效 JSON`
+      );
     }
   }
 
@@ -620,17 +695,77 @@ function parseCsv(input: string): string[][] {
 }
 
 function toCsv(
-  columns: string[],
+  fields: FieldDefinition[],
   rows: Array<Record<string, unknown>>
 ): string {
-  return [
-    columns.map(csvCell).join(","),
-    ...rows.map((row) =>
-      columns.map((column) =>
-        csvCell(exportValue(row[column]))
-      ).join(",")
-    )
-  ].join("\r\n");
+  const labels = fields.map((field) =>
+    field.label || field.name
+  );
+  const normalizedLabels = labels.map((label) =>
+    label.trim().toLowerCase()
+  );
+  const useLabels =
+    new Set(normalizedLabels).size === normalizedLabels.length;
+
+  const headers = [
+    "id",
+    ...fields.map((field) =>
+      useLabels ? field.label || field.name : field.name
+    ),
+    "created_at",
+    "updated_at"
+  ];
+
+  const lines = [
+    headers.map(csvCell).join(",")
+  ];
+
+  for (const row of rows) {
+    const cells: unknown[] = [
+      row.id,
+      ...fields.map((field) =>
+        safeSpreadsheetValue(
+          row[field.name],
+          field.type
+        )
+      ),
+      row.created_at,
+      row.updated_at
+    ];
+    lines.push(cells.map(csvCell).join(","));
+  }
+
+  return lines.join("\r\n");
+}
+
+function safeSpreadsheetValue(
+  value: unknown,
+  fieldType: string
+): unknown {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const type = fieldType.toLowerCase();
+  const numeric = [
+    "number",
+    "integer",
+    "currency",
+    "relation"
+  ].includes(type);
+
+  if (!numeric && /^[\t\r\n ]*[=+\-@]/.test(value)) {
+    return `'${value}`;
+  }
+
+  return value;
+}
+
+function csvCell(value: unknown): string {
+  const text = exportValue(value);
+  return /[",\r\n]/.test(text)
+    ? `"${text.replace(/"/g, '""')}"`
+    : text;
 }
 
 function exportValue(value: unknown): string {
@@ -639,13 +774,6 @@ function exportValue(value: unknown): string {
     return JSON.stringify(value);
   }
   return String(value);
-}
-
-function csvCell(value: unknown): string {
-  const text = String(value ?? "");
-  return /[",\r\n]/.test(text)
-    ? `"${text.replace(/"/g, '""')}"`
-    : text;
 }
 
 function safeFilename(value: string): string {
