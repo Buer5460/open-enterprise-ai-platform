@@ -90,11 +90,96 @@ try {
   assert.equal(packages.body.ok, true);
   assert.ok(Array.isArray(packages.body.packages));
 
+  const usability = await jsonRequest(
+    "/api/usability/status",
+    { headers: authorization }
+  );
+  assert.equal(usability.response.status, 200);
+  assert.equal(usability.body.ok, true);
+  assert.equal(usability.body.firstRun, true);
+  assert.equal(usability.body.installedApps, 0);
+  assert.equal(typeof usability.body.ai.available, "boolean");
+
+  const templates = await jsonRequest(
+    "/api/usability/templates",
+    { headers: authorization }
+  );
+  assert.equal(templates.response.status, 200);
+  assert.equal(templates.body.ok, true);
+  assert.ok(Array.isArray(templates.body.templates));
+  assert.ok(templates.body.templates.length >= 4);
+  assert.ok(
+    templates.body.templates.some(
+      (item) => item.id === "crm-basic"
+    )
+  );
+
+  const installed = await jsonRequest(
+    "/api/usability/templates/crm-basic/install",
+    {
+      method: "POST",
+      headers: authorization
+    }
+  );
+  assert.equal(installed.response.status, 200);
+  assert.equal(installed.body.ok, true);
+  assert.equal(installed.body.templateId, "crm-basic");
+  assert.equal(typeof installed.body.app.id, "string");
+  const appId = installed.body.app.id;
+
+  const apps = await jsonRequest("/api/apps", {
+    headers: authorization
+  });
+  assert.equal(apps.response.status, 200);
+  assert.ok(
+    apps.body.apps.some(
+      (item) => item.id === appId
+    ),
+    "template app must appear in normal app listing"
+  );
+
+  const createCustomer = await jsonRequest(
+    `/api/apps/${encodeURIComponent(appId)}/data/Customer`,
+    {
+      method: "POST",
+      headers: {
+        ...authorization,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name: "Day One Customer",
+        status: "潜在",
+        source: "线上获客"
+      })
+    }
+  );
+  assert.equal(createCustomer.response.status, 200);
+  assert.equal(createCustomer.body.ok, true);
+  assert.equal(createCustomer.body.row.name, "Day One Customer");
+
+  const customerRows = await jsonRequest(
+    `/api/apps/${encodeURIComponent(appId)}/data/Customer?page=1&pageSize=10`,
+    { headers: authorization }
+  );
+  assert.equal(customerRows.response.status, 200);
+  assert.equal(customerRows.body.ok, true);
+  assert.equal(customerRows.body.total, 1);
+  assert.equal(customerRows.body.rows[0].name, "Day One Customer");
+
+  const afterTemplate = await jsonRequest(
+    "/api/usability/status",
+    { headers: authorization }
+  );
+  assert.equal(afterTemplate.response.status, 200);
+  assert.equal(afterTemplate.body.firstRun, false);
+  assert.equal(afterTemplate.body.installedApps, 1);
+
   await access(join(dataDir, "tenancy", "tenancy.sqlite"));
   await access(join(dataDir, "auth", "sessions.sqlite"));
   await access(join(dataDir, "knowledge", "knowledge.sqlite"));
+  await access(join(dataDir, "databases", `${appId}.sqlite`));
 
-  console.log("✅ BUILT API E2E TEST PASSED");
+  console.log("✅ BUILT API + DAY-ONE USABILITY E2E TEST PASSED");
 } catch (error) {
   console.error(output);
   throw error;
