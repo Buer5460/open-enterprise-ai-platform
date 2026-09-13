@@ -12,6 +12,11 @@ export type AuthProviderId =
   | "microsoft"
   | "oidc";
 
+export type ExternalAuthProviderId = Exclude<
+  AuthProviderId,
+  "local"
+>;
+
 export interface AuthSession {
   token: string;
   provider: AuthProviderId;
@@ -22,6 +27,16 @@ export interface AuthSession {
   name?: string;
   createdAt: string;
   expiresAt: string;
+}
+
+export interface AuthIdentityBinding {
+  provider: ExternalAuthProviderId;
+  subject: string;
+  organizationId: string;
+  memberId: string;
+  email?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export class AuthSessionStore {
@@ -51,6 +66,19 @@ export class AuthSessionStore {
         ON auth_sessions(organization_id, member_id);
       CREATE INDEX IF NOT EXISTS idx_auth_sessions_expiry
         ON auth_sessions(expires_at);
+
+      CREATE TABLE IF NOT EXISTS auth_identity_bindings (
+        provider TEXT NOT NULL,
+        subject TEXT NOT NULL,
+        organization_id TEXT NOT NULL,
+        member_id TEXT NOT NULL,
+        email TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (provider, subject)
+      );
+      CREATE INDEX IF NOT EXISTS idx_auth_identity_bindings_member
+        ON auth_identity_bindings(organization_id, member_id);
     `);
   }
 
@@ -131,6 +159,106 @@ export class AuthSessionStore {
     `).run(organizationId, memberId);
   }
 
+  getIdentityBinding(
+    provider: ExternalAuthProviderId,
+    subject: string
+  ): AuthIdentityBinding | undefined {
+    const normalizedSubject = subject.trim();
+    if (!normalizedSubject) {
+      return undefined;
+    }
+
+    const row = this.db.prepare(`
+      SELECT
+        provider,
+        subject,
+        organization_id,
+        member_id,
+        email,
+        created_at,
+        updated_at
+      FROM auth_identity_bindings
+      WHERE provider = ? AND subject = ?
+    `).get(
+      provider,
+      normalizedSubject
+    ) as any;
+
+    return row
+      ? mapIdentityBinding(row)
+      : undefined;
+  }
+
+  bindIdentity(input: {
+    provider: ExternalAuthProviderId;
+    subject: string;
+    organizationId: string;
+    memberId: string;
+    email?: string;
+  }): AuthIdentityBinding {
+    const subject = input.subject.trim();
+    if (!subject) {
+      throw new Error("External identity subject is required");
+    }
+
+    const existing = this.getIdentityBinding(
+      input.provider,
+      subject
+    );
+
+    if (
+      existing &&
+      (
+        existing.organizationId !== input.organizationId ||
+        existing.memberId !== input.memberId
+      )
+    ) {
+      throw new Error(
+        "External identity is already bound to a different enterprise member"
+      );
+    }
+
+    const now = new Date().toISOString();
+
+    if (existing) {
+      this.db.prepare(`
+        UPDATE auth_identity_bindings
+        SET email = ?, updated_at = ?
+        WHERE provider = ? AND subject = ?
+      `).run(
+        input.email?.trim().toLowerCase() || null,
+        now,
+        input.provider,
+        subject
+      );
+    } else {
+      this.db.prepare(`
+        INSERT INTO auth_identity_bindings (
+          provider,
+          subject,
+          organization_id,
+          member_id,
+          email,
+          created_at,
+          updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        input.provider,
+        subject,
+        input.organizationId,
+        input.memberId,
+        input.email?.trim().toLowerCase() || null,
+        now,
+        now
+      );
+    }
+
+    return this.getIdentityBinding(
+      input.provider,
+      subject
+    )!;
+  }
+
   private pruneExpired(): void {
     this.db.prepare(
       "DELETE FROM auth_sessions WHERE expires_at <= ?"
@@ -150,6 +278,20 @@ export class AuthSessionStore {
       expiresAt: String(row.expires_at)
     };
   }
+}
+
+function mapIdentityBinding(
+  row: any
+): AuthIdentityBinding {
+  return {
+    provider: row.provider as ExternalAuthProviderId,
+    subject: String(row.subject),
+    organizationId: String(row.organization_id),
+    memberId: String(row.member_id),
+    email: row.email ?? undefined,
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at)
+  };
 }
 
 export function bearerToken(
