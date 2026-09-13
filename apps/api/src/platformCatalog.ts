@@ -12,6 +12,10 @@ import {
 } from "node:path";
 
 import {
+  validatePackageCompatibility
+} from "@oeap/package-spec";
+
+import {
   runtimePath
 } from "./runtimePaths.js";
 
@@ -476,33 +480,19 @@ export async function validateDeveloperPackage(
   if (!manifest) {
     errors.push("Missing or invalid oeap.package.json");
   } else {
-    if (manifest.schemaVersion !== "1.0") {
-      errors.push("schemaVersion must be 1.0");
+    const compatibility =
+      validatePackageCompatibility(manifest);
+
+    for (const issue of compatibility.issues) {
+      if (issue.severity === "error") {
+        errors.push(issue.message);
+      } else {
+        warnings.push(issue.message);
+      }
     }
 
-    if (!manifest.id || manifest.id !== packageId) {
+    if (manifest.id !== packageId) {
       errors.push("Manifest id does not match package id");
-    }
-
-    if (!isPackageType(manifest.type)) {
-      errors.push("Unsupported OEAP package type");
-    }
-
-    if (!manifest.name) {
-      errors.push("Manifest name is required");
-    }
-
-    if (!manifest.publisher) {
-      errors.push("Manifest publisher is required");
-    }
-
-    if (
-      !manifest.version ||
-      !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(
-        manifest.version
-      )
-    ) {
-      errors.push("Manifest version must be semantic version format");
     }
   }
 
