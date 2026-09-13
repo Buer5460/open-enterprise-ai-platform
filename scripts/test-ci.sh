@@ -16,6 +16,7 @@ run_if_present scripts/test-action-gateway.mjs
 run_if_present scripts/test-installable-skill.mjs
 run_if_present scripts/test-growth-agent.mjs
 run_if_present scripts/test-growth-workflow.mjs
+run_if_present scripts/test-agent-context-enrichment.mjs
 run_if_present scripts/test-developer-studio.mjs
 run_if_present scripts/test-tenancy.mjs
 run_if_present scripts/test-auth-session.mjs
