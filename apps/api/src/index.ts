@@ -11,6 +11,9 @@ import {
 } from "node:url";
 
 import {
+  registerAgentKnowledgeBridge
+} from "./agentKnowledgeBridge.js";
+import {
   registerAuthRoutes
 } from "./authRoutes.js";
 import {
@@ -84,6 +87,10 @@ const repoRoot =
 
 const openEnterpriseRoot =
   resolve(repoRoot, "..");
+
+registerAgentKnowledgeBridge({
+  repoRoot
+});
 
 registerSystemRoutes({
   app,
