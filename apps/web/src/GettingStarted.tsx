@@ -3,6 +3,7 @@ import {
   apiFetch,
   apiUrl
 } from "./apiClient";
+import { AppLifecycleCenter } from "./AppLifecycleCenter";
 import { BusinessOverview } from "./BusinessOverview";
 import { DataExchangeCenter } from "./DataExchangeCenter";
 import "./GettingStarted.css";
@@ -276,6 +277,7 @@ export function GettingStarted(props: {
         <>
           <BusinessOverview />
           <DataExchangeCenter />
+          <AppLifecycleCenter onChanged={props.onChanged} />
         </>
       )}
     </>
