@@ -39,13 +39,22 @@ function chooseEntity(
   const label = pageLabel.toLowerCase();
   const rules: Array<[string[], string[]]> = [
     [["客户"], ["customer", "contact"]],
-    [["订单"], ["order"]],
-    [["线路", "产品"], ["route", "tour"]],
+    [["订单"], ["order", "booking"]],
+    [["线路", "产品"], ["route", "tour", "product"]],
     [["报价"], ["quote"]],
     [["游客"], ["traveler", "tourist", "guest"]],
     [["团期", "库存"], ["group", "inventory", "departure"]],
+    [["跟进"], ["follow", "lead"]],
+    [["机会"], ["opportunity", "lead"]],
+    [["商户"], ["merchant"]],
+    [["终端", "设备", "物料"], ["terminal", "device", "asset"]],
+    [["交易", "流水"], ["transaction", "trade"]],
+    [["结算"], ["settlement"]],
+    [["项目"], ["project"]],
+    [["任务"], ["task"]],
+    [["里程碑"], ["milestone"]],
     [["付款", "收款"], ["payment", "receipt", "transaction"]],
-    [["销售", "跟进"], ["lead", "follow", "customer"]]
+    [["销售"], ["opportunity", "lead", "follow", "customer"]]
   ];
 
   for (const [words, targets] of rules) {
@@ -207,7 +216,7 @@ export function DataEntityPage({
       relations.map(async (field) => {
         const response = await apiFetch(
           apiUrl(
-            `/api/apps/${encodeURIComponent(appId)}/data/${encodeURIComponent(field.relationEntity!) }?page=1&pageSize=100`
+            `/api/apps/${encodeURIComponent(appId)}/data/${encodeURIComponent(field.relationEntity!)}?page=1&pageSize=100`
           )
         );
         const result = await response
