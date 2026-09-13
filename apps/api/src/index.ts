@@ -67,6 +67,9 @@ import {
 import {
   registerTenancyRoutes
 } from "./tenancyRoutes.js";
+import {
+  registerUsabilityRoutes
+} from "./usabilityRoutes.js";
 
 const app = Fastify({
   logger: true,
@@ -111,6 +114,14 @@ const appRoutes = registerAppRoutes({
   app,
   repoRoot,
   openEnterpriseRoot
+});
+
+registerUsabilityRoutes({
+  app,
+  repoRoot,
+  openEnterpriseRoot,
+  loadApps:
+    appRoutes.loadApps
 });
 
 registerAppHistoryRoutes({
