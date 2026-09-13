@@ -7,6 +7,7 @@ import {
 } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 
+import { runtimeStoragePath } from "./storagePath.js";
 import {
   TenancyStore,
   type OrganizationMember
@@ -45,13 +46,15 @@ export class InvitationStore {
   private readonly tenancy: TenancyStore;
 
   constructor(databasePath: string) {
-    mkdirSync(dirname(databasePath), {
+    const path = runtimeStoragePath(databasePath);
+
+    mkdirSync(dirname(path), {
       recursive: true
     });
 
-    this.db = new DatabaseSync(databasePath);
+    this.db = new DatabaseSync(path);
     this.db.exec("PRAGMA foreign_keys = ON");
-    this.tenancy = new TenancyStore(databasePath);
+    this.tenancy = new TenancyStore(path);
     this.createSchema();
   }
 
