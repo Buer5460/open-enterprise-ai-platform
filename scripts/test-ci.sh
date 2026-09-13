@@ -37,6 +37,7 @@ run_if_present scripts/test-enterprise-core.mjs
 run_if_present scripts/test-package-supply-chain.mjs
 run_if_present scripts/test-multitenant-isolation.mjs
 run_if_present scripts/test-backup-restore.mjs
+run_if_present scripts/test-marketplace-registry-api.mjs
 run_if_present scripts/test-api-e2e.mjs
 run_if_present scripts/test-app-lifecycle.mjs
 
