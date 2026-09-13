@@ -18,6 +18,7 @@ run_if_present scripts/test-growth-agent.mjs
 run_if_present scripts/test-growth-workflow.mjs
 run_if_present scripts/test-agent-context-enrichment.mjs
 run_if_present scripts/test-package-compatibility.mjs
+run_if_present scripts/test-sdk-contract.mjs
 run_if_present scripts/test-runtime-storage-path.mjs
 run_if_present scripts/test-developer-studio.mjs
 run_if_present scripts/test-tenancy.mjs
