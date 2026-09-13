@@ -52,9 +52,19 @@ export interface AgentRunResult<TOutput = unknown> {
   };
 }
 
+export type AgentContextEnricher = (
+  request: AgentRunRequest<unknown>
+) =>
+  | Record<string, unknown>
+  | undefined
+  | Promise<Record<string, unknown> | undefined>;
+
 export class AgentRuntime {
   private readonly agents =
     new Map<string, AgentExecutor>();
+
+  private readonly contextEnrichers =
+    new Map<string, AgentContextEnricher>();
 
   register(agent: AgentExecutor): void {
     if (agent.manifest.type !== "agent") {
@@ -77,6 +87,20 @@ export class AgentRuntime {
 
   unregister(agentId: string): void {
     this.agents.delete(agentId);
+  }
+
+  registerContextEnricher(
+    id: string,
+    enricher: AgentContextEnricher
+  ): void {
+    if (!id.trim()) {
+      throw new Error("Agent context enricher id is required");
+    }
+    this.contextEnrichers.set(id, enricher);
+  }
+
+  unregisterContextEnricher(id: string): void {
+    this.contextEnrichers.delete(id);
   }
 
   get(agentId: string): AgentExecutor | undefined {
@@ -109,11 +133,44 @@ export class AgentRuntime {
       };
     }
 
+    let metadata: Record<string, unknown> = {
+      ...(request.metadata ?? {})
+    };
+
+    for (const enricher of this.contextEnrichers.values()) {
+      try {
+        const enrichment = await enricher({
+          ...request,
+          metadata
+        } as AgentRunRequest<unknown>);
+        if (enrichment) {
+          metadata = {
+            ...metadata,
+            ...enrichment
+          };
+        }
+      } catch (error) {
+        metadata = {
+          ...metadata,
+          contextEnrichmentWarnings: [
+            ...(
+              Array.isArray(metadata.contextEnrichmentWarnings)
+                ? metadata.contextEnrichmentWarnings as unknown[]
+                : []
+            ),
+            error instanceof Error
+              ? error.message
+              : "Agent context enrichment failed"
+          ]
+        };
+      }
+    }
+
     const context: AgentExecutionContext = {
       workspaceId: request.workspaceId,
       userId: request.userId,
       taskId: request.taskId,
-      metadata: request.metadata,
+      metadata,
 
       async runSkill<TSkillInput, TSkillOutput>(
         skillId: string,
@@ -131,7 +188,7 @@ export class AgentRuntime {
           taskId:
             request.taskId ??
             `agent:${request.agentId}`,
-          metadata: request.metadata
+          metadata
         });
       }
     };
