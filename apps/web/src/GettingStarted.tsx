@@ -10,6 +10,7 @@ export type UsabilityStatus = {
   firstRun: boolean;
   installedApps: number;
   templates: number;
+  canManageApps?: boolean;
   ai: {
     provider: string;
     available: boolean;
@@ -61,6 +62,11 @@ export function GettingStarted(props: {
   }
 
   async function install(template: TemplateItem) {
+    if (props.status?.canManageApps === false) {
+      setMessage("当前账号只有使用权限；Owner / Admin 才能创建新的企业应用。");
+      return;
+    }
+
     setInstalling(template.id);
     setMessage("");
 
@@ -95,6 +101,11 @@ export function GettingStarted(props: {
   }
 
   async function testAI() {
+    if (props.status?.canManageApps === false) {
+      setMessage("当前账号无应用管理权限，AI Runtime 测试由 Owner / Admin 执行。");
+      return;
+    }
+
     setTestingAI(true);
     setMessage("");
 
@@ -130,6 +141,8 @@ export function GettingStarted(props: {
     props.status?.firstRun ?? false;
   const aiAvailable =
     props.status?.ai.available ?? false;
+  const canManage =
+    props.status?.canManageApps !== false;
 
   return (
     <section className={
@@ -146,7 +159,9 @@ export function GettingStarted(props: {
               : "从业务模板创建应用"}
           </h3>
           <p>
-            不需要先配置 AI。选择一个模板即可生成真实可用的业务应用；AI Runtime 就绪后，再用自然语言继续修改。
+            {canManage
+              ? "不需要先配置 AI。选择一个模板即可生成真实可用的业务应用；AI Runtime 就绪后，再用自然语言继续修改。"
+              : "你可以查看企业模板和 Runtime 状态；新建应用由 Owner / Admin 完成，已有应用仍按你的权限正常使用。"}
           </p>
         </div>
 
@@ -165,10 +180,14 @@ export function GettingStarted(props: {
               "正在检查 DeepSeek Harness Runtime…"}
           </small>
           <button
-            disabled={testingAI}
+            disabled={testingAI || !canManage}
             onClick={() => void testAI()}
           >
-            {testingAI ? "测试中…" : "测试 AI"}
+            {!canManage
+              ? "仅管理员可测试"
+              : testingAI
+                ? "测试中…"
+                : "测试 AI"}
           </button>
         </div>
       </div>
@@ -202,12 +221,14 @@ export function GettingStarted(props: {
             </div>
 
             <button
-              disabled={Boolean(installing)}
+              disabled={Boolean(installing) || !canManage}
               onClick={() => void install(template)}
             >
-              {installing === template.id
-                ? "正在创建…"
-                : "一键创建 →"}
+              {!canManage
+                ? "仅管理员可创建"
+                : installing === template.id
+                  ? "正在创建…"
+                  : "一键创建 →"}
             </button>
           </article>
         ))}
