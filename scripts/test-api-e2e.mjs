@@ -153,19 +153,52 @@ try {
     "template app must appear in normal app listing"
   );
 
-  const createCustomer = await jsonRequest(
-    `/api/apps/${encodeURIComponent(appId)}/data/Customer`,
+  const missingRequired = await createCustomerRequest(
+    appId,
+    authorization,
+    { name: "Missing Status" }
+  );
+  assert.equal(missingRequired.response.status, 422);
+  assert.equal(missingRequired.body.code, "DATA_VALIDATION_ERROR");
+  assert.equal(missingRequired.body.field, "status");
+
+  const invalidEnum = await createCustomerRequest(
+    appId,
+    authorization,
     {
-      method: "POST",
-      headers: {
-        ...authorization,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        name: "Day One Customer",
-        status: "潜在",
-        source: "线上获客"
-      })
+      name: "Bad Enum",
+      status: "NOT_VALID"
+    }
+  );
+  assert.equal(invalidEnum.response.status, 422);
+  assert.equal(invalidEnum.body.field, "status");
+
+  const unknownField = await createCustomerRequest(
+    appId,
+    authorization,
+    {
+      name: "Unknown Field",
+      status: "潜在",
+      hacker: "x"
+    }
+  );
+  assert.equal(unknownField.response.status, 422);
+  assert.equal(unknownField.body.field, "hacker");
+
+  const emptyRows = await jsonRequest(
+    `/api/apps/${encodeURIComponent(appId)}/data/Customer?page=1&pageSize=10`,
+    { headers: authorization }
+  );
+  assert.equal(emptyRows.response.status, 200);
+  assert.equal(emptyRows.body.total, 0);
+
+  const createCustomer = await createCustomerRequest(
+    appId,
+    authorization,
+    {
+      name: "Day One Customer",
+      status: "潜在",
+      source: "线上获客"
     }
   );
   assert.equal(createCustomer.response.status, 200);
@@ -298,7 +331,7 @@ try {
   await access(join(dataDir, "databases", `${appId}.sqlite`));
 
   console.log(
-    "✅ BUILT API + DAY-ONE + DATA EXCHANGE E2E TEST PASSED"
+    "✅ BUILT API + VALIDATION + DATA EXCHANGE E2E TEST PASSED"
   );
 } catch (error) {
   console.error(output);
@@ -311,6 +344,24 @@ try {
   ]);
   if (!child.killed) child.kill("SIGKILL");
   await rm(dataDir, { recursive: true, force: true });
+}
+
+async function createCustomerRequest(
+  appId,
+  authorization,
+  body
+) {
+  return jsonRequest(
+    `/api/apps/${encodeURIComponent(appId)}/data/Customer`,
+    {
+      method: "POST",
+      headers: {
+        ...authorization,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    }
+  );
 }
 
 async function waitForHealth() {
