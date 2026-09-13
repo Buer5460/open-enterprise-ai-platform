@@ -1,0 +1,291 @@
+.runtimeCenter {
+  padding-bottom: 32px;
+}
+
+.runtimeCenterHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+.runtimeCenterHeading > div {
+  max-width: 760px;
+}
+
+.runtimeCenterHeading > div > span {
+  color: var(--brand-primary, #315efb);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.runtimeCenterHeading h1 {
+  margin: 8px 0 7px;
+}
+
+.runtimeCenterHeading p,
+.runtimeCenterPanel p {
+  color: #718096;
+  line-height: 1.65;
+}
+
+.runtimeCenterHeading button {
+  border: 1px solid #dfe5ef;
+  background: #fff;
+  border-radius: 9px;
+  padding: 9px 13px;
+  cursor: pointer;
+}
+
+.runtimeCenterMessage {
+  margin-bottom: 18px;
+  padding: 11px 13px;
+  border-radius: 9px;
+  background: #f2f6ff;
+  color: #40516a;
+  font-size: 13px;
+}
+
+.runtimeReadinessGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 13px;
+  margin-bottom: 16px;
+}
+
+.runtimeStatusCard,
+.runtimeCenterPanel {
+  border: 1px solid #e5eaf2;
+  background: #fff;
+  border-radius: 14px;
+}
+
+.runtimeStatusCard {
+  padding: 16px;
+}
+
+.runtimeStatusCard > span {
+  color: #7c879a;
+  font-size: 11px;
+}
+
+.runtimeStatusCard > strong {
+  display: block;
+  margin: 8px 0 6px;
+  font-size: 21px;
+}
+
+.runtimeStatusCard > p {
+  margin: 0;
+  color: #7b879a;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.runtimeStatusCard.pass {
+  border-top: 3px solid #2b9d68;
+}
+
+.runtimeStatusCard.warn {
+  border-top: 3px solid #d89a31;
+}
+
+.runtimeStatusCard.info {
+  border-top: 3px solid var(--brand-primary, #315efb);
+}
+
+.runtimeCenterGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.runtimeCenterPanel {
+  padding: 18px;
+}
+
+.runtimePanelHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.runtimePanelHeading h3,
+.runtimeNextSteps h3 {
+  margin: 0 0 5px;
+}
+
+.runtimePanelHeading p {
+  margin: 0;
+  font-size: 11px;
+}
+
+.runtimePill {
+  padding: 5px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.runtimePill.pass {
+  background: #eaf8f1;
+  color: #18784d;
+}
+
+.runtimePill.warn {
+  background: #fff5e5;
+  color: #996213;
+}
+
+.runtimeFacts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 15px;
+}
+
+.runtimeFacts > div {
+  padding: 10px;
+  border-radius: 9px;
+  background: #f7f9fc;
+}
+
+.runtimeFacts span,
+.runtimeFacts strong {
+  display: block;
+}
+
+.runtimeFacts span {
+  margin-bottom: 4px;
+  color: #8b95a5;
+  font-size: 9px;
+}
+
+.runtimeFacts strong {
+  overflow: hidden;
+  color: #3d4a5f;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.runtimePrimary {
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  padding: 10px 12px;
+  background: var(--brand-primary, #315efb);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.runtimePrimary:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+.runtimeNote {
+  margin: 11px 0 0;
+  font-size: 10px;
+}
+
+.runtimeConfigList {
+  display: grid;
+  gap: 9px;
+}
+
+.runtimeConfigRow {
+  padding: 10px 11px;
+  border-radius: 9px;
+  background: #f7f9fc;
+}
+
+.runtimeConfigRow code,
+.runtimeConfigRow span {
+  display: block;
+}
+
+.runtimeConfigRow code {
+  margin-bottom: 4px;
+  color: #33445e;
+  font-size: 11px;
+}
+
+.runtimeConfigRow span {
+  color: #818da0;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.runtimeNextSteps {
+  margin-top: 14px;
+}
+
+.runtimeSteps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.runtimeStep {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 11px;
+  background: #f8f9fc;
+}
+
+.stepNumber {
+  display: grid;
+  flex: 0 0 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8edf5;
+  color: #546277;
+  font-weight: 800;
+  font-size: 11px;
+}
+
+.stepNumber.done {
+  background: #dff5e9;
+  color: #18784d;
+}
+
+.runtimeStep strong {
+  font-size: 12px;
+}
+
+.runtimeStep p {
+  margin: 5px 0 0;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+@media (max-width: 1050px) {
+  .runtimeReadinessGrid,
+  .runtimeSteps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .runtimeCenterHeading,
+  .runtimePanelHeading {
+    flex-direction: column;
+  }
+
+  .runtimeReadinessGrid,
+  .runtimeCenterGrid,
+  .runtimeSteps,
+  .runtimeFacts {
+    grid-template-columns: 1fr;
+  }
+}
