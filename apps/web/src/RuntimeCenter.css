@@ -195,6 +195,16 @@
   font-size: 10px;
 }
 
+.runtimeInlineWarning {
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: #fff7e8;
+  color: #8a5a0a;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
 .runtimeConfigList {
   display: grid;
   gap: 9px;
@@ -223,6 +233,63 @@
   line-height: 1.5;
 }
 
+.runtimeSettingsForm {
+  display: grid;
+  gap: 11px;
+}
+
+.runtimeSettingsForm label {
+  display: grid;
+  gap: 5px;
+}
+
+.runtimeSettingsForm label > span {
+  color: #59667a;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.runtimeSettingsForm input,
+.runtimeSettingsForm select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dfe5ef;
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #fff;
+  color: #344054;
+  font: inherit;
+  font-size: 12px;
+}
+
+.runtimeSettingsForm input:focus,
+.runtimeSettingsForm select:focus {
+  outline: 2px solid color-mix(in srgb, var(--brand-primary, #315efb) 18%, transparent);
+  border-color: var(--brand-primary, #315efb);
+}
+
+.runtimeCheckbox {
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.runtimeCheckbox input {
+  width: auto;
+}
+
+.runtimeSettingsMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #f7f9fc;
+  color: #7a8699;
+  font-size: 9px;
+}
+
 .runtimeNextSteps {
   margin-top: 14px;
 }
@@ -232,6 +299,10 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-top: 15px;
+}
+
+.runtimeSteps.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .runtimeStep {
@@ -285,6 +356,7 @@
   .runtimeReadinessGrid,
   .runtimeCenterGrid,
   .runtimeSteps,
+  .runtimeSteps.compact,
   .runtimeFacts {
     grid-template-columns: 1fr;
   }
