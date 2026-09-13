@@ -10,7 +10,6 @@ import { join } from "node:path";
 
 import { permissionEngine } from "@oeap/permission-engine";
 import { packageManager } from "@oeap/package-manager";
-import { registerDeepSeekHarnessConnector } from "@oeap/deepseek-harness-connector";
 import { packageModule as aiSkillPackage } from "@oeap/ai-generate-skill";
 import {
   appBuilder,
@@ -20,6 +19,11 @@ import {
 import { appPackageBuilder } from "@oeap/app-package-builder";
 import { AppDatabase } from "@oeap/data-runtime";
 
+import {
+  ensureAIRuntimeProvidersRegistered,
+  getAIRuntimeStatus,
+  getPreferredAIProvider
+} from "./aiRuntime.js";
 import { KnowledgeStore } from "./knowledgeStore.js";
 import { TenancyStore } from "./tenancyStore.js";
 import {
@@ -27,8 +31,6 @@ import {
   memberFrom
 } from "./tenancyRoutes.js";
 import {
-  dshHome,
-  harnessRoot,
   runtimePath
 } from "./runtimePaths.js";
 
@@ -75,10 +77,9 @@ export function registerAppRoutes(
       priority: 100
     });
 
-    registerDeepSeekHarnessConnector({
-      harnessRoot: harnessRoot(openEnterpriseRoot),
-      dshHome: dshHome(openEnterpriseRoot),
-      workspaceRoot: repoRoot
+    ensureAIRuntimeProvidersRegistered({
+      repoRoot,
+      openEnterpriseRoot
     });
 
     if (!packageManager.get(aiSkillPackage.manifest.id)) {
@@ -296,10 +297,29 @@ export function registerAppRoutes(
   }
 
   async function runAI(
-    operation: () => Promise<AppBuilderResult>
+    organizationId: string,
+    operation: (
+      preferredProvider: string
+    ) => Promise<AppBuilderResult>
   ): Promise<AppBuilderResult> {
     await initializeAI();
-    return operation();
+
+    const status = await getAIRuntimeStatus({
+      repoRoot,
+      openEnterpriseRoot,
+      organizationId
+    });
+
+    if (!status.available) {
+      throw new Error(status.message);
+    }
+
+    return operation(
+      getPreferredAIProvider(
+        repoRoot,
+        organizationId
+      )
+    );
   }
 
   function aiFailure(
@@ -317,7 +337,9 @@ export function registerAppRoutes(
     const missing =
       lower.includes("cli not built") ||
       lower.includes("enoent") ||
-      lower.includes("not found");
+      lower.includes("not found") ||
+      lower.includes("not configured") ||
+      lower.includes("配置不完整");
 
     return reply.code(503).send({
       ok: false,
@@ -327,7 +349,7 @@ export function registerAppRoutes(
       error: timeout
         ? "AI Runtime 调用超时，请稍后重试。"
         : missing
-          ? "AI Runtime 尚未安装或构建。你仍可使用业务模板创建应用。"
+          ? "AI Runtime 尚未完成配置。你仍可使用业务模板创建应用。"
           : "AI Runtime 当前不可用。你仍可使用业务模板创建应用。"
     });
   }
@@ -367,18 +389,24 @@ export function registerAppRoutes(
       }
 
       const organizationId = organizationFrom(request);
+      const memberId = memberFrom(request);
       let generated: AppBuilderResult;
 
       try {
-        generated = await runAI(() =>
-          appBuilder.build({
-            description: withKnowledgeContext({
-              organizationId,
-              query: description
-            }),
-            nameHint: request.body?.nameHint,
-            language: "zh-CN"
-          })
+        generated = await runAI(
+          organizationId,
+          (preferredProvider) =>
+            appBuilder.build({
+              description: withKnowledgeContext({
+                organizationId,
+                query: description
+              }),
+              nameHint: request.body?.nameHint,
+              language: "zh-CN",
+              workspaceId: organizationId,
+              userId: memberId,
+              preferredProvider
+            })
         );
       } catch (error) {
         return aiFailure(reply, error);
@@ -395,9 +423,9 @@ export function registerAppRoutes(
 
       try {
         tenancyStore.grantMemberAppAccess(
-          memberFrom(request),
+          memberId,
           built.manifest.id,
-          memberFrom(request)
+          memberId
         );
       } catch {
         // Wildcard owners do not require an explicit grant.
@@ -462,6 +490,7 @@ export function registerAppRoutes(
       }
 
       const organizationId = organizationFrom(request);
+      const memberId = memberFrom(request);
       const manifest = await findApp(
         request.params.appId,
         organizationId
@@ -481,16 +510,21 @@ export function registerAppRoutes(
       let revised: AppBuilderResult;
 
       try {
-        revised = await runAI(() =>
-          appBuilder.revise({
-            blueprint: currentBlueprint,
-            instruction: withKnowledgeContext({
-              organizationId,
-              appId: request.params.appId,
-              query: instruction
-            }),
-            language: "zh-CN"
-          })
+        revised = await runAI(
+          organizationId,
+          (preferredProvider) =>
+            appBuilder.revise({
+              blueprint: currentBlueprint,
+              instruction: withKnowledgeContext({
+                organizationId,
+                appId: request.params.appId,
+                query: instruction
+              }),
+              language: "zh-CN",
+              workspaceId: organizationId,
+              userId: memberId,
+              preferredProvider
+            })
         );
       } catch (error) {
         return aiFailure(reply, error);
