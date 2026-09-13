@@ -3,8 +3,6 @@ import type {
   FastifyRequest
 } from "fastify";
 
-import { join } from "node:path";
-
 import {
   AuthSessionStore,
   bearerToken,
@@ -21,6 +19,7 @@ import {
   TenancyStore,
   type OrganizationMember
 } from "./tenancyStore.js";
+import { runtimePath } from "./runtimePaths.js";
 
 export interface AuthRoutesOptions {
   app: FastifyInstance;
@@ -42,18 +41,16 @@ export function registerAuthRoutes(
   const { app, repoRoot } = options;
 
   const sessions = new AuthSessionStore(
-    join(
+    runtimePath(
       repoRoot,
-      ".tmp",
       "auth",
       "sessions.sqlite"
     )
   );
 
   const tenancy = new TenancyStore(
-    join(
+    runtimePath(
       repoRoot,
-      ".tmp",
       "tenancy",
       "tenancy.sqlite"
     )
@@ -378,7 +375,8 @@ export function registerAuthRoutes(
             code,
             state
           });
-        const member = resolveExternalMember(
+        const member = resolveExternalIdentity(
+          sessions,
           tenancy,
           identity
         );
@@ -388,8 +386,7 @@ export function registerAuthRoutes(
           memberId: member.id,
           email: member.email,
           name: member.name,
-          subject:
-            `${provider}:${identity.subject}`,
+          subject: externalBindingSubject(identity),
           ttlHours: sessionTtlHours()
         });
 
@@ -499,20 +496,16 @@ function requiredEnvironment(
 }
 
 export function localAuthEnabled(): boolean {
-  const configured =
-    process.env.OEAP_LOCAL_AUTH
-      ?.trim()
-      .toLowerCase();
-
-  if (configured === "enabled") {
-    return true;
-  }
-
-  if (configured === "disabled") {
+  // Local bootstrap identity is a development-only capability. Do not allow an
+  // environment-variable mistake to turn it back on for an Internet-facing
+  // production deployment.
+  if (productionAuthMode()) {
     return false;
   }
 
-  return !productionAuthMode();
+  return process.env.OEAP_LOCAL_AUTH
+    ?.trim()
+    .toLowerCase() !== "disabled";
 }
 
 export function productionAuthMode(): boolean {
@@ -532,7 +525,7 @@ function isPublicProductionRequest(
     request.routeOptions.url ||
     request.url.split("?")[0];
 
-  if (route === "/health") {
+  if (route === "/health" || route === "/ready") {
     return true;
   }
 
@@ -544,6 +537,44 @@ function isPublicProductionRequest(
     route === "/api/invitations/public/:token" ||
     route === "/api/invitations/accept" ||
     route === "/invite/:token"
+  );
+}
+
+function resolveExternalIdentity(
+  sessions: AuthSessionStore,
+  tenancy: TenancyStore,
+  identity: ExternalIdentity
+): OrganizationMember {
+  const subject = externalBindingSubject(identity);
+  const binding = sessions.getIdentityBinding(
+    identity.provider,
+    subject
+  );
+
+  if (binding) {
+    try {
+      const member = tenancy
+        .getContext(binding.organizationId)
+        .members.find(
+          (item) => item.id === binding.memberId
+        );
+
+      if (member?.status === "active") {
+        return member;
+      }
+    } catch {
+      // A stale binding must not silently fall back to email matching because
+      // that could transfer an external identity to another enterprise member.
+    }
+
+    throw new Error(
+      "该外部登录身份绑定的企业成员不存在或已停用。请联系企业管理员。"
+    );
+  }
+
+  return resolveExternalMember(
+    tenancy,
+    identity
   );
 }
 
@@ -596,6 +627,12 @@ function resolveExternalMember(
   );
 }
 
+function externalBindingSubject(
+  identity: ExternalIdentity
+): string {
+  return `${identity.provider}:${identity.subject}`;
+}
+
 function asExternalProvider(
   value: string
 ): ExternalAuthProvider | undefined {
@@ -614,6 +651,12 @@ function asExternalProvider(
 function publicApiBase(
   request: FastifyRequest
 ): string {
+  if (productionAuthMode()) {
+    return requireProductionHttpsUrl(
+      "OEAP_PUBLIC_API_URL"
+    );
+  }
+
   return (
     process.env.OEAP_PUBLIC_API_URL?.trim() ||
     `${request.protocol}://${request.headers.host}`
@@ -621,11 +664,40 @@ function publicApiBase(
 }
 
 function publicWebUrl(): string {
+  if (productionAuthMode()) {
+    return requireProductionHttpsUrl(
+      "OEAP_PUBLIC_WEB_URL"
+    );
+  }
+
   return (
     process.env.OEAP_PUBLIC_WEB_URL?.trim() ||
     process.env.OEAP_WEB_URL?.trim() ||
     "http://127.0.0.1:5173/"
   );
+}
+
+function requireProductionHttpsUrl(
+  name: "OEAP_PUBLIC_API_URL" | "OEAP_PUBLIC_WEB_URL"
+): string {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`${name} is required in production`);
+  }
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`${name} must be a valid URL`);
+  }
+
+  if (url.protocol !== "https:") {
+    throw new Error(`${name} must use HTTPS in production`);
+  }
+
+  url.hash = "";
+  return url.toString().replace(/\/+$/, "");
 }
 
 function sessionRedirectUrl(
