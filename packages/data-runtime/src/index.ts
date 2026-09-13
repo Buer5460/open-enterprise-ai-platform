@@ -299,6 +299,32 @@ export class AppDatabase {
     );
   }
 
+  createMany(
+    entity: string,
+    rows: Array<Record<string, unknown>>
+  ): unknown[] {
+    if (rows.length === 0) {
+      return [];
+    }
+
+    this.db.exec("BEGIN IMMEDIATE");
+
+    try {
+      const created = rows.map((row) =>
+        this.create(entity, row)
+      );
+      this.db.exec("COMMIT");
+      return created;
+    } catch (error) {
+      try {
+        this.db.exec("ROLLBACK");
+      } catch {
+        // Preserve the original insertion error.
+      }
+      throw error;
+    }
+  }
+
   update(
     entity: string,
     id: number,
