@@ -5,20 +5,23 @@ import {
   rm,
   writeFile
 } from "node:fs/promises";
-import { constants } from "node:fs";
+import {
+  constants,
+  readFileSync
+} from "node:fs";
 import { join } from "node:path";
 import { runtimeDataRoot } from "./runtimePaths.js";
-
-export const OEAP_VERSION = "0.9.0";
 
 export function registerSystemRoutes(input: {
   app: FastifyInstance;
   repoRoot: string;
 }) {
+  const version = platformVersion(input.repoRoot);
+
   input.app.get("/health", async () => ({
     ok: true,
     service: "oeap-api",
-    version: OEAP_VERSION,
+    version,
     mode: deploymentMode(),
     time: new Date().toISOString()
   }));
@@ -38,7 +41,7 @@ export function registerSystemRoutes(input: {
       ok: ready,
       ready,
       service: "oeap-api",
-      version: OEAP_VERSION,
+      version,
       mode: deploymentMode(),
       checks,
       time: new Date().toISOString()
@@ -48,6 +51,26 @@ export function registerSystemRoutes(input: {
       ? payload
       : reply.code(503).send(payload);
   });
+}
+
+export function platformVersion(
+  repoRoot: string
+): string {
+  try {
+    const pkg = JSON.parse(
+      readFileSync(
+        join(repoRoot, "package.json"),
+        "utf8"
+      )
+    ) as { version?: unknown };
+
+    return typeof pkg.version === "string" &&
+      pkg.version.trim()
+      ? pkg.version.trim()
+      : "unknown";
+  } catch {
+    return "unknown";
+  }
 }
 
 type ReadyCheck = {
