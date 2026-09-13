@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+
+import { runtimeStoragePath } from "./storagePath.js";
 
 export type MemberStatus = "active" | "disabled";
 
@@ -102,10 +104,12 @@ export class TenancyStore {
   private readonly db: DatabaseSync;
 
   constructor(databasePath: string) {
-    mkdirSync(dirname(databasePath), {
+    const path = runtimeStoragePath(databasePath);
+
+    mkdirSync(dirname(path), {
       recursive: true
     });
-    this.db = new DatabaseSync(databasePath);
+    this.db = new DatabaseSync(path);
     this.db.exec("PRAGMA foreign_keys = ON");
     this.createSchema();
     this.bootstrapLocalOrganization();
