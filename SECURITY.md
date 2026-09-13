@@ -1,70 +1,90 @@
 # Security Policy
 
-OEAP is currently experimental and under active development. Security-sensitive behavior may change before the first stable release.
+OEAP 0.9.x is a production-candidate self-hosted platform. The project now implements explicit identity, tenancy, authorization, secret-storage and Package supply-chain boundaries, but security remains a deployment responsibility and the 1.0 compatibility/security contract is not yet frozen.
 
 ## Reporting a vulnerability
 
-Please do not publish exploitable security vulnerabilities in a public issue.
+Do not publish exploitable vulnerabilities in a public issue.
 
-For now, contact the repository owner privately through GitHub. A dedicated security contact and disclosure workflow will be added as the project matures.
+Contact the repository owner privately through GitHub and include:
 
-When reporting a vulnerability, include:
-
-- Affected package or component
+- Affected component and version/commit
 - Reproduction steps
 - Expected and actual behavior
 - Potential impact
+- Whether credentials, cross-tenant access or code execution are involved
 - Suggested mitigation, if known
 
-## Security model
+## Platform security boundaries
 
-OEAP is designed around several security boundaries:
+### Identity and tenancy
 
-- Permission Engine controls whether an action is allowed, denied, or requires approval.
-- Approval Engine represents explicit human authorization for sensitive actions.
-- Action Gateway routes side-effecting actions through permission, approval, execution, and audit layers.
-- Audit Log records execution outcomes.
-- Capability Registry separates business capabilities from concrete service providers.
-- Third-party packages should access external systems through declared Connectors rather than bypass platform controls.
+- Production mode requires authenticated Session identity.
+- Production does not trust browser-supplied organization/member identity headers.
+- GitHub, Google Workspace, Microsoft Entra ID and generic OIDC are supported.
+- External identities map only to existing organization members.
+- Organization RBAC and app-access scopes are enforced server-side.
+- Generated applications, databases and organization-local Package assets are isolated by organization.
 
-## Current limitations
+### Actions and side effects
 
-The current codebase is not yet production-hardened. In particular, deployments should assume the following are incomplete or evolving:
+- Permission Engine evaluates action policy.
+- Approval Engine represents explicit human authorization.
+- Action Gateway combines permission, approval, Connector execution and audit.
+- Connector credentials are stored outside Package source in an encrypted organization-scoped vault.
 
-- Authentication and SSO
-- Fine-grained multi-tenant authorization
-- Persistent enterprise-grade audit storage
-- Secret management and key rotation
-- Package signing and trust verification
-- Sandbox isolation for untrusted third-party code
-- Rate limiting and abuse controls
-- Data encryption policies
-- Marketplace review and malware scanning
-- Production database migrations and high availability
+### Package supply chain
 
-## High-risk actions
+Third-party Packages are treated as executable software:
 
-Do not use the current experimental implementation for unattended:
+- Developer Packages can be content-hashed and signed with Ed25519.
+- Remote imports require valid provenance and an explicitly trusted publisher fingerprint.
+- Imported Packages pass file/path constraints, static security scanning and dependency validation.
+- Credential/private-key style files are rejected.
+- Remote Package import does not automatically execute imported source.
+- A valid signature from an untrusted key is not considered trusted.
 
-- Money transfers
-- Live securities or crypto trading
-- Irreversible data deletion
-- Production infrastructure deployment
-- Bulk external messaging
-- Other regulated or safety-critical actions
+See [docs/package-supply-chain.md](docs/package-supply-chain.md).
 
-These actions should require stronger policy, approval, credential, audit, and environment isolation controls.
+### Web and deployment
+
+- Development and Production modes are distinct.
+- Production reverse-proxy configuration adds CSP and standard browser security headers.
+- `/health` is a liveness endpoint; `/ready` checks production readiness conditions.
+- Production should use HTTPS and a strict CORS allowlist.
+- Runtime state should be mounted through persistent `OEAP_DATA_DIR` storage and backed up.
 
 ## Secrets
 
 Never commit:
 
-- API keys
-- OAuth tokens
+- API keys or access tokens
+- OAuth client secrets
 - Passwords
 - Private keys
 - Local `.env` files
-- DeepSeek Harness credentials or `DSH_HOME` state
+- Connector credential vault data/keys
+- DeepSeek Harness/provider credentials
 - Local SQLite databases containing real business data
+- OEAP signing private keys
 
-If a secret is accidentally committed, revoke or rotate it immediately. Removing it from the latest Git commit alone is not sufficient because it may remain in Git history.
+If a secret is accidentally committed, revoke or rotate it. Deleting it from the latest commit is not enough because it may remain in Git history.
+
+## Current limitations
+
+The following remain deployment or post-0.9 hardening areas:
+
+- Imported third-party code is not a full OS/container sandbox. Only trusted, reviewed Packages should ever be explicitly activated.
+- Encryption-at-rest of application business databases depends on the deployment/storage layer.
+- Enterprise HSM/KMS/Vault secret backends and automated key rotation are not yet core features.
+- Row/field-level data-security policy is not yet a general platform primitive.
+- Distributed rate limiting, queue isolation and horizontal runtime state are post-1.0 infrastructure work.
+- A formal external security assessment has not yet been completed.
+
+## High-risk workloads
+
+OEAP's generic controls do not replace domain-specific security/compliance requirements. Real-money transfers, live trading, regulated medical decisioning, critical infrastructure, bulk external messaging and other high-impact actions require independent architecture/security review, stronger approval/key-management controls and appropriate regulatory processes before production use.
+
+## Production minimum
+
+Before routing users to a production deployment, complete [docs/production-checklist.md](docs/production-checklist.md) and confirm `/ready` returns HTTP 200.
