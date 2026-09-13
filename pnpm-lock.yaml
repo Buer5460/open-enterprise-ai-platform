@@ -32,6 +32,9 @@ importers:
       '@oeap/app-package-builder':
         specifier: workspace:*
         version: link:../../packages/app-package-builder
+      '@oeap/connector-runtime':
+        specifier: workspace:*
+        version: link:../../packages/connector-runtime
       '@oeap/data-runtime':
         specifier: workspace:*
         version: link:../../packages/data-runtime
@@ -41,6 +44,9 @@ importers:
       '@oeap/harness-adapter':
         specifier: workspace:*
         version: link:../../packages/harness-adapter
+      '@oeap/openai-compatible-connector':
+        specifier: workspace:*
+        version: link:../../packages/official/openai-compatible-connector
       '@oeap/package-manager':
         specifier: workspace:*
         version: link:../../packages/package-manager
