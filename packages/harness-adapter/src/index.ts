@@ -14,6 +14,8 @@ export interface HarnessAdapterConfig {
   harnessRoot: string;
   dshHome: string;
   workspaceRoot: string;
+  timeoutMs?: number;
+  healthTimeoutMs?: number;
 }
 
 export interface HarnessRunResult {
@@ -29,23 +31,38 @@ export class DeepSeekHarnessAdapter {
   ) {}
 
   async healthCheck(): Promise<HarnessRunResult> {
-    return this.runCli([
-      "--help"
-    ]);
+    return this.runCli(
+      ["--help"],
+      boundedTimeout(
+        this.config.healthTimeoutMs,
+        10_000,
+        1_000,
+        30_000
+      )
+    );
   }
 
   async runHeadless(
     prompt: string
   ): Promise<HarnessRunResult> {
-    return this.runCli([
-      "--profile",
-      "headless",
-      prompt
-    ]);
+    return this.runCli(
+      [
+        "--profile",
+        "headless",
+        prompt
+      ],
+      boundedTimeout(
+        this.config.timeoutMs,
+        environmentTimeout(),
+        5_000,
+        10 * 60_000
+      )
+    );
   }
 
   private runCli(
-    args: string[]
+    args: string[],
+    timeoutMs: number
   ): Promise<HarnessRunResult> {
     const cliPath = resolve(
       this.config.harnessRoot,
@@ -53,12 +70,28 @@ export class DeepSeekHarnessAdapter {
     );
 
     if (!existsSync(cliPath)) {
-      throw new Error(
-        `DeepSeek Harness CLI not built: ${cliPath}`
-      );
+      return Promise.resolve({
+        ok: false,
+        exitCode: null,
+        stdout: "",
+        stderr: `DeepSeek Harness CLI not built: ${cliPath}`
+      });
     }
 
     return new Promise((resolvePromise) => {
+      let stdout = "";
+      let stderr = "";
+      let settled = false;
+      let forceKillTimer: ReturnType<typeof setTimeout> | undefined;
+
+      const finish = (result: HarnessRunResult) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutTimer);
+        if (forceKillTimer) clearTimeout(forceKillTimer);
+        resolvePromise(result);
+      };
+
       const child = spawn(
         process.execPath,
         [
@@ -74,9 +107,6 @@ export class DeepSeekHarnessAdapter {
         }
       );
 
-      let stdout = "";
-      let stderr = "";
-
       child.stdout.on("data", (data) => {
         stdout += data.toString();
       });
@@ -85,14 +115,72 @@ export class DeepSeekHarnessAdapter {
         stderr += data.toString();
       });
 
+      child.on("error", (error) => {
+        finish({
+          ok: false,
+          exitCode: null,
+          stdout,
+          stderr: [
+            stderr,
+            error.message
+          ].filter(Boolean).join("\n")
+        });
+      });
+
       child.on("close", (exitCode) => {
-        resolvePromise({
+        finish({
           ok: exitCode === 0,
           exitCode,
           stdout,
           stderr
         });
       });
+
+      const timeoutTimer = setTimeout(() => {
+        stderr = [
+          stderr,
+          `DeepSeek Harness timed out after ${timeoutMs}ms`
+        ].filter(Boolean).join("\n");
+
+        child.kill("SIGTERM");
+        forceKillTimer = setTimeout(() => {
+          if (child.exitCode === null) {
+            child.kill("SIGKILL");
+          }
+        }, 2_000);
+
+        finish({
+          ok: false,
+          exitCode: 124,
+          stdout,
+          stderr
+        });
+      }, timeoutMs);
     });
   }
+}
+
+function environmentTimeout(): number {
+  const value = Number(
+    process.env.OEAP_AI_TIMEOUT_MS
+  );
+  return Number.isFinite(value) && value > 0
+    ? value
+    : 120_000;
+}
+
+function boundedTimeout(
+  value: number | undefined,
+  fallback: number,
+  minimum: number,
+  maximum: number
+): number {
+  const requested =
+    Number.isFinite(value) && Number(value) > 0
+      ? Number(value)
+      : fallback;
+  return Math.min(
+    Math.max(Math.round(requested), minimum),
+    maximum
+  );
 }
