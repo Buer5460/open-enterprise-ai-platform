@@ -10,6 +10,14 @@ import {
   readFileSync
 } from "node:fs";
 import { join } from "node:path";
+
+import {
+  createOfficialMarketplaceRegistry
+} from "@oeap/marketplace-registry";
+
+import {
+  registerMarketplaceRoutes
+} from "./marketplaceRoutes.js";
 import { runtimeDataRoot } from "./runtimePaths.js";
 
 export function registerSystemRoutes(input: {
@@ -17,6 +25,11 @@ export function registerSystemRoutes(input: {
   repoRoot: string;
 }) {
   const version = platformVersion(input.repoRoot);
+
+  registerMarketplaceRoutes({
+    app: input.app,
+    registry: createOfficialMarketplaceRegistry()
+  });
 
   input.app.get("/health", async () => ({
     ok: true,
