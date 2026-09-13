@@ -162,17 +162,9 @@ export function registerAIRuntimeRoutes(input: {
           identity.organizationId
       });
 
-      if (!result.ok) {
-        return reply.code(503).send({
-          ok: false,
-          ...result
-        });
-      }
-
-      return {
-        ok: true,
-        ...result
-      };
+      return result.ok
+        ? result
+        : reply.code(503).send(result);
     }
   );
 
