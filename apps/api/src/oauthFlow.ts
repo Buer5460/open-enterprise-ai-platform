@@ -470,29 +470,43 @@ async function fetchGitHubIdentity(
     );
   }
 
-  let email =
-    typeof profile.email === "string"
-      ? profile.email
-      : "";
+  // Enterprise membership is matched by email on first sign-in. Never trust
+  // the profile email alone: require GitHub's verified-email endpoint to
+  // attest the address that is used for that initial binding.
+  const emailsResponse = await fetch(
+    "https://api.github.com/user/emails",
+    { headers }
+  );
+  const emails = await emailsResponse
+    .json()
+    .catch(() => []) as any[];
 
-  if (!email) {
-    const emailsResponse = await fetch(
-      "https://api.github.com/user/emails",
-      { headers }
+  if (!emailsResponse.ok) {
+    throw new Error(
+      `GitHub verified email lookup returned HTTP ${emailsResponse.status}`
     );
-    const emails = await emailsResponse
-      .json()
-      .catch(() => []) as any[];
-
-    if (emailsResponse.ok) {
-      const selected =
-        emails.find(
-          (item) => item.primary && item.verified
-        ) ??
-        emails.find((item) => item.verified);
-      email = String(selected?.email || "");
-    }
   }
+
+  const profileEmail =
+    typeof profile.email === "string"
+      ? normalizeEmail(profile.email)
+      : "";
+  const verifiedEmails = emails.filter(
+    (item) =>
+      item?.verified === true &&
+      typeof item.email === "string" &&
+      Boolean(item.email.trim())
+  );
+  const selected =
+    (profileEmail
+      ? verifiedEmails.find(
+          (item) =>
+            normalizeEmail(item.email) === profileEmail
+        )
+      : undefined) ??
+    verifiedEmails.find((item) => item.primary) ??
+    verifiedEmails[0];
+  const email = String(selected?.email || "");
 
   if (!email) {
     throw new Error(
