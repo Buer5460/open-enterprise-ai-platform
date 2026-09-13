@@ -104,6 +104,12 @@ try {
 
   await client.send("Page.enable");
   await client.send("Runtime.enable");
+  await client.send("Emulation.setDeviceMetricsOverride", {
+    width: 1440,
+    height: 1000,
+    deviceScaleFactor: 1,
+    mobile: false
+  });
 
   await waitForText(client, "AI 工作台");
   let text = await bodyText(client);
