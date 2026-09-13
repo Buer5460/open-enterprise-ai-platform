@@ -2,9 +2,9 @@
 
 > Build enterprise software with AI — by describing the business, not by starting from code.
 
-**OEAP 0.9.0** is a self-hosted, open-source enterprise AI application platform. It turns business requirements into real applications, then provides the tenancy, data, identity, package, security and operations layers required to keep those applications usable inside an organization.
+**OEAP 1.0.0-rc.1** is a self-hosted, open-source enterprise AI application platform. It turns business requirements into real applications, then provides the tenancy, data, identity, package, security and operations layers required to keep those applications usable inside an organization.
 
-The 0.9.x line is a **Production Candidate**: the initial platform scope is implemented and continuously built/tested, while real deployments still require organization-owned infrastructure and credentials such as OAuth/OIDC, mail, DNS/TLS and an AI provider/runtime.
+The 1.0 release-candidate line freezes the first stable Package/SDK contracts and is continuously validated by runtime, API, browser, container and supply-chain tests. It is suitable for controlled self-hosted evaluation. **1.0 General Availability remains gated on an independent external security review and deployment-owned production infrastructure/credentials.**
 
 ## From requirement to operating application
 
@@ -21,7 +21,7 @@ Business requirement
 
 DeepSeek Harness is the current AI runtime adapter, but the platform is designed around provider-independent capabilities rather than one model vendor.
 
-## What works in 0.9.0
+## What works in 1.0.0-rc.1
 
 ### AI application lifecycle
 
@@ -33,7 +33,7 @@ DeepSeek Harness is the current AI runtime adapter, but the platform is designed
 - Enum, currency, dates, rich text, attachment, relation and JSON fields
 - AI modification of existing applications
 - Automatic version snapshots and rollback
-- Enterprise knowledge retrieval injected into app generation/revision
+- Enterprise knowledge retrieval injected into app generation/revision and Agent execution context
 
 ### Enterprise administration
 
@@ -42,8 +42,9 @@ DeepSeek Harness is the current AI runtime adapter, but the platform is designed
 - Server-side RBAC
 - Per-member application access scopes
 - Organization-isolated application data and Developer/Marketplace assets
-- Persistent sessions
+- Persistent Session identity
 - GitHub OAuth, Google Workspace, Microsoft Entra ID and generic OIDC
+- Stable provider-subject identity binding after first SSO match
 - Invitation link/code lifecycle: expiration, revoke, single use and automatic session creation
 - Organization branding and production login page
 - Per-organization SMTP / Resend / webhook / manual mail delivery
@@ -70,11 +71,13 @@ The platform includes Agent, Skill, Workflow and Connector runtimes; a capabilit
 - Validate Package structure
 - Publish/unpublish to an organization-local Marketplace
 - Enable/disable official Packages per organization
-- TypeScript SDK and OEAP CLI
+- Frozen Package Manifest 1.x compatibility rules
+- TypeScript SDK 1.x contract and OEAP CLI
 - GitHub Publisher using server-side credentials only
 - Ed25519 Package signatures and SHA-256 provenance
 - Trusted remote GitHub Package import
-- Static security scan and dependency checks before import
+- Static security scan, file/path bounds and dependency checks before import
+- Correct fail-closed SemVer dependency-range evaluation
 - Publisher fingerprint trust policy
 - Imported remote source is **not automatically executed**
 
@@ -86,13 +89,17 @@ The platform includes Agent, Skill, Workflow and Connector runtimes; a capabilit
 - AI call/activity statistics
 - Approval request / approve / reject / cancel lifecycle
 - Tenancy and permission audit data
+- Runtime persistence consistently rooted under configurable `OEAP_DATA_DIR`
 
 ### Production deployment
 
 - Development and Production modes are explicitly separated
 - Production rejects spoofed client identity headers
 - Production requires authenticated Session identity
+- Local Development login is hard-disabled in Production
 - Brand-aware authentication gate
+- Production public Web/API URLs require HTTPS
+- Production CORS fails closed and rejects wildcard origins
 - `/health` liveness and `/ready` readiness endpoints
 - Deployment & Security readiness dashboard
 - Docker multi-stage build
@@ -100,9 +107,7 @@ The platform includes Agent, Skill, Workflow and Connector runtimes; a capabilit
 - Nginx reverse proxy and security headers/CSP
 - Configurable persistent `OEAP_DATA_DIR`
 - Backup and restore scripts
-- Deterministic CI + container builds + Compose validation
-- Automatic pnpm workspace lockfile synchronization
-- Tag-driven GitHub Release workflow
+- Tag-driven GitHub Release workflow with RC prereleases
 
 ## Architecture
 
@@ -201,6 +206,7 @@ Start with:
 
 - [docs/deployment.md](docs/deployment.md)
 - [docs/production-checklist.md](docs/production-checklist.md)
+- [docs/release-readiness.md](docs/release-readiness.md)
 - [.env.example](.env.example)
 
 Typical container deployment:
@@ -220,7 +226,7 @@ GET /ready    # production readiness
 
 ## Package security
 
-OEAP treats third-party extensions as a software supply-chain boundary. Remote imports must pass file/path limits, static security checks, content-digest verification, Ed25519 signature verification, trusted publisher fingerprint validation and dependency checks before entering an organization Marketplace.
+OEAP treats third-party extensions as a software supply-chain boundary. Remote imports must pass file/path limits, static security checks, content-digest verification, Ed25519 signature verification, trusted publisher fingerprint validation and fail-closed dependency checks before entering an organization Marketplace.
 
 See [docs/package-supply-chain.md](docs/package-supply-chain.md).
 
@@ -228,6 +234,8 @@ See [docs/package-supply-chain.md](docs/package-supply-chain.md).
 
 - Secrets belong in environment configuration or the encrypted Connector vault, never Package source.
 - Production identity is Session-based and cannot be selected by client headers.
+- Production local bootstrap login cannot be re-enabled by a mistaken environment override.
+- First GitHub enterprise binding requires a verified GitHub email; subsequent SSO uses stable provider-subject binding.
 - Organizations, application data, knowledge, files and local Package assets are isolated server-side.
 - Remote Package import does not automatically execute imported code.
 - High-risk domains still require domain-specific controls and independent review.
@@ -241,15 +249,15 @@ corepack pnpm build
 corepack pnpm test
 ```
 
-CI also validates shell scripts, Docker Compose and both production container targets.
+CI additionally performs a built-API end-to-end test, starts a real headless Chrome browser to render/navigate core workspace pages and detect uncaught runtime exceptions, validates shell scripts and Docker Compose, then builds both production container targets.
 
 Live AI-provider calls are intentionally excluded from public CI because they require an external runtime checkout and private provider credentials.
 
 ## Versioning
 
-Current platform version: **0.9.0 Production Candidate**.
+Current platform version: **1.0.0-rc.1**.
 
-See [CHANGELOG.md](CHANGELOG.md) for release details and [ROADMAP.md](ROADMAP.md) for post-0.9 work.
+`1.0.0-rc.1` represents completed internal engineering/compatibility stabilization, not 1.0 GA security certification. See [CHANGELOG.md](CHANGELOG.md), [ROADMAP.md](ROADMAP.md) and [docs/release-readiness.md](docs/release-readiness.md).
 
 ## Contributing
 
