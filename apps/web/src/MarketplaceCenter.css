@@ -1,0 +1,419 @@
+.marketplaceCenter {
+  display: grid;
+  gap: 22px;
+  padding-bottom: 40px;
+}
+
+.marketplaceHero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-end;
+  padding: 28px;
+  border: 1px solid #dbe5f2;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 88% 10%, rgba(74, 127, 255, 0.16), transparent 34%),
+    linear-gradient(145deg, #ffffff, #f6f9ff);
+  box-shadow: 0 12px 35px rgba(29, 52, 92, 0.08);
+}
+
+.marketplaceEyebrow {
+  display: inline-block;
+  margin-bottom: 9px;
+  color: #3467d6;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.marketplaceHero h1 {
+  margin: 0;
+  font-size: 31px;
+  color: #15233b;
+}
+
+.marketplaceHero p {
+  max-width: 720px;
+  margin: 10px 0 0;
+  color: #66748b;
+  line-height: 1.7;
+}
+
+.marketplaceHeroStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(88px, 1fr));
+  gap: 10px;
+  min-width: 320px;
+}
+
+.marketplaceHeroStats > div {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid #e3eaf4;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.marketplaceHeroStats strong {
+  color: #182744;
+  font-size: 22px;
+}
+
+.marketplaceHeroStats span {
+  color: #8390a4;
+  font-size: 12px;
+}
+
+.marketplaceSearchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 12px;
+}
+
+.marketplaceSearchBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 15px;
+  border: 1px solid #d9e2ef;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.marketplaceSearchBox span {
+  color: #7f8ca0;
+  font-size: 20px;
+}
+
+.marketplaceSearchBox input,
+.marketplaceSearchRow select {
+  width: 100%;
+  min-height: 46px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #273750;
+  font: inherit;
+}
+
+.marketplaceSearchRow select {
+  padding: 0 13px;
+  border: 1px solid #d9e2ef;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.marketplaceCategories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.marketplaceCategories button {
+  padding: 8px 13px;
+  border: 1px solid #dce5f1;
+  border-radius: 999px;
+  background: #fff;
+  color: #66758c;
+  cursor: pointer;
+}
+
+.marketplaceCategories button.active {
+  border-color: #396fe3;
+  background: #edf3ff;
+  color: #285cc8;
+  font-weight: 700;
+}
+
+.marketplaceNotice {
+  padding: 12px 14px;
+  border: 1px solid #bfe0c8;
+  border-radius: 12px;
+  background: #f1fbf4;
+  color: #28703c;
+}
+
+.marketplaceNoticeError {
+  border-color: #f0c4c4;
+  background: #fff5f5;
+  color: #a63d3d;
+}
+
+.marketplaceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.marketplaceCard {
+  display: flex;
+  min-height: 320px;
+  flex-direction: column;
+  padding: 19px;
+  border: 1px solid #dfe7f1;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(26, 46, 79, 0.05);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.marketplaceCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(26, 46, 79, 0.09);
+}
+
+.marketplaceCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.marketplaceType {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: #edf3ff;
+  color: #3564c5;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.marketplaceVerified {
+  color: #2d7b4a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.marketplaceCardTitle {
+  margin: 18px 0 7px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #172741;
+  text-align: left;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.marketplaceCard > p {
+  min-height: 48px;
+  margin: 0;
+  color: #6c798d;
+  line-height: 1.55;
+}
+
+.marketplaceTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 15px 0;
+}
+
+.marketplaceTagRow span {
+  padding: 4px 7px;
+  border-radius: 7px;
+  background: #f4f6f9;
+  color: #738095;
+  font-size: 11px;
+}
+
+.marketplacePriceRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #edf0f5;
+}
+
+.marketplacePriceRow strong {
+  color: #1e3e77;
+  font-size: 19px;
+}
+
+.marketplacePriceRow small {
+  color: #919daf;
+}
+
+.marketplaceCardActions {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.marketplacePrimary,
+.marketplaceSecondary {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.marketplacePrimary {
+  border: 1px solid #356ee0;
+  background: #356ee0;
+  color: #fff;
+}
+
+.marketplacePrimary:disabled {
+  border-color: #b7c5db;
+  background: #c8d3e3;
+  cursor: default;
+}
+
+.marketplaceSecondary {
+  border: 1px solid #d9e2ef;
+  background: #fff;
+  color: #56667e;
+}
+
+.marketplaceCard footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+  color: #8c98aa;
+  font-size: 11px;
+}
+
+.marketplaceEmpty {
+  padding: 55px 24px;
+  border: 1px dashed #d5dfec;
+  border-radius: 16px;
+  color: #7f8ca0;
+  text-align: center;
+  background: #fafcff;
+}
+
+.marketplaceDrawerBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(20, 31, 49, 0.38);
+  backdrop-filter: blur(2px);
+}
+
+.marketplaceDrawer {
+  position: relative;
+  width: min(520px, 92vw);
+  height: 100%;
+  overflow: auto;
+  padding: 32px;
+  background: #fff;
+  box-shadow: -16px 0 48px rgba(18, 30, 52, 0.18);
+}
+
+.marketplaceDrawerClose {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #dce4ee;
+  border-radius: 50%;
+  background: #fff;
+  color: #5e6b7e;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.marketplaceDrawer h2 {
+  margin: 18px 0 6px;
+  color: #182842;
+  font-size: 27px;
+}
+
+.marketplaceDrawer > code {
+  color: #69778a;
+}
+
+.marketplaceDrawer > p {
+  margin: 18px 0;
+  color: #617087;
+  line-height: 1.7;
+}
+
+.marketplaceDrawer dl {
+  display: grid;
+  gap: 9px;
+  margin: 20px 0 26px;
+}
+
+.marketplaceDrawer dl > div {
+  display: grid;
+  grid-template-columns: 85px 1fr;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eef1f5;
+}
+
+.marketplaceDrawer dt {
+  color: #8a97aa;
+}
+
+.marketplaceDrawer dd {
+  margin: 0;
+  color: #33445e;
+  font-weight: 600;
+}
+
+.marketplacePlans {
+  display: grid;
+  gap: 10px;
+}
+
+.marketplacePlans > div {
+  padding: 15px;
+  border: 1px solid #dde6f2;
+  border-radius: 14px;
+}
+
+.marketplacePlans > div > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.marketplacePlans p {
+  color: #78859a;
+  font-size: 13px;
+}
+
+@media (max-width: 1080px) {
+  .marketplaceGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .marketplaceHero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .marketplaceHeroStats {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .marketplaceGrid,
+  .marketplaceSearchRow,
+  .marketplaceHeroStats {
+    grid-template-columns: 1fr;
+  }
+
+  .marketplaceCardActions {
+    grid-template-columns: 1fr;
+  }
+}
