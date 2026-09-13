@@ -4,7 +4,7 @@ This document separates **source-code release readiness** from **deployment-owne
 
 ## Current release
 
-- Platform: `1.0.0-rc.1`
+- Platform: `1.0.0-rc.2`
 - Package Manifest contract: `1.x`
 - TypeScript SDK contract: `1.x`
 - Runtime requirement: Node.js 24+
@@ -18,24 +18,27 @@ Every `main` change must pass the following CI stages:
 1. Frozen-lockfile install and supply-chain policy validation.
 2. Full workspace TypeScript/Vite build.
 3. Release-version consistency contract.
-4. Package Manifest compatibility fixtures.
-5. SDK public API contract test.
-6. Package SemVer dependency-range regression test.
-7. Action Gateway / Skill / Agent / Workflow runtime tests.
-8. Tenancy/RBAC and multi-tenant isolation tests.
-9. Session and external-identity-binding tests.
-10. Invitation, mail settings and invitation-delivery tests.
-11. Production authentication/security regression test.
-12. Package provenance/static-scan/supply-chain test.
-13. Runtime storage-root (`OEAP_DATA_DIR`) test.
-14. Built API end-to-end test, including liveness/readiness/session/platform probes.
-15. Real headless Chrome end-to-end smoke test for core workspace navigation and uncaught runtime exceptions.
-16. Shell-script validation.
-17. Docker Compose validation.
-18. API production container build.
-19. Web production container build.
+4. Repository secret/runtime-state hygiene scan.
+5. Production Preflight configuration regression.
+6. Package Manifest compatibility fixtures.
+7. SDK public API contract test.
+8. Package SemVer dependency-range regression test.
+9. Action Gateway / Skill / Agent / Workflow runtime tests.
+10. Tenancy/RBAC and multi-tenant isolation tests.
+11. Session and external-identity-binding tests.
+12. Invitation, mail settings and invitation-delivery tests.
+13. Production authentication/security regression test.
+14. Package provenance/static-scan/supply-chain test.
+15. Runtime storage-root (`OEAP_DATA_DIR`) test.
+16. Backup/restore security regression: real restore, checksum tamper and archive traversal rejection.
+17. Built API end-to-end test, including liveness/readiness/session/platform probes.
+18. Real headless Chrome end-to-end smoke test for core workspace navigation and uncaught runtime exceptions.
+19. Shell-script validation.
+20. Docker Compose validation.
+21. API production container build.
+22. Web production container build.
 
-A tagged Release repeats the version contract, build, deterministic test suite, real-browser E2E, Compose validation and both container builds before GitHub Release creation.
+A Release repeats the release-version contract, build, deterministic test suite, real-browser E2E, Compose validation and both container builds before GitHub Release creation. Release candidates publish as GitHub prereleases.
 
 ## Security behavior frozen for the RC
 
@@ -57,6 +60,8 @@ A tagged Release repeats the version contract, build, deterministic test suite, 
 - Same-origin production may keep CORS disabled.
 - `/health` is a liveness probe.
 - `/ready` is a public infrastructure readiness probe and fails when required production identity/public URL configuration is unsafe or incomplete.
+- `pnpm preflight:production -- --env-file .env` validates Production configuration without exposing secrets.
+- `--live` mode validates deployed Web/API reachability and key Web security headers.
 
 ### Multi-tenancy
 
@@ -79,17 +84,27 @@ A tagged Release repeats the version contract, build, deterministic test suite, 
 
 - Runtime state is rooted under `OEAP_DATA_DIR` when configured.
 - Mail/brand/Connector/invitation-delivery secrets use encrypted local stores or deployment environment secrets.
+- CI rejects tracked runtime databases, encrypted local stores, backup archives, private-key files and high-confidence credential patterns.
 - Secrets must not be committed to Git.
-- Backup/restore operates on the persistent runtime data root.
+
+### Backup and restore
+
+- Filesystem backup refuses a reachable running API to reduce SQLite-copy inconsistency.
+- Backup target cannot live inside `OEAP_DATA_DIR`; `/` cannot be the runtime data root.
+- Backup input must contain only normal directories/files; links and special files are rejected.
+- New backup archives include a SHA-256 sidecar.
+- Restore verifies the sidecar when present, validates archive paths/types before touching current state, extracts to staging first, then creates a pre-restore safety copy before switching data.
+- Path traversal, links and special archive entries fail closed.
 
 ## Security-review package
 
-The repository now includes a review-ready security package:
+The repository includes a review-ready security package:
 
 - [`docs/threat-model.md`](threat-model.md) — assets, trust boundaries, threats, mitigations, invariants and residual risk.
 - [`docs/security-review-checklist.md`](security-review-checklist.md) — executable independent review / penetration-test checklist and severity guide.
 - [`SECURITY.md`](../SECURITY.md) — reporting policy, security boundaries and known limitations.
 - [`docs/production-checklist.md`](production-checklist.md) — deployment-side production controls.
+- GitHub issue #6 — external GA security/deployment validation tracker.
 
 The package is intended to make an independent review reproducible against a specific RC commit/tag; it is not a self-certification.
 
@@ -107,6 +122,6 @@ The following are deliberately **not** self-certified by the repository and must
 
 ## Release decision
 
-`1.0.0-rc.1` has completed the repository-owned code, compatibility, security-regression and release-readiness gates. The controlled `[release]` workflow repeats the release test/build/container gates and publishes `v1.0.0-rc.1` as a prerelease only if they succeed.
+`1.0.0-rc.2` is the repository-owned 1.0 engineering baseline. It can be published as the recommended prerelease only after the complete RC2 release gate succeeds.
 
 It must remain a prerelease until the external security-review gate has been completed and deployment-specific production controls have been validated. A future `1.0.0` GA tag must not be created merely by changing the version number; the external gates above should be explicitly signed off by the project/deployment owner.
