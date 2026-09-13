@@ -1,0 +1,156 @@
+.businessOverview {
+  margin: 22px 0;
+  padding: 22px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+.businessOverviewHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.businessOverviewHeading span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.businessOverviewHeading h3 {
+  margin: 0;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.businessOverviewHeading p {
+  margin: 8px 0 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.businessOverviewHeading button {
+  border: 1px solid #d8e0ea;
+  border-radius: 9px;
+  background: #fff;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #334155;
+}
+
+.businessOverviewStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.businessOverviewStats div {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.businessOverviewStats strong {
+  font-size: 24px;
+  color: #0f172a;
+}
+
+.businessOverviewStats span {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.businessOverviewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.businessOverviewPanel {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.businessOverviewPanel h4 {
+  margin: 0 0 12px;
+  color: #0f172a;
+}
+
+.businessOverviewList {
+  display: grid;
+  gap: 8px;
+}
+
+.businessOverviewRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.businessOverviewRow:last-child {
+  border-bottom: 0;
+}
+
+.businessOverviewRow > div {
+  display: grid;
+  gap: 3px;
+}
+
+.businessOverviewRow strong {
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.businessOverviewRow span {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.businessOverviewRow em {
+  font-style: normal;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.businessOverviewEmpty {
+  padding: 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+}
+
+@media (max-width: 920px) {
+  .businessOverviewStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .businessOverviewGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .businessOverviewHeading {
+    flex-direction: column;
+  }
+
+  .businessOverviewStats {
+    grid-template-columns: 1fr;
+  }
+}
