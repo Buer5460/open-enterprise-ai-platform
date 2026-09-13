@@ -21,6 +21,9 @@ import {
   registerAppHistoryRoutes
 } from "./appHistoryRoutes.js";
 import {
+  registerAppLifecycleRoutes
+} from "./appLifecycleRoutes.js";
+import {
   registerAppRoutes
 } from "./appRoutes.js";
 import {
@@ -192,6 +195,13 @@ registerUsabilityRoutes({
 });
 
 registerDataExchangeRoutes({
+  app,
+  repoRoot,
+  loadApps:
+    appRoutes.loadApps
+});
+
+registerAppLifecycleRoutes({
   app,
   repoRoot,
   loadApps:
