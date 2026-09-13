@@ -59,6 +59,9 @@ import {
   registerRemotePackageRoutes
 } from "./remotePackageRoutes.js";
 import {
+  registerSystemRoutes
+} from "./systemRoutes.js";
+import {
   registerTenancyRoutes
 } from "./tenancyRoutes.js";
 
@@ -82,11 +85,10 @@ const repoRoot =
 const openEnterpriseRoot =
   resolve(repoRoot, "..");
 
-app.get("/health", async () => ({
-  ok: true,
-  service: "oeap-api",
-  mode: deploymentMode()
-}));
+registerSystemRoutes({
+  app,
+  repoRoot
+});
 
 registerAuthRoutes({
   app,
