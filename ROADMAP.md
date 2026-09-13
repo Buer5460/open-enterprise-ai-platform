@@ -1,6 +1,6 @@
 # OEAP Roadmap
 
-OEAP 0.9.0 is the first production-candidate milestone. This roadmap separates the completed initial platform scope from work intentionally left for later releases.
+OEAP has completed the initial platform scope and the internal 1.0 compatibility-stabilization work. The current release line is **1.0.0-rc.1**: code contracts, automated security gates, browser/API end-to-end tests and deployment artifacts are frozen for release-candidate evaluation. General availability still requires an independent external security review and real deployment-owned infrastructure validation.
 
 ## 0.9 — Platform foundation and production candidate
 
@@ -54,12 +54,15 @@ OEAP 0.9.0 is the first production-candidate milestone. This roadmap separates t
 - [x] Static Package security scan
 - [x] Trusted publisher fingerprints
 - [x] Package dependency validation
+- [x] Correct fail-closed SemVer dependency-range evaluation
 - [x] Remote import without automatic code execution
 
 ### Deployment and operations
 
 - [x] Development/Production mode separation
 - [x] Production Session identity boundary
+- [x] Production Local Development login hard-disabled in code
+- [x] HTTPS public URL requirements and fail-closed CORS policy
 - [x] Docker multi-stage builds
 - [x] Docker Compose deployment
 - [x] Nginx reverse proxy and web security headers
@@ -67,6 +70,8 @@ OEAP 0.9.0 is the first production-candidate milestone. This roadmap separates t
 - [x] Backup and restore scripts
 - [x] `/health` and `/ready`
 - [x] Deterministic CI and container build validation
+- [x] Built-API end-to-end test
+- [x] Real Chrome browser end-to-end smoke test
 - [x] Automatic pnpm lockfile synchronization
 - [x] Tagged GitHub Release workflow
 
@@ -74,13 +79,40 @@ OEAP 0.9.0 is the first production-candidate milestone. This roadmap separates t
 
 The 1.0 goal is compatibility stabilization rather than another large feature expansion.
 
-- [ ] Freeze Package Manifest 1.x compatibility rules
-- [ ] Freeze public TypeScript SDK APIs
-- [ ] Define migration guarantees for application Blueprints and persistent runtime data
-- [ ] Add compatibility fixtures for supported previous Package versions
-- [ ] Expand end-to-end browser tests
-- [ ] Add documented upgrade/rollback procedure between platform releases
-- [ ] Complete external security review before declaring general availability
+- [x] Freeze Package Manifest 1.x compatibility rules
+- [x] Freeze public TypeScript SDK APIs and add contract tests
+- [x] Define migration guarantees for application Blueprints and persistent runtime data
+- [x] Add compatibility fixtures for supported previous Package versions
+- [x] Add API and real-browser end-to-end release gates
+- [x] Document upgrade/rollback procedure between platform releases
+- [x] Add release-version consistency checks for platform/API/Web/CLI/SDK/Package Spec
+- [x] Harden OAuth state, verified external identity binding and production auth defaults
+- [x] Harden remote Package provenance, static scan, path/size limits and SemVer dependency validation
+- [ ] Complete an independent external security review before declaring **1.0 General Availability**
+
+### 1.0.0-rc.1 release criteria
+
+- [x] Workspace build passes on Node.js 24 / pnpm 11.7.0
+- [x] Deterministic regression suite passes
+- [x] Built API starts and passes critical session/RBAC/runtime probes
+- [x] Headless Chrome renders and navigates core workspace pages without uncaught runtime exceptions
+- [x] Docker Compose validates
+- [x] API Docker image builds
+- [x] Web Docker image builds
+- [x] Production readiness fails closed when identity/public URL configuration is unsafe or incomplete
+- [x] Release tags are required to match the platform SemVer version
+- [x] RC tags publish as GitHub prereleases
+
+## 1.0 GA deployment gates
+
+These are environment/external-review requirements, not missing source-code features:
+
+- [ ] Independent security review completed and material findings resolved
+- [ ] Organization-owned OAuth/OIDC credentials configured and tested
+- [ ] Production DNS/TLS and public HTTPS URLs configured
+- [ ] Production mail provider credentials configured if automatic invitations are required
+- [ ] Production backup/restore drill completed against the deployment data volume
+- [ ] AI runtime/provider credentials configured and tested if AI generation is enabled
 
 ## Post-1.0 — Scalable enterprise infrastructure
 
