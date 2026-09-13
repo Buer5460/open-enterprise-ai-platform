@@ -27,9 +27,16 @@ export function runtimeStoragePath(path: string): string {
     return path;
   }
 
+  const legacyRoot = parts
+    .slice(0, tmpIndex)
+    .join(sep);
+
   const root = isAbsolute(configured)
     ? normalize(configured)
-    : resolve(process.cwd(), configured);
+    : resolve(
+        legacyRoot || process.cwd(),
+        configured
+      );
 
   const suffix = parts.slice(tmpIndex + 1);
   return join(root, ...suffix);
