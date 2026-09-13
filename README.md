@@ -2,189 +2,258 @@
 
 > Build enterprise software with AI — by describing the business, not by starting from code.
 
-OEAP is an open platform for creating, running, extending, and sharing AI-native enterprise applications. It is designed for people who understand their business but may not be traditional software developers.
+**OEAP 0.9.0** is a self-hosted, open-source enterprise AI application platform. It turns business requirements into real applications, then provides the tenancy, data, identity, package, security and operations layers required to keep those applications usable inside an organization.
 
-The platform turns business requirements into structured application blueprints, then composes apps from pluggable **Agents, Skills, Workflows, Connectors, Data Providers, and App Packages**.
+The 0.9.x line is a **Production Candidate**: the initial platform scope is implemented and continuously built/tested, while real deployments still require organization-owned infrastructure and credentials such as OAuth/OIDC, mail, DNS/TLS and an AI provider/runtime.
 
-## Why OEAP
+## From requirement to operating application
 
-Most AI tools stop at chat, code snippets, or isolated automations. OEAP is designed around a different goal:
+```text
+Business requirement
+→ AI analysis
+→ App Blueprint
+→ installable App Package
+→ generated pages and SQLite data model
+→ enterprise users / roles / app permissions
+→ AI revision + version rollback
+→ reusable Agent / Skill / Workflow / Connector packages
+```
 
-**Business requirement → AI design → installable application → real data → reusable package ecosystem.**
+DeepSeek Harness is the current AI runtime adapter, but the platform is designed around provider-independent capabilities rather than one model vendor.
 
-Today, the project already demonstrates this end-to-end path with DeepSeek Harness as an AI runtime.
+## What works in 0.9.0
 
-## What already works
+### AI application lifecycle
 
-- Natural-language enterprise app generation
-- DeepSeek Harness adapter and provider-independent `ai.generate` capability
-- AI App Builder that produces structured application blueprints
-- Installable OEAP App Packages
-- Dynamic application navigation generated from blueprints
-- Agent, Skill, Workflow, Connector and Package runtimes
-- Capability registry for provider-independent integrations
-- Permission engine, approval engine and audit log
-- Action Gateway: permission → approval → connector execution → audit
-- SQLite-backed generated application data runtime
-- Generic generated-app data API
-- Dynamic enterprise application dashboard
-- Working Growth Agent / first-touch workflow examples
+- Natural-language enterprise application generation
+- Structured App Blueprints
+- Blueprint → installable App Package
+- Generated navigation and business pages
+- SQLite-backed CRUD, search and pagination
+- Enum, currency, dates, rich text, attachment, relation and JSON fields
+- AI modification of existing applications
+- Automatic version snapshots and rollback
+- Enterprise knowledge retrieval injected into app generation/revision
 
-## Core architecture
+### Enterprise administration
+
+- Multi-organization tenancy
+- Owner / Admin / Manager / Member / Viewer plus custom roles
+- Server-side RBAC
+- Per-member application access scopes
+- Organization-isolated application data and Developer/Marketplace assets
+- Persistent sessions
+- GitHub OAuth, Google Workspace, Microsoft Entra ID and generic OIDC
+- Invitation link/code lifecycle: expiration, revoke, single use and automatic session creation
+- Organization branding and production login page
+- Per-organization SMTP / Resend / webhook / manual mail delivery
+- Encrypted Connector credential vault
+
+### AI extensibility
+
+OEAP supports six Package types:
+
+| Type | Purpose |
+| --- | --- |
+| `app` | Complete business application |
+| `agent` | Goal-oriented AI role |
+| `skill` | Reusable business capability / SOP |
+| `workflow` | Multi-step business process |
+| `connector` | SaaS, MCP, API or local-system integration |
+| `data-provider` | Enterprise/professional data source |
+
+The platform includes Agent, Skill, Workflow and Connector runtimes; a capability registry; permission and approval engines; audit logging; and an Action Gateway for controlled execution.
+
+### Developer Studio and Marketplace
+
+- Generate Package scaffold, manifest, source entry, smoke test and README
+- Validate Package structure
+- Publish/unpublish to an organization-local Marketplace
+- Enable/disable official Packages per organization
+- TypeScript SDK and OEAP CLI
+- GitHub Publisher using server-side credentials only
+- Ed25519 Package signatures and SHA-256 provenance
+- Trusted remote GitHub Package import
+- Static security scan and dependency checks before import
+- Publisher fingerprint trust policy
+- Imported remote source is **not automatically executed**
+
+### Data and operations
+
+- File/attachment center
+- Enterprise knowledge base / retrieval context
+- Operations history and error tracking
+- AI call/activity statistics
+- Approval request / approve / reject / cancel lifecycle
+- Tenancy and permission audit data
+
+### Production deployment
+
+- Development and Production modes are explicitly separated
+- Production rejects spoofed client identity headers
+- Production requires authenticated Session identity
+- Brand-aware authentication gate
+- `/health` liveness and `/ready` readiness endpoints
+- Deployment & Security readiness dashboard
+- Docker multi-stage build
+- Docker Compose
+- Nginx reverse proxy and security headers/CSP
+- Configurable persistent `OEAP_DATA_DIR`
+- Backup and restore scripts
+- Deterministic CI + container builds + Compose validation
+- Automatic pnpm workspace lockfile synchronization
+- Tag-driven GitHub Release workflow
+
+## Architecture
 
 ```mermaid
 flowchart TD
     U[Business User] --> B[AI App Builder]
-    B --> H[DeepSeek Harness / AI Runtime]
-    B --> P[App Blueprint]
-    P --> AP[OEAP App Package]
-    AP --> PM[Package Manager]
+    KB[Enterprise Knowledge] --> B
+    B --> AI[AI Capability / DeepSeek Harness]
+    B --> BP[App Blueprint]
+    BP --> AP[App Package]
+    AP --> DR[Generated App Runtime]
+    DR --> DB[(Organization-isolated SQLite)]
 
-    PM --> A[Agents]
+    PM[Package Manager] --> A[Agents]
     PM --> S[Skills]
     PM --> W[Workflows]
     PM --> C[Connectors]
-    PM --> D[Data Providers]
+    PM --> DP[Data Providers]
 
     A --> S
     S --> G[Action Gateway]
     W --> A
     W --> S
-
     G --> PE[Permission Engine]
     G --> AE[Approval Engine]
     G --> CR[Capability Registry]
     CR --> C
     G --> AL[Audit Log]
 
-    AP --> DR[Generated App Data Runtime]
-    DR --> DB[(SQLite / future enterprise DBs)]
+    ID[Session / OAuth / OIDC] --> RBAC[Tenancy + RBAC]
+    RBAC --> DR
+    RBAC --> PM
+
+    DS[Developer Studio] --> M[Organization Marketplace]
+    M --> PROV[Security Scan + Provenance]
+    PROV --> GH[GitHub Publisher / Trusted Import]
 ```
 
-## Package model
-
-OEAP defines six primary package types:
-
-| Package type | Purpose |
-| --- | --- |
-| `app` | Complete enterprise application |
-| `agent` | Goal-oriented AI role |
-| `skill` | Reusable business capability / SOP |
-| `workflow` | Multi-step business process |
-| `connector` | External API, MCP, SaaS or local integration |
-| `data-provider` | Professional or enterprise data source |
-
-A key design rule is that **Skills depend on capabilities, not vendors**. For example, a lead-generation Skill should request capabilities such as `company.search` or `social.dm`, while a Connector decides whether that capability is provided by Apollo, an MCP server, another SaaS, or an internal system.
+More detail: [docs/architecture.md](docs/architecture.md)
 
 ## Repository layout
 
 ```text
 apps/
-  api/                  Platform API
-  web/                  Web dashboard / App Builder UI
+  api/                  Fastify platform API
+  web/                  React/Vite enterprise workspace
+  cli/                  OEAP command-line client
 
 packages/
-  package-spec/         OEAP package contracts
-  package-manager/      Install / enable / disable / uninstall packages
+  package-spec/         Package contracts
+  sdk/                  TypeScript client SDK
+  package-manager/      Runtime Package lifecycle
   capability-registry/  Capability-provider resolution
-  connector-runtime/    Connector and MCP abstraction
+  connector-runtime/    Connector abstraction
   permission-engine/    Policy evaluation
-  approval-engine/      Human approval requests
-  audit-log/            Execution audit events
-  action-gateway/       Unified execution gateway
-  skill-runtime/        Skill registration and execution
-  agent-runtime/        Agent registration and execution
-  workflow-engine/      Workflow execution
+  approval-engine/      Human approval primitives
+  audit-log/            Execution audit
+  action-gateway/       Permission → approval → connector → audit
+  skill-runtime/        Skill runtime
+  agent-runtime/        Agent runtime
+  workflow-engine/      Workflow runtime
   harness-adapter/      DeepSeek Harness adapter
-  app-builder/          AI application blueprint generation
-  app-package-builder/  Blueprint → installable App Package
-  app-installer/        App Package installer
-  data-runtime/         Generated app database runtime
-  official/             Official example packages
+  app-builder/          AI Blueprint generation/revision
+  app-package-builder/  Blueprint → App Package
+  app-installer/        App installation
+  data-runtime/         Generated app data runtime
+  official/             Official example Packages
 ```
 
-## Development requirements
+## Local development
+
+Requirements:
 
 - Node.js 24+
-- pnpm 11.7.0
-- DeepSeek Harness checkout for AI-powered features
-
-This repository intentionally keeps DeepSeek Harness external to the OEAP core. A common local layout is:
-
-```text
-OpenEnterpriseAI/
-  deepseek-harness/
-  open-enterprise-ai-platform/
-  .dsh-dev/
-```
-
-## Install
+- pnpm 11.7.0 through Corepack
+- Optional DeepSeek Harness checkout for live AI generation
 
 ```bash
 git clone https://github.com/Buer5460/open-enterprise-ai-platform.git
 cd open-enterprise-ai-platform
 corepack pnpm install
+./scripts/start-local.sh
 ```
 
-Build the workspace:
-
-```bash
-corepack pnpm -r build
-```
-
-Run the API:
-
-```bash
-corepack pnpm --filter @oeap/api dev
-```
-
-Run the Web app in another terminal:
-
-```bash
-corepack pnpm --filter @oeap/web dev
-```
-
-Then open:
+Open:
 
 ```text
 http://127.0.0.1:5173/
 ```
 
-## Current examples
+The local startup script builds the workspace and launches the platform in development mode with the local Owner identity.
 
-The repository includes working examples for:
+## Production deployment
 
-- Provider-independent AI generation
-- Growth Agent
-- Social first-touch Skill
-- Growth first-touch Workflow
-- AI-generated travel CRM / operations application
-- AI-generated payment service ERP blueprint
+Start with:
 
-## Vision
+- [docs/deployment.md](docs/deployment.md)
+- [docs/production-checklist.md](docs/production-checklist.md)
+- [.env.example](.env.example)
 
-OEAP aims to become a platform where:
+Typical container deployment:
 
-1. A business user describes what their company needs.
-2. AI acts as product manager, architect and implementation assistant.
-3. The platform creates an installable enterprise application.
-4. Developers publish Skills, Agents, Workflows, Connectors and Apps.
-5. Business experts can package and share domain knowledge without rebuilding the whole platform.
-6. Packages can be open-source, privately shared, or distributed through a future marketplace.
+```bash
+cp .env.example .env
+# Edit production-owned values and secrets outside source control.
+docker compose up -d --build
+```
 
-## Project status
+Check:
 
-OEAP is currently **experimental / early-stage**. APIs and package specifications may change before the first stable release.
+```text
+GET /health   # process liveness
+GET /ready    # production readiness
+```
 
-Do not use the current code for production financial transfers, live trading, or other high-risk operations without additional security, persistence, authentication, authorization, validation, and review layers.
+## Package security
+
+OEAP treats third-party extensions as a software supply-chain boundary. Remote imports must pass file/path limits, static security checks, content-digest verification, Ed25519 signature verification, trusted publisher fingerprint validation and dependency checks before entering an organization Marketplace.
+
+See [docs/package-supply-chain.md](docs/package-supply-chain.md).
+
+## Security model
+
+- Secrets belong in environment configuration or the encrypted Connector vault, never Package source.
+- Production identity is Session-based and cannot be selected by client headers.
+- Organizations, application data, knowledge, files and local Package assets are isolated server-side.
+- Remote Package import does not automatically execute imported code.
+- High-risk domains still require domain-specific controls and independent review.
+
+See [SECURITY.md](SECURITY.md).
+
+## Tests and CI
+
+```bash
+corepack pnpm build
+corepack pnpm test
+```
+
+CI also validates shell scripts, Docker Compose and both production container targets.
+
+Live AI-provider calls are intentionally excluded from public CI because they require an external runtime checkout and private provider credentials.
+
+## Versioning
+
+Current platform version: **0.9.0 Production Candidate**.
+
+See [CHANGELOG.md](CHANGELOG.md) for release details and [ROADMAP.md](ROADMAP.md) for post-0.9 work.
 
 ## Contributing
 
-Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
-
-For security issues, see [SECURITY.md](SECURITY.md).
-
-See [ROADMAP.md](ROADMAP.md) for planned work.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Security reports should follow [SECURITY.md](SECURITY.md).
 
 ## License
 
