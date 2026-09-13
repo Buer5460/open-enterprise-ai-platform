@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+
+import { runtimeStoragePath } from "./storagePath.js";
 
 export type AuthProviderId =
   | "local"
@@ -26,11 +28,13 @@ export class AuthSessionStore {
   private readonly db: DatabaseSync;
 
   constructor(databasePath: string) {
-    mkdirSync(dirname(databasePath), {
+    const path = runtimeStoragePath(databasePath);
+
+    mkdirSync(dirname(path), {
       recursive: true
     });
 
-    this.db = new DatabaseSync(databasePath);
+    this.db = new DatabaseSync(path);
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS auth_sessions (
         token TEXT PRIMARY KEY,
