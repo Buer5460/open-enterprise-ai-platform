@@ -1,12 +1,17 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { access, mkdtemp, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const port = 19000 + Math.floor(Math.random() * 5000);
 const dataDir = await mkdtemp(join(tmpdir(), "oeap-api-e2e-"));
 const base = `http://127.0.0.1:${port}`;
+const platformPackage = JSON.parse(
+  await readFile(join(process.cwd(), "package.json"), "utf8")
+);
+const expectedVersion = String(platformPackage.version || "");
+assert.ok(expectedVersion, "root package.json must declare platform version");
 
 const child = spawn(
   process.execPath,
@@ -40,7 +45,7 @@ try {
   assert.equal(health.response.status, 200);
   assert.equal(health.body.ok, true);
   assert.equal(health.body.service, "oeap-api");
-  assert.equal(health.body.version, "0.9.0");
+  assert.equal(health.body.version, expectedVersion);
 
   const ready = await jsonRequest("/ready");
   assert.equal(ready.response.status, 200);
