@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { access, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -84,6 +84,10 @@ try {
   assert.equal(packages.response.status, 200);
   assert.equal(packages.body.ok, true);
   assert.ok(Array.isArray(packages.body.packages));
+
+  await access(join(dataDir, "tenancy", "tenancy.sqlite"));
+  await access(join(dataDir, "auth", "sessions.sqlite"));
+  await access(join(dataDir, "knowledge", "knowledge.sqlite"));
 
   console.log("✅ BUILT API E2E TEST PASSED");
 } catch (error) {
