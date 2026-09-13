@@ -38,6 +38,9 @@ importers:
       '@oeap/deepseek-harness-connector':
         specifier: workspace:*
         version: link:../../packages/official/deepseek-harness-connector
+      '@oeap/harness-adapter':
+        specifier: workspace:*
+        version: link:../../packages/harness-adapter
       '@oeap/package-manager':
         specifier: workspace:*
         version: link:../../packages/package-manager
