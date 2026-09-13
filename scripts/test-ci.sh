@@ -40,5 +40,6 @@ run_if_present scripts/test-openai-compatible-connector.mjs
 run_if_present scripts/test-api-e2e.mjs
 run_if_present scripts/test-ai-runtime-api.mjs
 run_if_present scripts/test-app-lifecycle.mjs
+run_if_present scripts/test-app-preferences.mjs
 
 echo "✅ deterministic OEAP test suite passed"
