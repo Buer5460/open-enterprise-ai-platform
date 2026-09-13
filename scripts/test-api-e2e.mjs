@@ -83,6 +83,21 @@ try {
   assert.equal(session.body.authenticated, true);
   assert.equal(session.body.member.id, "member_local_owner");
 
+  const currentPermission = await jsonRequest(
+    "/api/tenancy/authorize?permission=apps.manage",
+    { headers: authorization }
+  );
+  assert.equal(currentPermission.response.status, 200);
+  assert.equal(currentPermission.body.ok, true);
+  assert.equal(currentPermission.body.allowed, true);
+
+  const unsafePermissionProbe = await jsonRequest(
+    "/api/tenancy/authorize?permission=apps.manage&memberId=someone-else",
+    { headers: authorization }
+  );
+  assert.equal(unsafePermissionProbe.response.status, 400);
+  assert.equal(unsafePermissionProbe.body.ok, false);
+
   const packages = await jsonRequest("/api/platform/packages", {
     headers: authorization
   });
@@ -157,14 +172,117 @@ try {
   assert.equal(createCustomer.body.ok, true);
   assert.equal(createCustomer.body.row.name, "Day One Customer");
 
+  const validCsv = [
+    "客户名称,客户状态,来源",
+    "批量客户 A,潜在,转介绍",
+    "批量客户 B,跟进中,渠道"
+  ].join("\n");
+
+  const dryRun = await jsonRequest(
+    `/api/apps/${encodeURIComponent(appId)}/data/Customer/import`,
+    {
+      method: "POST",
+      headers: {
+        ...authorization,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        format: "csv",
+        csv: validCsv,
+        dryRun: true
+      })
+    }
+  );
+  assert.equal(dryRun.response.status, 200);
+  assert.equal(dryRun.body.ok, true);
+  assert.equal(dryRun.body.totalRows, 2);
+  assert.equal(dryRun.body.validRows, 2);
+  assert.equal(dryRun.body.errorCount, 0);
+
+  const invalidDryRun = await jsonRequest(
+    `/api/apps/${encodeURIComponent(appId)}/data/Customer/import`,
+    {
+      method: "POST",
+      headers: {
+        ...authorization,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        format: "csv",
+        csv: "客户名称,客户状态\n,不存在",
+        dryRun: true
+      })
+    }
+  );
+  assert.equal(invalidDryRun.response.status, 422);
+  assert.equal(invalidDryRun.body.ok, false);
+  assert.equal(invalidDryRun.body.validRows, 0);
+  assert.ok(invalidDryRun.body.errorCount >= 2);
+
+  const imported = await jsonRequest(
+    `/api/apps/${encodeURIComponent(appId)}/data/Customer/import`,
+    {
+      method: "POST",
+      headers: {
+        ...authorization,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        format: "csv",
+        csv: validCsv,
+        dryRun: false
+      })
+    }
+  );
+  assert.equal(imported.response.status, 200);
+  assert.equal(imported.body.ok, true);
+  assert.equal(imported.body.imported, 2);
+  assert.equal(imported.body.total, 3);
+
   const customerRows = await jsonRequest(
     `/api/apps/${encodeURIComponent(appId)}/data/Customer?page=1&pageSize=10`,
     { headers: authorization }
   );
   assert.equal(customerRows.response.status, 200);
   assert.equal(customerRows.body.ok, true);
-  assert.equal(customerRows.body.total, 1);
-  assert.equal(customerRows.body.rows[0].name, "Day One Customer");
+  assert.equal(customerRows.body.total, 3);
+  assert.ok(
+    customerRows.body.rows.some(
+      (item) => item.name === "批量客户 A"
+    )
+  );
+
+  const jsonExport = await jsonRequest(
+    `/api/apps/${encodeURIComponent(appId)}/data/Customer/export?format=json`,
+    { headers: authorization }
+  );
+  assert.equal(jsonExport.response.status, 200);
+  assert.equal(jsonExport.body.ok, true);
+  assert.equal(jsonExport.body.total, 3);
+  assert.equal(jsonExport.body.truncated, false);
+  assert.equal(jsonExport.body.rows.length, 3);
+
+  const csvResponse = await fetch(
+    `${base}/api/apps/${encodeURIComponent(appId)}/data/Customer/export?format=csv`,
+    { headers: authorization }
+  );
+  assert.equal(csvResponse.status, 200);
+  assert.match(
+    csvResponse.headers.get("content-type") ?? "",
+    /text\/csv/
+  );
+  const csvExport = await csvResponse.text();
+  assert.match(csvExport, /客户名称/);
+  assert.match(csvExport, /批量客户 A/);
+
+  const overview = await jsonRequest(
+    "/api/platform/data-overview",
+    { headers: authorization }
+  );
+  assert.equal(overview.response.status, 200);
+  assert.equal(overview.body.ok, true);
+  assert.equal(overview.body.totals.apps, 1);
+  assert.ok(overview.body.totals.records >= 3);
 
   const afterTemplate = await jsonRequest(
     "/api/usability/status",
@@ -179,7 +297,9 @@ try {
   await access(join(dataDir, "knowledge", "knowledge.sqlite"));
   await access(join(dataDir, "databases", `${appId}.sqlite`));
 
-  console.log("✅ BUILT API + DAY-ONE USABILITY E2E TEST PASSED");
+  console.log(
+    "✅ BUILT API + DAY-ONE + DATA EXCHANGE E2E TEST PASSED"
+  );
 } catch (error) {
   console.error(output);
   throw error;
