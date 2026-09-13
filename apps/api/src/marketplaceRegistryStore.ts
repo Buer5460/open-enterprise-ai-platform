@@ -10,18 +10,15 @@ import type {
   MarketplaceSearchResponse
 } from "@oeap/package-spec";
 
-export interface ManagedMarketplacePublisher
-  extends MarketplacePublisherProfile {
-  organizationId: string;
-  createdAt: string;
-  updatedAt: string;
-}
+type Row = Record<string, any>;
 
 export class MarketplaceRegistryStore {
   private readonly db: DatabaseSync;
 
   constructor(path: string) {
-    mkdirSync(dirname(path), { recursive: true });
+    mkdirSync(dirname(path), {
+      recursive: true
+    });
     this.db = new DatabaseSync(path);
     this.db.exec("PRAGMA foreign_keys = ON");
     this.createSchema();
@@ -73,10 +70,17 @@ export class MarketplaceRegistryStore {
       );
 
       CREATE INDEX IF NOT EXISTS idx_marketplace_listings_public
-        ON marketplace_listings (status, visibility, updated_at DESC);
+        ON marketplace_listings (
+          status,
+          visibility,
+          updated_at DESC
+        );
 
       CREATE INDEX IF NOT EXISTS idx_marketplace_listings_publisher
-        ON marketplace_listings (publisher_id, updated_at DESC);
+        ON marketplace_listings (
+          publisher_id,
+          updated_at DESC
+        );
 
       CREATE TABLE IF NOT EXISTS marketplace_versions (
         package_id TEXT NOT NULL,
@@ -95,7 +99,10 @@ export class MarketplaceRegistryStore {
       );
 
       CREATE INDEX IF NOT EXISTS idx_marketplace_versions_package
-        ON marketplace_versions (package_id, published_at DESC);
+        ON marketplace_versions (
+          package_id,
+          published_at DESC
+        );
     `);
   }
 
@@ -103,11 +110,14 @@ export class MarketplaceRegistryStore {
     organizationId: string,
     profile: MarketplacePublisherProfile
   ): MarketplacePublisherProfile {
-    const existing = this.publisherRow(profile.id);
+    const existing = this.publisherRow(
+      profile.id
+    );
 
     if (
       existing &&
-      String(existing.organization_id) !== organizationId
+      String(existing.organization_id) !==
+        organizationId
     ) {
       throw new Error(
         `Publisher is owned by another organization: ${profile.id}`
@@ -115,10 +125,9 @@ export class MarketplaceRegistryStore {
     }
 
     const now = new Date().toISOString();
-    const createdAt =
-      existing
-        ? String(existing.created_at)
-        : profile.createdAt ?? now;
+    const createdAt = existing
+      ? String(existing.created_at)
+      : profile.createdAt ?? now;
 
     this.db.prepare(`
       INSERT INTO marketplace_publishers (
@@ -133,7 +142,7 @@ export class MarketplaceRegistryStore {
         verified,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         display_name = excluded.display_name,
         description = excluded.description,
@@ -151,7 +160,6 @@ export class MarketplaceRegistryStore {
       profile.supportUrl ?? null,
       profile.privacyUrl ?? null,
       profile.termsUrl ?? null,
-      existing?.verified ? 1 : profile.verified ? 1 : 0,
       createdAt,
       now
     );
@@ -165,14 +173,14 @@ export class MarketplaceRegistryStore {
   listManagedPublishers(
     organizationId: string
   ): MarketplacePublisherProfile[] {
-    return (this.db.prepare(`
-      SELECT *
-      FROM marketplace_publishers
-      WHERE organization_id = ?
-      ORDER BY display_name ASC, id ASC
-    `).all(organizationId) as any[]).map(
-      publisherFromRow
-    );
+    return (
+      this.db.prepare(`
+        SELECT *
+        FROM marketplace_publishers
+        WHERE organization_id = ?
+        ORDER BY display_name ASC, id ASC
+      `).all(organizationId) as Row[]
+    ).map(publisherFromRow);
   }
 
   getManagedPublisher(
@@ -182,10 +190,12 @@ export class MarketplaceRegistryStore {
     const row = this.db.prepare(`
       SELECT *
       FROM marketplace_publishers
-      WHERE id = ? AND organization_id = ?
-    `).get(publisherId, organizationId) as
-      | Record<string, unknown>
-      | undefined;
+      WHERE id = ?
+        AND organization_id = ?
+    `).get(
+      publisherId,
+      organizationId
+    ) as Row | undefined;
 
     return row
       ? publisherFromRow(row)
@@ -204,11 +214,12 @@ export class MarketplaceRegistryStore {
           FROM marketplace_listings l
           WHERE l.publisher_id = p.id
             AND l.status = 'published'
-            AND l.visibility IN ('public', 'unlisted')
+            AND l.visibility IN (
+              'public',
+              'unlisted'
+            )
         )
-    `).get(publisherId) as
-      | Record<string, unknown>
-      | undefined;
+    `).get(publisherId) as Row | undefined;
 
     return row
       ? publisherFromRow(row)
@@ -224,16 +235,21 @@ export class MarketplaceRegistryStore {
       listing.publisherId
     );
 
-    const existing = this.listingRow(listing.packageId);
+    const existing = this.listingRow(
+      listing.packageId
+    );
 
     if (existing) {
-      const existingPublisher =
-        String(existing.publisher_id);
-      const owner = this.publisherRow(existingPublisher);
+      const currentPublisher =
+        this.publisherRow(
+          String(existing.publisher_id)
+        );
 
       if (
-        !owner ||
-        String(owner.organization_id) !== organizationId
+        !currentPublisher ||
+        String(
+          currentPublisher.organization_id
+        ) !== organizationId
       ) {
         throw new Error(
           `Listing is owned by another organization: ${listing.packageId}`
@@ -242,10 +258,9 @@ export class MarketplaceRegistryStore {
     }
 
     const now = new Date().toISOString();
-    const createdAt =
-      existing
-        ? String(existing.created_at)
-        : listing.createdAt || now;
+    const createdAt = existing
+      ? String(existing.created_at)
+      : listing.createdAt || now;
 
     this.db.prepare(`
       INSERT INTO marketplace_listings (
@@ -269,7 +284,10 @@ export class MarketplaceRegistryStore {
         rating_count,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+        0, 0, 0, 0, ?, ?
+      )
       ON CONFLICT(package_id) DO UPDATE SET
         listing_id = excluded.listing_id,
         package_type = excluded.package_type,
@@ -295,23 +313,15 @@ export class MarketplaceRegistryStore {
       listing.publisherId,
       listing.latestVersion,
       JSON.stringify(listing.tags ?? []),
-      JSON.stringify(listing.categories ?? []),
+      JSON.stringify(
+        listing.categories ?? []
+      ),
       JSON.stringify(listing.pricing),
       listing.license
         ? JSON.stringify(listing.license)
         : null,
       listing.visibility,
       listing.status,
-      existing?.verified ? 1 : listing.verified ? 1 : 0,
-      existing
-        ? Number(existing.install_count ?? 0)
-        : listing.installCount ?? 0,
-      existing
-        ? Number(existing.rating_average ?? 0)
-        : listing.rating?.average ?? 0,
-      existing
-        ? Number(existing.rating_count ?? 0)
-        : listing.rating?.count ?? 0,
       createdAt,
       now
     );
@@ -325,16 +335,18 @@ export class MarketplaceRegistryStore {
   listManagedListings(
     organizationId: string
   ): MarketplaceListing[] {
-    return (this.db.prepare(`
-      SELECT l.*
-      FROM marketplace_listings l
-      JOIN marketplace_publishers p
-        ON p.id = l.publisher_id
-      WHERE p.organization_id = ?
-      ORDER BY l.updated_at DESC, l.package_id ASC
-    `).all(organizationId) as any[]).map(
-      listingFromRow
-    );
+    return (
+      this.db.prepare(`
+        SELECT l.*
+        FROM marketplace_listings l
+        JOIN marketplace_publishers p
+          ON p.id = l.publisher_id
+        WHERE p.organization_id = ?
+        ORDER BY
+          l.updated_at DESC,
+          l.package_id ASC
+      `).all(organizationId) as Row[]
+    ).map(listingFromRow);
   }
 
   getManagedListing(
@@ -348,9 +360,10 @@ export class MarketplaceRegistryStore {
         ON p.id = l.publisher_id
       WHERE l.package_id = ?
         AND p.organization_id = ?
-    `).get(packageId, organizationId) as
-      | Record<string, unknown>
-      | undefined;
+    `).get(
+      packageId,
+      organizationId
+    ) as Row | undefined;
 
     return row
       ? listingFromRow(row)
@@ -365,10 +378,11 @@ export class MarketplaceRegistryStore {
       FROM marketplace_listings
       WHERE package_id = ?
         AND status = 'published'
-        AND visibility IN ('public', 'unlisted')
-    `).get(packageId) as
-      | Record<string, unknown>
-      | undefined;
+        AND visibility IN (
+          'public',
+          'unlisted'
+        )
+    `).get(packageId) as Row | undefined;
 
     return row
       ? listingFromRow(row)
@@ -378,31 +392,38 @@ export class MarketplaceRegistryStore {
   searchPublicListings(
     input: MarketplaceSearchRequest
   ): MarketplaceSearchResponse {
-    const q = input.q?.trim().toLowerCase();
+    const q =
+      input.q?.trim().toLowerCase();
     const type = input.type;
-    const publisherId = input.publisherId?.trim();
+    const publisherId =
+      input.publisherId?.trim();
 
     const rows = this.db.prepare(`
       SELECT *
       FROM marketplace_listings
       WHERE status = 'published'
         AND visibility = 'public'
-        AND (? IS NULL OR package_type = ?)
-        AND (? IS NULL OR publisher_id = ?)
-      ORDER BY updated_at DESC, package_id ASC
+        AND (
+          ? IS NULL OR package_type = ?
+        )
+        AND (
+          ? IS NULL OR publisher_id = ?
+        )
+      ORDER BY
+        updated_at DESC,
+        package_id ASC
     `).all(
       type ?? null,
       type ?? null,
       publisherId || null,
       publisherId || null
-    ) as any[];
+    ) as Row[];
 
     const filtered = rows
       .map(listingFromRow)
       .filter((listing) => {
-        if (
-          q &&
-          ![
+        if (q) {
+          const searchable = [
             listing.packageId,
             listing.displayName,
             listing.summary,
@@ -410,17 +431,19 @@ export class MarketplaceRegistryStore {
             ...(listing.categories ?? [])
           ]
             .join(" ")
-            .toLowerCase()
-            .includes(q)
-        ) {
-          return false;
+            .toLowerCase();
+
+          if (!searchable.includes(q)) {
+            return false;
+          }
         }
 
         if (
           input.pricingModel &&
           !listing.pricing.some(
             (plan) =>
-              plan.model === input.pricingModel
+              plan.model ===
+                input.pricingModel
           )
         ) {
           return false;
@@ -429,7 +452,8 @@ export class MarketplaceRegistryStore {
         if (
           input.tags?.length &&
           !input.tags.every((tag) =>
-            (listing.tags ?? []).includes(tag)
+            (listing.tags ?? [])
+              .includes(tag)
           )
         ) {
           return false;
@@ -437,8 +461,10 @@ export class MarketplaceRegistryStore {
 
         if (
           input.categories?.length &&
-          !input.categories.every((category) =>
-            (listing.categories ?? []).includes(category)
+          !input.categories.every(
+            (category) =>
+              (listing.categories ?? [])
+                .includes(category)
           )
         ) {
           return false;
@@ -448,12 +474,15 @@ export class MarketplaceRegistryStore {
       });
 
     const limit = clampLimit(input.limit);
-    const offset = decodeCursor(input.cursor);
+    const offset = decodeCursor(
+      input.cursor
+    );
     const items = filtered.slice(
       offset,
       offset + limit
     );
-    const nextOffset = offset + items.length;
+    const nextOffset =
+      offset + items.length;
 
     return {
       items,
@@ -485,7 +514,8 @@ export class MarketplaceRegistryStore {
         changelog,
         published_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(package_id, version) DO UPDATE SET
+      ON CONFLICT(package_id, version)
+      DO UPDATE SET
         download_url = excluded.download_url,
         sha256 = excluded.sha256,
         signature = excluded.signature,
@@ -521,9 +551,9 @@ export class MarketplaceRegistryStore {
       packageId
     );
 
-    return this.artifactRows(packageId).map(
-      artifactFromRow
-    );
+    return this.artifactRows(
+      packageId
+    ).map(artifactFromRow);
   }
 
   getManagedArtifact(
@@ -531,7 +561,12 @@ export class MarketplaceRegistryStore {
     packageId: string,
     version: string
   ): MarketplaceArtifact | undefined {
-    if (!this.getManagedListing(organizationId, packageId)) {
+    if (
+      !this.getManagedListing(
+        organizationId,
+        packageId
+      )
+    ) {
       return undefined;
     }
 
@@ -552,9 +587,9 @@ export class MarketplaceRegistryStore {
       return [];
     }
 
-    return this.artifactRows(packageId).map(
-      artifactFromRow
-    );
+    return this.artifactRows(
+      packageId
+    ).map(artifactFromRow);
   }
 
   getPublicArtifact(
@@ -579,10 +614,11 @@ export class MarketplaceRegistryStore {
     organizationId: string,
     packageId: string
   ): MarketplaceListing {
-    const listing = this.requireManagedListing(
-      organizationId,
-      packageId
-    );
+    const listing =
+      this.requireManagedListing(
+        organizationId,
+        packageId
+      );
 
     if (
       !this.getManagedArtifact(
@@ -641,10 +677,11 @@ export class MarketplaceRegistryStore {
     organizationId: string,
     publisherId: string
   ): MarketplacePublisherProfile {
-    const publisher = this.getManagedPublisher(
-      organizationId,
-      publisherId
-    );
+    const publisher =
+      this.getManagedPublisher(
+        organizationId,
+        publisherId
+      );
 
     if (!publisher) {
       throw new Error(
@@ -695,69 +732,74 @@ export class MarketplaceRegistryStore {
 
   private publisherRow(
     publisherId: string
-  ): Record<string, any> | undefined {
+  ): Row | undefined {
     return this.db.prepare(`
       SELECT *
       FROM marketplace_publishers
       WHERE id = ?
     `).get(publisherId) as
-      | Record<string, any>
+      | Row
       | undefined;
   }
 
   private listingRow(
     packageId: string
-  ): Record<string, any> | undefined {
+  ): Row | undefined {
     return this.db.prepare(`
       SELECT *
       FROM marketplace_listings
       WHERE package_id = ?
     `).get(packageId) as
-      | Record<string, any>
+      | Row
       | undefined;
   }
 
   private artifactRows(
     packageId: string
-  ): Record<string, any>[] {
+  ): Row[] {
     return this.db.prepare(`
       SELECT *
       FROM marketplace_versions
       WHERE package_id = ?
-      ORDER BY published_at DESC, version DESC
-    `).all(packageId) as Record<string, any>[];
+      ORDER BY
+        published_at DESC,
+        version DESC
+    `).all(packageId) as Row[];
   }
 
   private artifactRow(
     packageId: string,
     version: string
-  ): Record<string, any> | undefined {
+  ): Row | undefined {
     return this.db.prepare(`
       SELECT *
       FROM marketplace_versions
-      WHERE package_id = ? AND version = ?
-    `).get(packageId, version) as
-      | Record<string, any>
-      | undefined;
+      WHERE package_id = ?
+        AND version = ?
+    `).get(
+      packageId,
+      version
+    ) as Row | undefined;
   }
 }
 
 function publisherFromRow(
-  row: Record<string, any>
+  row: Row
 ): MarketplacePublisherProfile {
   return {
     id: String(row.id),
-    displayName: String(row.display_name),
+    displayName:
+      String(row.display_name),
     description:
-      nullableString(row.description),
+      optionalString(row.description),
     website:
-      nullableString(row.website),
+      optionalString(row.website),
     supportUrl:
-      nullableString(row.support_url),
+      optionalString(row.support_url),
     privacyUrl:
-      nullableString(row.privacy_url),
+      optionalString(row.privacy_url),
     termsUrl:
-      nullableString(row.terms_url),
+      optionalString(row.terms_url),
     verified: Boolean(row.verified),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
@@ -765,17 +807,20 @@ function publisherFromRow(
 }
 
 function listingFromRow(
-  row: Record<string, any>
+  row: Row
 ): MarketplaceListing {
   return {
     id: String(row.listing_id),
     packageId: String(row.package_id),
     packageType: row.package_type,
     slug: String(row.slug),
-    displayName: String(row.display_name),
+    displayName:
+      String(row.display_name),
     summary: String(row.summary),
-    publisherId: String(row.publisher_id),
-    latestVersion: String(row.latest_version),
+    publisherId:
+      String(row.publisher_id),
+    latestVersion:
+      String(row.latest_version),
     tags:
       parseJson(row.tags_json, []),
     categories:
@@ -784,15 +829,23 @@ function listingFromRow(
       parseJson(row.pricing_json, []),
     license:
       row.license_json
-        ? parseJson(row.license_json, undefined)
+        ? parseJson(
+            row.license_json,
+            undefined
+          )
         : undefined,
     visibility: row.visibility,
     status: row.status,
     verified: Boolean(row.verified),
-    installCount: Number(row.install_count ?? 0),
+    installCount:
+      Number(row.install_count ?? 0),
     rating: {
-      average: Number(row.rating_average ?? 0),
-      count: Number(row.rating_count ?? 0)
+      average:
+        Number(
+          row.rating_average ?? 0
+        ),
+      count:
+        Number(row.rating_count ?? 0)
     },
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
@@ -800,22 +853,28 @@ function listingFromRow(
 }
 
 function artifactFromRow(
-  row: Record<string, any>
+  row: Row
 ): MarketplaceArtifact {
   return {
     packageId: String(row.package_id),
     version: String(row.version),
-    downloadUrl: String(row.download_url),
+    downloadUrl:
+      String(row.download_url),
     sha256: String(row.sha256),
     signature:
-      nullableString(row.signature),
+      optionalString(row.signature),
     provenanceUrl:
-      nullableString(row.provenance_url),
+      optionalString(
+        row.provenance_url
+      ),
     manifest:
-      parseJson(row.manifest_json, {}),
+      parseRequiredJson<
+        MarketplaceArtifact["manifest"]
+      >(row.manifest_json),
     changelog:
-      nullableString(row.changelog),
-    publishedAt: String(row.published_at)
+      optionalString(row.changelog),
+    publishedAt:
+      String(row.published_at)
   };
 }
 
@@ -832,7 +891,25 @@ function parseJson<T>(
   }
 }
 
-function nullableString(
+function parseRequiredJson<T>(
+  value: unknown
+): T {
+  if (typeof value !== "string") {
+    throw new Error(
+      "Marketplace registry contains invalid JSON data"
+    );
+  }
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    throw new Error(
+      "Marketplace registry contains invalid JSON data"
+    );
+  }
+}
+
+function optionalString(
   value: unknown
 ): string | undefined {
   return typeof value === "string" &&
@@ -854,19 +931,25 @@ function clampLimit(
   );
 }
 
-function encodeCursor(offset: number): string {
-  return Buffer.from(String(offset))
+function encodeCursor(
+  offset: number
+): string {
+  return Buffer
+    .from(String(offset))
     .toString("base64url");
 }
 
-function decodeCursor(cursor: string | undefined): number {
+function decodeCursor(
+  cursor: string | undefined
+): number {
   if (!cursor) {
     return 0;
   }
 
   try {
     const decoded = Number(
-      Buffer.from(cursor, "base64url")
+      Buffer
+        .from(cursor, "base64url")
         .toString("utf8")
     );
 
