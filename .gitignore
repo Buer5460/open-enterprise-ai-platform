@@ -1,21 +1,30 @@
 node_modules/
 dist/
-.DS_Store
-.env
-.env.*
-!.env.example
-*.log
 coverage/
-.tmp/
 .cache/
+.DS_Store
+*.log
 
-# OEAP local runtime
-.tmp/
-*.sqlite
-*.sqlite3
-.dsh*
+# Environment and local credentials
 .env
 .env.*
 !.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+*.enc
 credentials*
 secrets*
+
+# OEAP local/runtime state
+.tmp/
+backups/
+*.sqlite
+*.sqlite3
+*.db
+.dsh*
+
+# Local editor/tool state
+.vscode/
+.idea/
