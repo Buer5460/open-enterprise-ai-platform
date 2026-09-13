@@ -214,6 +214,15 @@ importers:
         specifier: workspace:*
         version: link:../../workflow-engine
 
+  packages/official/openai-compatible-connector:
+    dependencies:
+      '@oeap/connector-runtime':
+        specifier: workspace:*
+        version: link:../../connector-runtime
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../package-spec
+
   packages/official/social-first-touch:
     dependencies:
       '@oeap/package-spec':
