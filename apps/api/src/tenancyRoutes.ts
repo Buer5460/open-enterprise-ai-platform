@@ -3,8 +3,9 @@ import type {
   FastifyRequest
 } from "fastify";
 
-import { join } from "node:path";
-
+import {
+  runtimePath
+} from "./runtimePaths.js";
 import {
   TenancyStore,
   type MemberStatus
@@ -19,9 +20,8 @@ export function registerTenancyRoutes(
   options: TenancyRoutesOptions
 ) {
   const store = new TenancyStore(
-    join(
+    runtimePath(
       options.repoRoot,
-      ".tmp",
       "tenancy",
       "tenancy.sqlite"
     )
@@ -426,17 +426,13 @@ export function registerTenancyRoutes(
     Querystring: {
       permission?: string;
       appId?: string;
-      memberId?: string;
-      organizationId?: string;
     };
   }>(
     "/api/tenancy/authorize",
     async (request) => {
       const organizationId =
-        request.query.organizationId ||
         organizationFrom(request);
       const memberId =
-        request.query.memberId ||
         memberFrom(request);
       const permission =
         request.query.permission ||
@@ -444,12 +440,13 @@ export function registerTenancyRoutes(
 
       return {
         ok: true,
-        allowed: store.authorize({
+        allowed: authorize(
+          store,
           organizationId,
           memberId,
           permission,
-          appId: request.query.appId
-        })
+          request.query.appId
+        )
       };
     }
   );
