@@ -20,6 +20,9 @@ importers:
       '@fastify/cors':
         specifier: ^11.1.0
         version: 11.3.0
+      '@oeap/agent-runtime':
+        specifier: workspace:*
+        version: link:../../packages/agent-runtime
       '@oeap/ai-generate-skill':
         specifier: workspace:*
         version: link:../../packages/official/ai-generate-skill
