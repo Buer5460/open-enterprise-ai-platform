@@ -9,8 +9,10 @@ const api = spawn(
       ...process.env,
       OEAP_DEPLOYMENT_MODE: "production",
       NODE_ENV: "production",
-      OEAP_LOCAL_AUTH: "disabled",
-      OEAP_CORS_ORIGINS: "http://127.0.0.1:5173"
+      // Deliberately try to enable local auth. Production code must ignore
+      // this unsafe override and keep local bootstrap login disabled.
+      OEAP_LOCAL_AUTH: "enabled",
+      OEAP_CORS_ORIGINS: "https://app.example.test"
     },
     stdio: ["ignore", "pipe", "pipe"]
   }
@@ -59,7 +61,7 @@ try {
 
   assert(
     localLogin.status === 403,
-    `production local login must be disabled, got ${localLogin.status}`
+    `production local login must remain disabled even when OEAP_LOCAL_AUTH=enabled, got ${localLogin.status}`
   );
 
   const publicInvitation = await fetch(
@@ -84,6 +86,17 @@ try {
   assert(
     providerBody.localDevelopmentMode === false,
     "local development mode must be false in production"
+  );
+
+  // Readiness is an infrastructure probe and must not require a user session.
+  // This test intentionally omits real IdP/public URL configuration, so a 503
+  // is expected; a 401 would mean the auth guard is incorrectly blocking it.
+  const ready = await fetch(
+    "http://127.0.0.1:8787/ready"
+  );
+  assert(
+    ready.status === 503,
+    `production readiness without IdP/public URLs should be 503 rather than auth-blocked, got ${ready.status}`
   );
 
   console.log("✅ PRODUCTION SECURITY TEST PASSED");
