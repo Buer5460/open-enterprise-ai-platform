@@ -2,7 +2,14 @@ import {
   skillRuntime
 } from "@oeap/skill-runtime";
 
-export interface AppBuilderInput {
+export interface AppBuilderExecutionContext {
+  workspaceId?: string;
+  userId?: string;
+  preferredProvider?: string;
+}
+
+export interface AppBuilderInput
+  extends AppBuilderExecutionContext {
   description: string;
   nameHint?: string;
   language?: string;
@@ -59,7 +66,8 @@ export interface AppBuilderResult {
   rawAIResponse: string;
 }
 
-export interface AppRevisionInput {
+export interface AppRevisionInput
+  extends AppBuilderExecutionContext {
   blueprint: AppBlueprint;
   instruction: string;
   language?: string;
@@ -321,7 +329,8 @@ function validateAndNormalizeBlueprint(
 
 async function generateBlueprint(
   prompt: string,
-  taskPrefix: string
+  taskPrefix: string,
+  context: AppBuilderExecutionContext = {}
 ): Promise<AppBuilderResult> {
   const result = await skillRuntime.run<
     { prompt: string },
@@ -330,6 +339,14 @@ async function generateBlueprint(
     skillId: "oeap.ai-generate",
     agentId: "oeap.app-builder",
     taskId: `${taskPrefix}:${Date.now()}`,
+    workspaceId: context.workspaceId,
+    userId: context.userId,
+    metadata: context.preferredProvider
+      ? {
+          preferredProvider:
+            context.preferredProvider
+        }
+      : undefined,
     input: {
       prompt
     }
@@ -445,7 +462,8 @@ ${schemaInstruction}
 
     return generateBlueprint(
       prompt,
-      "app-builder"
+      "app-builder",
+      input
     );
   }
 
@@ -482,7 +500,8 @@ ${schemaInstruction}
 
     return generateBlueprint(
       prompt,
-      "app-revision"
+      "app-revision",
+      input
     );
   }
 }
