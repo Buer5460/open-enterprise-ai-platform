@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "id": "fixture.skill.v1",
+  "type": "skill",
+  "name": "fixture-skill-v1",
+  "displayName": "Fixture Skill v1",
+  "description": "Stable Package schema 1.0 fixture.",
+  "version": "1.0.0",
+  "publisher": "oeap-fixtures",
+  "license": "Apache-2.0",
+  "permissions": [],
+  "dependencies": []
+}
