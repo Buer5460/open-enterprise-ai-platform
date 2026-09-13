@@ -1,0 +1,101 @@
+# OEAP 1.0 Release Readiness
+
+This document separates **source-code release readiness** from **deployment-owned production validation**. OEAP does not treat a green build as proof that an organization's OAuth tenant, DNS/TLS, mail provider, AI provider, backup process or external security posture has been independently validated.
+
+## Current release
+
+- Platform: `1.0.0-rc.1`
+- Package Manifest contract: `1.x`
+- TypeScript SDK contract: `1.x`
+- Runtime requirement: Node.js 24+
+- Workspace package manager: pnpm 11.7.0 through Corepack
+- Status: Release Candidate, not General Availability
+
+## Automated release gates
+
+Every `main` change must pass the following CI stages:
+
+1. Frozen-lockfile install and supply-chain policy validation.
+2. Full workspace TypeScript/Vite build.
+3. Release-version consistency contract.
+4. Package Manifest compatibility fixtures.
+5. SDK public API contract test.
+6. Package SemVer dependency-range regression test.
+7. Action Gateway / Skill / Agent / Workflow runtime tests.
+8. Tenancy/RBAC and multi-tenant isolation tests.
+9. Session and external-identity-binding tests.
+10. Invitation, mail settings and invitation-delivery tests.
+11. Production authentication/security regression test.
+12. Package provenance/static-scan/supply-chain test.
+13. Runtime storage-root (`OEAP_DATA_DIR`) test.
+14. Built API end-to-end test, including liveness/readiness/session/platform probes.
+15. Real headless Chrome end-to-end smoke test for core workspace navigation and uncaught runtime exceptions.
+16. Shell-script validation.
+17. Docker Compose validation.
+18. API production container build.
+19. Web production container build.
+
+A tagged Release repeats the version contract, build, deterministic test suite, real-browser E2E, Compose validation and both container builds before GitHub Release creation.
+
+## Security behavior frozen for the RC
+
+### Identity
+
+- Production ignores browser-provided `x-oeap-org` and `x-oeap-member` identity selection.
+- Protected production APIs require a valid OEAP Session.
+- Local Development login is hard-disabled in Production even if `OEAP_LOCAL_AUTH=enabled` is mistakenly supplied.
+- OAuth `state` is one-time and time-limited; PKCE is used where supported.
+- Existing external accounts are resolved using stable provider-subject bindings before email lookup.
+- A stale/disabled subject binding fails closed and is not silently transferred to another member by matching email.
+- GitHub first binding requires an email returned by GitHub as verified.
+
+### Network/deployment boundary
+
+- Production public Web and API URLs must use HTTPS.
+- Production CORS rejects `*`.
+- Cross-origin production deployment requires an explicit HTTPS Origin whitelist.
+- Same-origin production may keep CORS disabled.
+- `/health` is a liveness probe.
+- `/ready` is a public infrastructure readiness probe and fails when required production identity/public URL configuration is unsafe or incomplete.
+
+### Multi-tenancy
+
+- Organization/member identity is enforced server-side.
+- Generated application data uses organization-scoped databases outside the legacy local-development compatibility path.
+- Developer Studio, organization Marketplace, files, knowledge, operations, credentials and access scopes are organization-isolated.
+- Remote Package import requires `packages.manage`.
+
+### Package supply chain
+
+- Remote Package imports require a trusted publisher fingerprint.
+- Ed25519 provenance and SHA-256 content digests are verified.
+- Static security scan runs before Marketplace import.
+- Symlinks/submodules are rejected.
+- Import size and file-count limits are enforced.
+- Dependency ranges are evaluated using fail-closed SemVer rules, including correct `^0.x` behavior.
+- Imported remote source is not automatically executed.
+
+### Secrets and persistent state
+
+- Runtime state is rooted under `OEAP_DATA_DIR` when configured.
+- Mail/brand/Connector/invitation-delivery secrets use encrypted local stores or deployment environment secrets.
+- Secrets must not be committed to Git.
+- Backup/restore operates on the persistent runtime data root.
+
+## Known external/GA gates
+
+The following are deliberately **not** self-certified by the repository and must be completed by the deployment owner before 1.0 General Availability or an Internet-facing production rollout:
+
+- Independent external security review and remediation of material findings.
+- Real OAuth/OIDC tenant/application configuration and callback validation.
+- Production DNS, TLS certificate and reverse-proxy validation.
+- Production mail delivery validation if automatic invitation mail is required.
+- Backup **and restore** drill against the actual persistent volume/object storage used by the deployment.
+- AI runtime/provider credentials and a live end-to-end generation test when AI generation is enabled.
+- Organization-specific data-retention, privacy, compliance and incident-response controls.
+
+## Release decision
+
+`1.0.0-rc.1` can be published when all automated gates are green. It should remain a prerelease until the external security-review gate has been completed and deployment-specific production controls have been validated.
+
+A future `1.0.0` GA tag must not be created merely by changing the version number; the external gates above should be explicitly signed off by the project/deployment owner.
