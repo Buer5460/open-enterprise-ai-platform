@@ -9,6 +9,10 @@ import {
   sep
 } from "node:path";
 
+import {
+  validatePackageCompatibility
+} from "@oeap/package-spec";
+
 export type PackageSecurityFinding = {
   severity: "error" | "warning" | "info";
   code: string;
@@ -164,27 +168,22 @@ function validateManifest(
   manifest: any,
   findings: PackageSecurityFinding[]
 ): void {
-  if (manifest?.schemaVersion !== "1.0") {
-    error(findings, "manifest.schema", "schemaVersion must be 1.0");
+  const compatibility =
+    validatePackageCompatibility(manifest);
+
+  for (const issue of compatibility.issues) {
+    findings.push({
+      severity:
+        issue.severity === "error"
+          ? "error"
+          : "warning",
+      code: `manifest.compatibility.${issue.code}`,
+      message: issue.message
+    });
   }
 
   if (!/^[A-Za-z0-9_.-]{3,160}$/.test(String(manifest?.id || ""))) {
     error(findings, "manifest.id", "Package id is invalid");
-  }
-
-  if (![
-    "app",
-    "agent",
-    "skill",
-    "workflow",
-    "connector",
-    "data-provider"
-  ].includes(String(manifest?.type || ""))) {
-    error(findings, "manifest.type", "Package type is unsupported");
-  }
-
-  if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(String(manifest?.version || ""))) {
-    error(findings, "manifest.version", "Package version must use semantic versioning");
   }
 
   if (!/^[A-Za-z0-9_.-]{1,100}$/.test(String(manifest?.publisher || ""))) {
