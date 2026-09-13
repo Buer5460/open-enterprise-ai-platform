@@ -15,6 +15,9 @@ import {
   registerAgentKnowledgeBridge
 } from "./agentKnowledgeBridge.js";
 import {
+  registerAIRuntimeRoutes
+} from "./aiRuntimeRoutes.js";
+import {
   registerAuthRoutes
 } from "./authRoutes.js";
 import {
@@ -173,6 +176,12 @@ registerSystemRoutes({
 registerAuthRoutes({
   app,
   repoRoot
+});
+
+registerAIRuntimeRoutes({
+  app,
+  repoRoot,
+  openEnterpriseRoot
 });
 
 registerOperationsRoutes({
