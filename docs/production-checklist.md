@@ -2,13 +2,27 @@
 
 This checklist is for a self-hosted OEAP **1.0 release-candidate** deployment. It does not replace an independent security review or organization-specific compliance controls.
 
-## 1. Runtime
+## 1. Runtime and automated preflight
 
 - Use Node.js 24+ for non-container deployments.
 - Set `OEAP_DEPLOYMENT_MODE=production`.
 - Set `NODE_ENV=production`.
 - Leave `OEAP_LOCAL_AUTH` unset or set it to `disabled`. Production code hard-disables Local Development login even if an unsafe override attempts to enable it.
-- Mount a persistent `OEAP_DATA_DIR`.
+- Mount a persistent `OEAP_DATA_DIR`; never point it at `/`.
+- Run the local configuration preflight before startup:
+
+```bash
+pnpm preflight:production -- --env-file .env
+```
+
+- After DNS/TLS/reverse proxy are live, run the network-aware preflight:
+
+```bash
+pnpm preflight:production -- --env-file .env --live
+```
+
+The preflight reports configuration state but never prints OAuth/client-secret values. `--live` checks the public Web endpoint, `/health`, `/ready`, TLS reachability and key Web security headers.
+
 - Confirm `/health` returns HTTP 200.
 - Confirm `/ready` returns HTTP 200 before routing user traffic.
 - Confirm the version reported by `/health` matches the intended deployment release.
@@ -87,13 +101,26 @@ Before importing third-party Packages:
 
 ## 9. Backup and restore
 
-- Schedule backups of `OEAP_DATA_DIR`.
-- Store backups outside the running host/container volume.
+- Stop the OEAP API before using the filesystem backup script; the script refuses to back up a reachable running API to avoid inconsistent SQLite snapshots.
+- Create a backup with `pnpm backup` or `scripts/backup-data.sh`.
+- Store the `.tar.gz` and its generated `.sha256` sidecar outside the running host/container data volume.
+- Backup creation rejects targets inside `OEAP_DATA_DIR`, filesystem-root data directories, symbolic links and special/device files.
+- Restore verifies the SHA-256 sidecar when present.
+- Restore validates archive member paths before touching existing data and rejects `..`/absolute traversal paths, symlinks, hard links and special/device files.
+- Restore first extracts to a staging directory and creates a pre-restore safety copy of existing runtime data before replacing it.
 - Test `scripts/restore-data.sh` against a non-production instance.
 - Perform at least one restore drill using the same storage topology intended for Production.
 - Include organization SQLite data, files, knowledge, encrypted settings, signing keys and Package state in backup protection.
 
-## 10. Operations
+CI exercises a real backup → mutation → restore flow, checksum-tamper rejection and (on GNU tar) a path-traversal archive rejection. The Production deployment still needs its own restore drill because host storage/permissions are environment-specific.
+
+## 10. Repository and secret hygiene
+
+- Never commit `.env`, SQLite databases, encrypted runtime stores, private keys or backup archives.
+- CI scans tracked files for runtime-state filenames and common high-confidence credential/private-key patterns.
+- If a credential is ever committed, rotate/revoke it even after deleting the file from the current branch because Git history may retain the value.
+
+## 11. Operations
 
 - Review the Deployment & Security panel until critical checks pass.
 - Review Operations & Approvals for errors and pending approvals.
@@ -101,18 +128,23 @@ Before importing third-party Packages:
 - Rotate connector/OAuth/mail credentials under normal enterprise secret-management policy.
 - Keep `/ready` on the load-balancer readiness path; it is intentionally unauthenticated and returns 503 for unsafe/incomplete production configuration.
 
-## 11. Release and external review
+## 12. Release and external review
 
 Before a public Internet-facing 1.0 GA rollout:
 
 - Use a tagged release whose SemVer matches the platform package version.
-- Complete an independent external security review.
+- Complete an independent external security review against a specific RC tag.
 - Resolve material findings before GA sign-off.
 - Validate real OAuth/OIDC callbacks, mail delivery, DNS/TLS and backup/restore in the deployment environment.
 - Record who approved the production configuration and release version.
 
-## 12. High-risk workloads
+Review package:
+
+- [threat-model.md](threat-model.md)
+- [security-review-checklist.md](security-review-checklist.md)
+- [release-readiness.md](release-readiness.md)
+- [../SECURITY.md](../SECURITY.md)
+
+## 13. High-risk workloads
 
 OEAP provides platform-level authorization, approval and audit primitives, but high-risk domains such as real-money movement, live trading, regulated healthcare decisioning or critical infrastructure require domain-specific controls, independent review, stronger key management and appropriate compliance processes before production use.
-
-See [release-readiness.md](release-readiness.md) for the automated RC gates versus external GA gates.
