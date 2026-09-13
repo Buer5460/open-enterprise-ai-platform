@@ -6,6 +6,7 @@ export interface DataField {
   name: string;
   type: string;
   required?: boolean;
+  options?: string[];
 }
 
 export interface DataEntity {
@@ -17,6 +18,18 @@ export interface ListOptions {
   query?: string;
   limit?: number;
   offset?: number;
+}
+
+export class DataValidationError extends Error {
+  readonly code = "DATA_VALIDATION_ERROR";
+
+  constructor(
+    message: string,
+    public readonly field?: string
+  ) {
+    super(message);
+    this.name = "DataValidationError";
+  }
 }
 
 type DBValue =
@@ -45,7 +58,9 @@ function sqlType(type: string): string {
     value.includes("number") ||
     value.includes("int") ||
     value.includes("amount") ||
-    value.includes("price")
+    value.includes("price") ||
+    value === "currency" ||
+    value === "relation"
   ) {
     return "REAL";
   }
@@ -82,6 +97,8 @@ function toDBValue(value: unknown): DBValue {
 
 export class AppDatabase {
   private readonly db: DatabaseSync;
+  private readonly definitions =
+    new Map<string, DataEntity>();
 
   constructor(databasePath: string) {
     mkdirSync(
@@ -99,6 +116,21 @@ export class AppDatabase {
     for (const entity of entities) {
       const table =
         safeName(entity.name);
+
+      this.definitions.set(
+        table,
+        {
+          name: entity.name,
+          fields: entity.fields.map((field) => ({
+            name: field.name,
+            type: field.type,
+            required: Boolean(field.required),
+            options: Array.isArray(field.options)
+              ? [...field.options]
+              : undefined
+          }))
+        }
+      );
 
       const declaredColumns =
         entity.fields.map(
@@ -260,27 +292,26 @@ export class AppDatabase {
   ): unknown {
     const table =
       safeName(entity);
+    const normalized =
+      this.validateData(table, data, true);
 
-    const keys =
-      Object.keys(data).map(
-        safeName
-      );
+    const keys = Object.keys(normalized);
 
     if (keys.length === 0) {
-      throw new Error(
+      throw new DataValidationError(
         "No data supplied"
       );
     }
 
     const values: DBValue[] =
-      Object.values(data).map(
+      Object.values(normalized).map(
         toDBValue
       );
 
     const sql = `
       INSERT INTO "${table}"
       (${keys
-        .map((key) => `"${key}"`)
+        .map((key) => `"${safeName(key)}"`)
         .join(",")})
       VALUES
       (${keys
@@ -332,12 +363,13 @@ export class AppDatabase {
   ): unknown {
     const table =
       safeName(entity);
-
+    const normalized =
+      this.validateData(table, data, false);
     const entries =
-      Object.entries(data);
+      Object.entries(normalized);
 
     if (entries.length === 0) {
-      throw new Error(
+      throw new DataValidationError(
         "No data supplied"
       );
     }
@@ -391,6 +423,72 @@ export class AppDatabase {
     return Number(result.changes) > 0;
   }
 
+  private validateData(
+    table: string,
+    data: Record<string, unknown>,
+    creating: boolean
+  ): Record<string, unknown> {
+    const definition = this.definitions.get(table);
+
+    if (!definition) {
+      throw new DataValidationError(
+        `Entity schema is not registered: ${table}`
+      );
+    }
+
+    const fields = new Map(
+      definition.fields.map((field) => [
+        safeName(field.name),
+        field
+      ])
+    );
+
+    for (const key of Object.keys(data)) {
+      const normalizedKey = safeName(key);
+      if (!fields.has(normalizedKey)) {
+        throw new DataValidationError(
+          `Unknown field: ${key}`,
+          key
+        );
+      }
+    }
+
+    if (creating) {
+      for (const field of definition.fields) {
+        if (!field.required) continue;
+        const value = data[field.name];
+        if (isEmpty(value)) {
+          throw new DataValidationError(
+            `${field.name} is required`,
+            field.name
+          );
+        }
+      }
+    }
+
+    const normalized: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(data)) {
+      const field = fields.get(safeName(key))!;
+
+      if (!creating && field.required && isEmpty(value)) {
+        throw new DataValidationError(
+          `${field.name} cannot be empty`,
+          field.name
+        );
+      }
+
+      if (value === undefined) {
+        continue;
+      }
+
+      normalized[field.name] =
+        normalizeFieldValue(field, value);
+    }
+
+    return normalized;
+  }
+
   private getAllColumns(
     table: string
   ): string[] {
@@ -424,4 +522,117 @@ export class AppDatabase {
           ].includes(column)
       );
   }
+}
+
+function isEmpty(value: unknown): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.trim() === "")
+  );
+}
+
+function normalizeFieldValue(
+  field: DataField,
+  value: unknown
+): unknown {
+  if (value === null) {
+    return null;
+  }
+
+  const type = field.type.toLowerCase();
+  const text =
+    typeof value === "string"
+      ? value.trim()
+      : String(value);
+
+  if (
+    type === "number" ||
+    type === "currency" ||
+    type.includes("amount") ||
+    type.includes("price")
+  ) {
+    const number =
+      typeof value === "number"
+        ? value
+        : Number(text.replace(/,/g, ""));
+
+    if (!Number.isFinite(number)) {
+      throw new DataValidationError(
+        `${field.name} must be a number`,
+        field.name
+      );
+    }
+
+    return number;
+  }
+
+  if (type === "integer" || type === "relation") {
+    const number =
+      typeof value === "number"
+        ? value
+        : Number(text);
+
+    if (!Number.isInteger(number)) {
+      throw new DataValidationError(
+        `${field.name} must be an integer`,
+        field.name
+      );
+    }
+
+    return number;
+  }
+
+  if (type.includes("bool")) {
+    if (typeof value === "boolean") {
+      return value;
+    }
+
+    if (value === 1 || value === 0) {
+      return value === 1;
+    }
+
+    const lower = text.toLowerCase();
+    if (["true", "1", "yes", "y", "是"].includes(lower)) {
+      return true;
+    }
+    if (["false", "0", "no", "n", "否"].includes(lower)) {
+      return false;
+    }
+
+    throw new DataValidationError(
+      `${field.name} must be a boolean`,
+      field.name
+    );
+  }
+
+  if (type === "enum" && field.options?.length) {
+    if (!field.options.includes(text)) {
+      throw new DataValidationError(
+        `${field.name} must be one of: ${field.options.join(", ")}`,
+        field.name
+      );
+    }
+
+    return text;
+  }
+
+  if (type === "json") {
+    if (typeof value === "object") {
+      return value;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new DataValidationError(
+        `${field.name} must be valid JSON`,
+        field.name
+      );
+    }
+  }
+
+  return typeof value === "string"
+    ? text
+    : value;
 }
