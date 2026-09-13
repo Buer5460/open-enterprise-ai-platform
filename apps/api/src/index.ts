@@ -29,6 +29,9 @@ import {
   registerConnectorSecretRoutes
 } from "./connectorSecretRoutes.js";
 import {
+  registerDataExchangeRoutes
+} from "./dataExchangeRoutes.js";
+import {
   registerDeploymentRoutes
 } from "./deploymentRoutes.js";
 import {
@@ -82,6 +85,31 @@ await app.register(cors, {
   origin: corsOriginPolicy()
 });
 
+app.addHook("preValidation", async (request, reply) => {
+  const raw = request.raw.url ?? request.url;
+  let parsed: URL;
+
+  try {
+    parsed = new URL(raw, "http://oeap.local");
+  } catch {
+    return;
+  }
+
+  if (
+    parsed.pathname === "/api/tenancy/authorize" &&
+    (
+      parsed.searchParams.has("memberId") ||
+      parsed.searchParams.has("organizationId")
+    )
+  ) {
+    return reply.code(400).send({
+      ok: false,
+      error:
+        "Permission checks are limited to the current authenticated organization/member"
+    });
+  }
+});
+
 const currentDir =
   dirname(fileURLToPath(import.meta.url));
 
@@ -120,6 +148,13 @@ registerUsabilityRoutes({
   app,
   repoRoot,
   openEnterpriseRoot,
+  loadApps:
+    appRoutes.loadApps
+});
+
+registerDataExchangeRoutes({
+  app,
+  repoRoot,
   loadApps:
     appRoutes.loadApps
 });
