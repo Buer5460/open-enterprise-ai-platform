@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import { DataValidationError } from "@oeap/data-runtime";
 
 import {
   dirname,
@@ -79,6 +80,35 @@ const app = Fastify({
   trustProxy:
     process.env.OEAP_TRUST_PROXY === "true",
   bodyLimit: requestBodyLimit()
+});
+
+app.setErrorHandler((error, request, reply) => {
+  if (error instanceof DataValidationError) {
+    return reply.code(422).send({
+      ok: false,
+      code: error.code,
+      field: error.field,
+      error: error.message
+    });
+  }
+
+  const statusCode =
+    typeof (error as { statusCode?: unknown }).statusCode === "number"
+      ? Number((error as { statusCode?: number }).statusCode)
+      : 500;
+
+  if (statusCode >= 500) {
+    request.log.error(error);
+  }
+
+  return reply.code(statusCode).send({
+    ok: false,
+    statusCode,
+    error:
+      statusCode >= 500 && deploymentMode() === "production"
+        ? "Internal Server Error"
+        : error.message
+  });
 });
 
 await app.register(cors, {
