@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: draw-a-horse-race
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 3088
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: PAYMENT_MODE
+        value: disabled
+    disk:
+      name: draw-a-horse-data
+      mountPath: /app/data
+      sizeGB: 1
