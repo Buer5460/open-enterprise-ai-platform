@@ -3,6 +3,7 @@ import {
   rmSync
 } from "node:fs";
 
+import assert from "node:assert/strict";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -58,8 +59,41 @@ try {
     throw new Error("Session revoke failed");
   }
 
+  const external = store.create({
+    provider: "github",
+    organizationId: "org_test",
+    memberId: "member_test",
+    subject: "github:12345",
+    email: "Test@Example.com",
+    name: "Test User",
+    ttlHours: 1
+  });
+
+  const binding = store.getIdentityBinding(
+    "github",
+    "github:12345"
+  );
+
+  assert.equal(binding?.organizationId, "org_test");
+  assert.equal(binding?.memberId, "member_test");
+  assert.equal(binding?.email, "test@example.com");
+
+  assert.throws(
+    () => store.create({
+      provider: "github",
+      organizationId: "org_other",
+      memberId: "member_other",
+      subject: "github:12345",
+      email: "test@example.com",
+      ttlHours: 1
+    }),
+    /already bound/
+  );
+
+  assert.ok(store.get(external.token));
+
   console.log(
-    "✅ AUTH SESSION LIFECYCLE TEST PASSED"
+    "✅ AUTH SESSION + IDENTITY BINDING TEST PASSED"
   );
 } finally {
   rmSync(root, {
