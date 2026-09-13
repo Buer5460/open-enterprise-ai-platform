@@ -9,6 +9,7 @@ import { OperationsCenter } from "./OperationsCenter";
 import { KnowledgeCenter } from "./KnowledgeCenter";
 import { ConnectorCredentials } from "./ConnectorCredentials";
 import { PublisherCenter } from "./PublisherCenter";
+import { RuntimeCenter } from "./RuntimeCenter";
 import {
   GettingStarted,
   type UsabilityStatus
@@ -81,6 +82,7 @@ type AppManifest = {
 
 type RootView =
   | "workbench"
+  | "runtime"
   | "organization"
   | "files"
   | "knowledge"
@@ -401,6 +403,7 @@ function Platform() {
         <nav>
           <button className={rootView === "workbench" ? "active" : ""} onClick={() => setRootView("workbench")}>▣ 工作台</button>
           <button onClick={() => setRootView("workbench")}>◈ 我的应用</button>
+          <button className={rootView === "runtime" ? "active" : ""} onClick={() => setRootView("runtime")}>⚡ AI Runtime</button>
           <button className={rootView === "agents" ? "active" : ""} onClick={() => setRootView("agents")}>◎ Agent</button>
           <button className={rootView === "skills" ? "active" : ""} onClick={() => setRootView("skills")}>◆ Skills</button>
           <button className={rootView === "workflows" ? "active" : ""} onClick={() => setRootView("workflows")}>⇄ Workflows</button>
@@ -447,6 +450,8 @@ function Platform() {
               setActivePage("overview");
             }}
           />
+        ) : rootView === "runtime" ? (
+          <RuntimeCenter />
         ) : rootView === "organization" ? (
           <OrganizationCenter />
         ) : rootView === "files" ? (
