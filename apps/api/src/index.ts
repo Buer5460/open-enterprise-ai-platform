@@ -92,10 +92,19 @@ app.setErrorHandler((error, request, reply) => {
     });
   }
 
+  const candidate = error as {
+    statusCode?: unknown;
+    message?: unknown;
+  };
   const statusCode =
-    typeof (error as { statusCode?: unknown }).statusCode === "number"
-      ? Number((error as { statusCode?: number }).statusCode)
+    typeof candidate.statusCode === "number"
+      ? candidate.statusCode
       : 500;
+  const message =
+    typeof candidate.message === "string" &&
+    candidate.message.trim()
+      ? candidate.message
+      : "Request failed";
 
   if (statusCode >= 500) {
     request.log.error(error);
@@ -107,7 +116,7 @@ app.setErrorHandler((error, request, reply) => {
     error:
       statusCode >= 500 && deploymentMode() === "production"
         ? "Internal Server Error"
-        : error.message
+        : message
   });
 });
 
