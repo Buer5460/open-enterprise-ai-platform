@@ -1,6 +1,7 @@
 import type {
   FastifyInstance,
-  FastifyReply
+  FastifyReply,
+  FastifyRequest
 } from "fastify";
 
 import {
@@ -15,6 +16,16 @@ import {
   createOfficialMarketplaceRegistry,
   type MarketplaceRegistry
 } from "@oeap/marketplace-registry";
+
+import {
+  MarketplaceCommerceStore
+} from "./marketplaceCommerceStore.js";
+import { runtimePath } from "./runtimePaths.js";
+import { TenancyStore } from "./tenancyStore.js";
+import {
+  memberFrom,
+  organizationFrom
+} from "./tenancyRoutes.js";
 
 const MARKETPLACE_PREFIX = "/api/marketplace";
 
@@ -46,12 +57,37 @@ type ListingQuery = {
   cursor?: string;
 };
 
+type Identity = {
+  organizationId: string;
+  memberId: string;
+};
+
 export function registerMarketplaceRoutes(input: {
   app: FastifyInstance;
+  repoRoot: string;
   registry?: MarketplaceRegistry;
-}): MarketplaceRegistry {
+  commerce?: MarketplaceCommerceStore;
+}): {
+  registry: MarketplaceRegistry;
+  commerce: MarketplaceCommerceStore;
+} {
   const registry =
     input.registry ?? createOfficialMarketplaceRegistry();
+  const commerce =
+    input.commerce ?? new MarketplaceCommerceStore(
+      runtimePath(
+        input.repoRoot,
+        "marketplace",
+        "commerce.sqlite"
+      )
+    );
+  const tenancy = new TenancyStore(
+    runtimePath(
+      input.repoRoot,
+      "tenancy",
+      "tenancy.sqlite"
+    )
+  );
 
   input.app.get<{
     Querystring: ListingQuery;
@@ -184,7 +220,173 @@ export function registerMarketplaceRoutes(input: {
     }
   );
 
-  return registry;
+  input.app.get(
+    `${MARKETPLACE_PREFIX}/v1/entitlements`,
+    async (request, reply) => {
+      const identity = requirePermission(
+        tenancy,
+        request,
+        reply,
+        "packages.read"
+      );
+      if (!identity) return;
+
+      return {
+        ok: true,
+        organizationId: identity.organizationId,
+        entitlements: commerce.listEntitlements(
+          identity.organizationId
+        )
+      };
+    }
+  );
+
+  input.app.get(
+    `${MARKETPLACE_PREFIX}/v1/orders`,
+    async (request, reply) => {
+      const identity = requirePermission(
+        tenancy,
+        request,
+        reply,
+        "packages.read"
+      );
+      if (!identity) return;
+
+      return {
+        ok: true,
+        organizationId: identity.organizationId,
+        orders: commerce.listOrders(
+          identity.organizationId
+        )
+      };
+    }
+  );
+
+  input.app.post<{
+    Params: { packageId: string };
+    Body: { planId?: string };
+  }>(
+    `${MARKETPLACE_PREFIX}/v1/listings/:packageId/acquire`,
+    async (request, reply) => {
+      const identity = requirePermission(
+        tenancy,
+        request,
+        reply,
+        "packages.manage"
+      );
+      if (!identity) return;
+
+      const listing = await publicListing(
+        registry,
+        request.params.packageId
+      );
+
+      if (!listing) {
+        return notFound(reply, "Marketplace listing not found");
+      }
+
+      const existing = commerce.getEntitlement(
+        identity.organizationId,
+        listing.packageId
+      );
+
+      if (existing?.status === "active") {
+        return {
+          ok: true,
+          alreadyOwned: true,
+          entitlement: existing
+        };
+      }
+
+      const planId =
+        request.body?.planId?.trim() ||
+        listing.pricing[0]?.id;
+      const plan = listing.pricing.find(
+        (item) => item.id === planId
+      );
+
+      if (!plan) {
+        return badRequest(
+          reply,
+          "Marketplace pricing plan not found"
+        );
+      }
+
+      if (plan.model === "free") {
+        const entitlement = commerce.acquireFree({
+          organizationId: identity.organizationId,
+          packageId: listing.packageId,
+          plan
+        });
+
+        return reply.code(201).send({
+          ok: true,
+          paymentRequired: false,
+          entitlement
+        });
+      }
+
+      if (plan.model === "contact-sales") {
+        return reply.code(202).send({
+          ok: true,
+          paymentRequired: false,
+          requiresContact: true,
+          packageId: listing.packageId,
+          plan
+        });
+      }
+
+      const order = commerce.createPendingOrder({
+        organizationId: identity.organizationId,
+        packageId: listing.packageId,
+        plan,
+        provider: "unconfigured"
+      });
+
+      return reply.code(202).send({
+        ok: true,
+        paymentRequired: true,
+        paymentProviderConfigured: false,
+        order,
+        message:
+          "Order created. A payment provider must be configured before money can be collected."
+      });
+    }
+  );
+
+  input.app.delete<{
+    Params: { packageId: string };
+  }>(
+    `${MARKETPLACE_PREFIX}/v1/entitlements/:packageId`,
+    async (request, reply) => {
+      const identity = requirePermission(
+        tenancy,
+        request,
+        reply,
+        "packages.manage"
+      );
+      if (!identity) return;
+
+      const entitlement = commerce.cancelEntitlement(
+        identity.organizationId,
+        request.params.packageId
+      );
+
+      if (!entitlement) {
+        return notFound(
+          reply,
+          "Marketplace entitlement not found"
+        );
+      }
+
+      return {
+        ok: true,
+        entitlement
+      };
+    }
+  );
+
+  return { registry, commerce };
 }
 
 async function publicListing(
@@ -258,6 +460,30 @@ function parseSearchRequest(
   };
 }
 
+function requirePermission(
+  tenancy: TenancyStore,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  permission: string
+): Identity | undefined {
+  const organizationId = organizationFrom(request);
+  const memberId = memberFrom(request);
+
+  try {
+    if (!tenancy.authorize({
+      organizationId,
+      memberId,
+      permission
+    })) {
+      return forbidden(reply);
+    }
+  } catch {
+    return forbidden(reply);
+  }
+
+  return { organizationId, memberId };
+}
+
 function list(
   value: string | string[] | undefined
 ): string[] | undefined {
@@ -294,6 +520,14 @@ function badRequest(
     ok: false,
     error
   });
+}
+
+function forbidden(reply: FastifyReply) {
+  reply.code(403).send({
+    ok: false,
+    error: "Forbidden"
+  });
+  return undefined;
 }
 
 function notFound(

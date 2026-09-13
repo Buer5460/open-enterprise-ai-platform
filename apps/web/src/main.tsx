@@ -23,6 +23,7 @@ import {
   PlatformWorkspace,
   type PlatformView
 } from "./PlatformWorkspace";
+import { MarketplaceCenter } from "./MarketplaceCenter";
 import {
   BrandMark,
   BrandProvider,
@@ -465,6 +466,8 @@ function Platform() {
           <ConnectorCredentials />
         ) : rootView === "publisher" ? (
           <PublisherCenter />
+        ) : rootView === "marketplace" ? (
+          <MarketplaceCenter />
         ) : (
           <PlatformWorkspace view={rootView} />
         )}

@@ -28,6 +28,7 @@ export function registerSystemRoutes(input: {
 
   registerMarketplaceRoutes({
     app: input.app,
+    repoRoot: input.repoRoot,
     registry: createOfficialMarketplaceRegistry()
   });
 

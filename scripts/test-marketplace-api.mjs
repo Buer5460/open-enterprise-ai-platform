@@ -117,6 +117,84 @@ try {
   assert.equal(publisher.response.status, 200);
   assert.equal(publisher.body.publisher.verified, true);
 
+  const before = await jsonRequest(
+    "/api/marketplace/v1/entitlements"
+  );
+  assert.equal(before.response.status, 200);
+  assert.deepEqual(before.body.entitlements, []);
+
+  const acquired = await jsonRequest(
+    "/api/marketplace/v1/listings/oeap.company-research/acquire",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ planId: "free" })
+    }
+  );
+  assert.equal(acquired.response.status, 201);
+  assert.equal(acquired.body.ok, true);
+  assert.equal(acquired.body.paymentRequired, false);
+  assert.equal(
+    acquired.body.entitlement.packageId,
+    "oeap.company-research"
+  );
+  assert.equal(acquired.body.entitlement.status, "active");
+
+  const acquiredAgain = await jsonRequest(
+    "/api/marketplace/v1/listings/oeap.company-research/acquire",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ planId: "free" })
+    }
+  );
+  assert.equal(acquiredAgain.response.status, 200);
+  assert.equal(acquiredAgain.body.alreadyOwned, true);
+  assert.equal(
+    acquiredAgain.body.entitlement.id,
+    acquired.body.entitlement.id
+  );
+
+  const entitlements = await jsonRequest(
+    "/api/marketplace/v1/entitlements"
+  );
+  assert.equal(entitlements.response.status, 200);
+  assert.equal(entitlements.body.entitlements.length, 1);
+  assert.equal(
+    entitlements.body.entitlements[0].status,
+    "active"
+  );
+
+  const orders = await jsonRequest(
+    "/api/marketplace/v1/orders"
+  );
+  assert.equal(orders.response.status, 200);
+  assert.deepEqual(orders.body.orders, []);
+
+  const cancelled = await jsonRequest(
+    "/api/marketplace/v1/entitlements/oeap.company-research",
+    { method: "DELETE" }
+  );
+  assert.equal(cancelled.response.status, 200);
+  assert.equal(cancelled.body.entitlement.status, "cancelled");
+
+  const reacquired = await jsonRequest(
+    "/api/marketplace/v1/listings/oeap.company-research/acquire",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ planId: "free" })
+    }
+  );
+  assert.equal(reacquired.response.status, 201);
+  assert.equal(reacquired.body.entitlement.status, "active");
+
   const unknown = await jsonRequest(
     "/api/marketplace/v1/listings/oeap.unknown"
   );
