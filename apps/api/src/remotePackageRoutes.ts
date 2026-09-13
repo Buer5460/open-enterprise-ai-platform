@@ -26,6 +26,7 @@ import {
 import { TenancyStore } from "./tenancyStore.js";
 import { memberFrom, organizationFrom } from "./tenancyRoutes.js";
 import { runtimePath } from "./runtimePaths.js";
+import { satisfiesSemverRange } from "./semverRange.js";
 
 const MARKETPLACE_CONNECTOR = "oeap.github-marketplace";
 
@@ -417,7 +418,7 @@ async function validateDependencies(
     const installedVersion = available.get(packageId);
     const satisfied = Boolean(
       installedVersion &&
-      satisfiesVersion(installedVersion, range)
+      satisfiesSemverRange(installedVersion, range)
     );
 
     return {
@@ -434,53 +435,6 @@ async function validateDependencies(
     valid: results.every((item) => item.satisfied),
     dependencies: results
   };
-}
-
-function satisfiesVersion(
-  version: string,
-  range: string
-): boolean {
-  if (!range || range === "*" || range === "latest") return true;
-  if (/^\d+\.\d+\.\d+$/.test(range)) return version === range;
-
-  const current = parseVersion(version);
-  const expected = parseVersion(
-    range.replace(/^[~^>=< ]+/, "")
-  );
-  if (!current || !expected) return false;
-
-  if (range.startsWith("^")) {
-    return current[0] === expected[0] && compareVersion(current, expected) >= 0;
-  }
-  if (range.startsWith("~")) {
-    return current[0] === expected[0] &&
-      current[1] === expected[1] &&
-      compareVersion(current, expected) >= 0;
-  }
-  if (range.startsWith(">=")) {
-    return compareVersion(current, expected) >= 0;
-  }
-
-  return false;
-}
-
-function parseVersion(value: string): [number, number, number] | undefined {
-  const match = value.match(/^(\d+)\.(\d+)\.(\d+)/);
-  return match
-    ? [Number(match[1]), Number(match[2]), Number(match[3])]
-    : undefined;
-}
-
-function compareVersion(
-  left: [number, number, number],
-  right: [number, number, number]
-): number {
-  for (let index = 0; index < 3; index += 1) {
-    if (left[index] !== right[index]) {
-      return left[index] - right[index];
-    }
-  }
-  return 0;
 }
 
 function marketplacePackageRoot(
