@@ -1,0 +1,202 @@
+.dataExchangeCenter {
+  margin: 22px 0;
+  padding: 22px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+.dataExchangeHeading span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.dataExchangeHeading h3 {
+  margin: 0;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.dataExchangeHeading p {
+  margin: 8px 0 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.dataExchangeSelectors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.dataExchangeSelectors label {
+  display: grid;
+  gap: 7px;
+}
+
+.dataExchangeSelectors label > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.dataExchangeSelectors select {
+  width: 100%;
+  border: 1px solid #dbe2ea;
+  border-radius: 9px;
+  background: #fff;
+  padding: 10px 11px;
+  color: #0f172a;
+}
+
+.dataExchangeFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.dataExchangeFields span {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+}
+
+.dataExchangeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.dataExchangeActions button,
+.importFileButton,
+.dataExchangeConfirm {
+  border: 1px solid #d8e0ea;
+  border-radius: 9px;
+  padding: 9px 14px;
+  background: #fff;
+  color: #1e293b;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.dataExchangeActions button:disabled,
+.dataExchangeConfirm:disabled,
+.importFileButton.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.importFileButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.importFileButton input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.importFileButton.disabled input {
+  cursor: not-allowed;
+}
+
+.dataExchangeNotice,
+.dataExchangeMessage {
+  margin-top: 14px;
+  border-radius: 9px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+}
+
+.dataExchangeFile {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  color: #334155;
+  font-size: 12px;
+}
+
+.dataExchangeFile span {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.dataExchangePreview {
+  margin-top: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.dataExchangePreviewStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dataExchangePreviewStats div {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border-radius: 9px;
+  background: #f8fafc;
+}
+
+.dataExchangePreviewStats strong {
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.dataExchangePreviewStats span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.dataExchangeErrors {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  overflow: auto;
+  font-size: 12px;
+  color: #991b1b;
+}
+
+.dataExchangeConfirm {
+  margin-top: 14px;
+  border-color: #2563eb;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
+}
+
+@media (max-width: 780px) {
+  .dataExchangeSelectors {
+    grid-template-columns: 1fr;
+  }
+
+  .dataExchangePreviewStats {
+    grid-template-columns: 1fr;
+  }
+}
