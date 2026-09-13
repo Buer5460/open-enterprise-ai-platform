@@ -2,9 +2,9 @@
 
 > Build enterprise software with AI — by describing the business, not by starting from code.
 
-**OEAP 1.0.0-rc.1** is a self-hosted, open-source enterprise AI application platform. It turns business requirements into real applications, then provides the tenancy, data, identity, package, security and operations layers required to keep those applications usable inside an organization.
+**OEAP 1.0.0-rc.2** is a self-hosted, open-source enterprise AI application platform. It turns business requirements into real applications, then provides the tenancy, data, identity, package, security and operations layers required to keep those applications usable inside an organization.
 
-The 1.0 release-candidate line freezes the first stable Package/SDK contracts and is continuously validated by runtime, API, browser, container and supply-chain tests. It is suitable for controlled self-hosted evaluation. **1.0 General Availability remains gated on an independent external security review and deployment-owned production infrastructure/credentials.**
+The 1.0 release-candidate line freezes the first stable Package/SDK contracts and is continuously validated by runtime, API, browser, container, backup/restore and supply-chain tests. `1.0.0-rc.2` is the recommended baseline for controlled self-hosted evaluation and independent security review. **1.0 General Availability remains gated on an independent external security review and deployment-owned production infrastructure/credentials.**
 
 ## From requirement to operating application
 
@@ -21,7 +21,7 @@ Business requirement
 
 DeepSeek Harness is the current AI runtime adapter, but the platform is designed around provider-independent capabilities rather than one model vendor.
 
-## What works in 1.0.0-rc.1
+## What works in 1.0.0-rc.2
 
 ### AI application lifecycle
 
@@ -91,7 +91,7 @@ The platform includes Agent, Skill, Workflow and Connector runtimes; a capabilit
 - Tenancy and permission audit data
 - Runtime persistence consistently rooted under configurable `OEAP_DATA_DIR`
 
-### Production deployment
+### Production deployment and recovery
 
 - Development and Production modes are explicitly separated
 - Production rejects spoofed client identity headers
@@ -106,7 +106,9 @@ The platform includes Agent, Skill, Workflow and Connector runtimes; a capabilit
 - Docker Compose
 - Nginx reverse proxy and security headers/CSP
 - Configurable persistent `OEAP_DATA_DIR`
-- Backup and restore scripts
+- Hardened backup/restore with SHA-256 verification, archive-path validation, link/special-file rejection, staging restore and pre-restore safety copy
+- Production Preflight configuration/live deployment checker
+- Repository secret/runtime-state hygiene gate
 - Tag-driven GitHub Release workflow with RC prereleases
 
 ## Architecture
@@ -207,7 +209,21 @@ Start with:
 - [docs/deployment.md](docs/deployment.md)
 - [docs/production-checklist.md](docs/production-checklist.md)
 - [docs/release-readiness.md](docs/release-readiness.md)
+- [docs/threat-model.md](docs/threat-model.md)
+- [docs/security-review-checklist.md](docs/security-review-checklist.md)
 - [.env.example](.env.example)
+
+Before deployment, run the offline configuration check:
+
+```bash
+pnpm preflight:production -- --env-file .env
+```
+
+After DNS/TLS/reverse proxy are live:
+
+```bash
+pnpm preflight:production -- --env-file .env --live
+```
 
 Typical container deployment:
 
@@ -238,9 +254,11 @@ See [docs/package-supply-chain.md](docs/package-supply-chain.md).
 - First GitHub enterprise binding requires a verified GitHub email; subsequent SSO uses stable provider-subject binding.
 - Organizations, application data, knowledge, files and local Package assets are isolated server-side.
 - Remote Package import does not automatically execute imported code.
+- Backups are integrity-checked and restored only after archive/path/type validation.
+- CI rejects committed runtime-state/secrets and common high-confidence credential patterns.
 - High-risk domains still require domain-specific controls and independent review.
 
-See [SECURITY.md](SECURITY.md).
+See [SECURITY.md](SECURITY.md) and [docs/threat-model.md](docs/threat-model.md).
 
 ## Tests and CI
 
@@ -249,15 +267,15 @@ corepack pnpm build
 corepack pnpm test
 ```
 
-CI additionally performs a built-API end-to-end test, starts a real headless Chrome browser to render/navigate core workspace pages and detect uncaught runtime exceptions, validates shell scripts and Docker Compose, then builds both production container targets.
+CI additionally performs built-API E2E, real headless Chrome rendering/navigation with uncaught-runtime-exception detection, backup/restore security regression, repository hygiene scanning, Production Preflight regression, shell validation, Docker Compose validation and both production container builds.
 
 Live AI-provider calls are intentionally excluded from public CI because they require an external runtime checkout and private provider credentials.
 
 ## Versioning
 
-Current platform version: **1.0.0-rc.1**.
+Current platform version: **1.0.0-rc.2**.
 
-`1.0.0-rc.1` represents completed internal engineering/compatibility stabilization, not 1.0 GA security certification. See [CHANGELOG.md](CHANGELOG.md), [ROADMAP.md](ROADMAP.md) and [docs/release-readiness.md](docs/release-readiness.md).
+`1.0.0-rc.2` is the repository-owned 1.0 engineering baseline for independent review; it is not 1.0 GA security certification. See [CHANGELOG.md](CHANGELOG.md), [ROADMAP.md](ROADMAP.md) and [docs/release-readiness.md](docs/release-readiness.md).
 
 ## Contributing
 
