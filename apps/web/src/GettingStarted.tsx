@@ -15,10 +15,14 @@ export type UsabilityStatus = {
   templates: number;
   ai: {
     provider: string;
+    providerMode?: string;
+    displayName?: string;
     available: boolean;
-    state: "online" | "offline";
+    state: "online" | "offline" | "configured";
     message: string;
     checkedAt: string;
+    model?: string;
+    warning?: string;
   };
 };
 
@@ -138,7 +142,7 @@ export function GettingStarted(props: {
 
     try {
       const response = await apiFetch(
-        apiUrl("/api/usability/ai/test"),
+        apiUrl("/api/ai-runtime/test"),
         { method: "POST" }
       );
       const result = await response.json();
@@ -150,7 +154,7 @@ export function GettingStarted(props: {
       }
 
       setMessage(
-        `AI Runtime 正常，响应 ${result.latencyMs ?? "-"} ms。`
+        `${result.provider ?? "AI Runtime"} 正常，响应 ${result.latencyMs ?? "-"} ms。`
       );
       await props.onChanged();
     } catch (error) {
@@ -200,12 +204,12 @@ export function GettingStarted(props: {
           }>
             <strong>
               {aiAvailable
-                ? "● AI 已就绪"
+                ? "● AI 已配置"
                 : "○ AI 未连接"}
             </strong>
             <small>
               {props.status?.ai.message ??
-                "正在检查 DeepSeek Harness Runtime…"}
+                "正在检查企业 AI Runtime…"}
             </small>
             <button
               disabled={testingAI || !permissionReady || !canManage}
