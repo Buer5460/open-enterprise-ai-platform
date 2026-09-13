@@ -79,7 +79,7 @@ A public publisher profile can include:
 - Terms URL
 - Verification status
 
-Publisher verification is registry metadata and must not be treated as permission to bypass local Package security checks.
+Publisher verification is registry metadata and must not be treated as permission to bypass local Package security checks. Self-service publisher writes cannot mark a publisher as verified; verification remains a registry-controlled state.
 
 ## Artifact integrity
 
@@ -101,7 +101,7 @@ Downloading an artifact must never automatically execute it. Import remains a lo
 
 ## HTTP discovery surface
 
-The protocol reserves a versioned registry namespace:
+The public protocol uses a versioned registry namespace:
 
 ```text
 GET /v1/listings
@@ -123,7 +123,38 @@ GET /v1/publishers/:publisherId
 
 `MarketplaceSearchResponse` returns listing items plus an optional opaque `nextCursor`.
 
-This document defines the contract only. A hosted registry persistence/search service is the next implementation phase.
+Public search returns only `published + public` listings. Direct public lookup can resolve `published + public/unlisted` listings. Draft and private listings are never exposed through the public surface.
+
+## Publisher management surface
+
+The first hosted-registry implementation runs inside the OEAP API deployment while keeping registry storage and contracts separate from the organization-local Package catalog. Management endpoints are organization-scoped and require OEAP package permissions:
+
+```text
+GET  /api/marketplace/registry
+POST /api/marketplace/registry/publishers
+PUT  /api/marketplace/registry/publishers/:publisherId
+GET  /api/marketplace/registry/listings/:packageId
+PUT  /api/marketplace/registry/listings/:packageId
+POST /api/marketplace/registry/listings/:packageId/versions
+POST /api/marketplace/registry/listings/:packageId/publish
+POST /api/marketplace/registry/listings/:packageId/unpublish
+```
+
+Publisher ids are bound to the organization that creates them. A different organization cannot take over an existing publisher id or listing. Reads require `packages.read`; writes require `packages.manage`.
+
+The storage implementation uses a dedicated registry SQLite database under `OEAP_DATA_DIR`. This is the initial durable backend and can later be replaced by the planned PostgreSQL enterprise backend without changing the protocol contract.
+
+## Publication lifecycle
+
+A self-service listing is written as `draft`. Publishing is a separate action and requires:
+
+1. A valid Marketplace Listing.
+2. A versioned artifact matching `latestVersion`.
+3. A Package Manifest whose package id, package type and version match the listing/artifact.
+4. A valid SHA-256 content digest.
+5. Package Manifest compatibility validation.
+
+Unpublishing returns the listing to `draft` and immediately removes it from the public discovery surface.
 
 ## Visibility and status
 
@@ -140,7 +171,7 @@ Listing status:
 - `suspended`
 - `archived`
 
-Registry authorization determines who can see private records. Local OEAP Package permissions remain independent from Marketplace visibility.
+The current public API exposes only published public/unlisted records. Private entitlement delivery is intentionally deferred until the licensing/entitlement phase. Local OEAP Package permissions remain independent from Marketplace visibility.
 
 ## Security invariants
 
@@ -153,12 +184,14 @@ The hosted Marketplace must preserve these boundaries:
 5. Package credentials are never stored in public listing metadata or package source.
 6. Artifact integrity is verified before installation.
 7. Commercial entitlement does not override organization security policy.
+8. Publisher/listing ownership is organization-scoped and fails closed on cross-organization writes.
+9. Self-service publisher/listing writes cannot self-assign verification or reputation values.
 
 ## Implementation phases
 
 ### Phase 1 — protocol foundation
 
-Implemented in this change:
+Implemented:
 
 - Marketplace Listing type
 - Publisher Profile type
@@ -169,17 +202,26 @@ Implemented in this change:
 - deterministic listing validation
 - protocol regression test
 
-### Phase 2 — hosted registry service
+### Phase 2 — hosted registry persistence and publication API
 
-Next:
+Implemented:
 
-- durable registry persistence
-- publisher/listing/version APIs
-- search and cursor pagination
-- publication moderation state
-- artifact metadata and download resolution
+- dedicated durable registry storage
+- organization-owned publisher records
+- draft listing persistence
+- versioned artifact metadata
+- public discovery endpoints
+- search filters and cursor pagination
+- publish / unpublish lifecycle
+- manifest compatibility and SHA-256 validation
+- deterministic store regression test
+- built API end-to-end registry test
+
+The next scalability step is moving hosted registry storage/search to the production database/search infrastructure when traffic requires it; the v1 contract remains unchanged.
 
 ### Phase 3 — public Marketplace experience
+
+Next:
 
 - public publisher pages
 - Package detail pages
