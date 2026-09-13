@@ -38,6 +38,14 @@ export interface DeepSeekHarnessConnectorConfig {
 export function registerDeepSeekHarnessConnector(
   config: DeepSeekHarnessConnectorConfig
 ): void {
+  if (
+    connectorRuntime
+      .listConnectors()
+      .some((item) => item.id === "deepseek-harness")
+  ) {
+    return;
+  }
+
   const adapter =
     new DeepSeekHarnessAdapter(config);
 
@@ -91,7 +99,10 @@ export function registerDeepSeekHarnessConnector(
         return {
           ok: false,
           error: {
-            code: "HARNESS_EXECUTION_FAILED",
+            code:
+              result.exitCode === 124
+                ? "HARNESS_TIMEOUT"
+                : "HARNESS_EXECUTION_FAILED",
             message:
               result.stderr ||
               "DeepSeek Harness execution failed"
@@ -103,6 +114,9 @@ export function registerDeepSeekHarnessConnector(
         ok: true,
         output: {
           text: result.stdout.trim()
+        },
+        metadata: {
+          provider: "deepseek-harness"
         }
       };
     }
@@ -113,11 +127,17 @@ export function registerDeepSeekHarnessConnector(
     capabilities: [
       {
         id: "ai.generate",
-        priority: 100
+        priority: 100,
+        metadata: {
+          provider: "deepseek-harness"
+        }
       },
       {
         id: "ai.task.run",
-        priority: 100
+        priority: 100,
+        metadata: {
+          provider: "deepseek-harness"
+        }
       }
     ]
   });
