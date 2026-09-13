@@ -1,0 +1,1 @@
+{"name":"draw-a-horse-race","version":"0.3.0","private":true,"type":"module","scripts":{"dev":"node server.js","start":"node server.js"},"dependencies":{"express":"^4.21.2","socket.io":"^4.8.1"}}
