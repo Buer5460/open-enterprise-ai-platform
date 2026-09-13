@@ -44,6 +44,9 @@ importers:
       '@oeap/harness-adapter':
         specifier: workspace:*
         version: link:../../packages/harness-adapter
+      '@oeap/marketplace-registry':
+        specifier: workspace:*
+        version: link:../../packages/marketplace-registry
       '@oeap/openai-compatible-connector':
         specifier: workspace:*
         version: link:../../packages/official/openai-compatible-connector
@@ -180,6 +183,12 @@ importers:
   packages/event-bus: {}
 
   packages/harness-adapter: {}
+
+  packages/marketplace-registry:
+    dependencies:
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../package-spec
 
   packages/official/ai-generate-skill:
     dependencies:
