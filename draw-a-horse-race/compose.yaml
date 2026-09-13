@@ -1,0 +1,13 @@
+services:
+  game:
+    build: .
+    ports:
+      - "3088:3088"
+    environment:
+      PORT: 3088
+      PUBLIC_BASE_URL: http://localhost:3088
+      ADMIN_TOKEN: change-this-admin-token
+      PAYMENT_MODE: disabled
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
