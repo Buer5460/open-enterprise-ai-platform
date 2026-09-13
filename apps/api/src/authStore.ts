@@ -93,6 +93,19 @@ export class AuthSessionStore {
   }): AuthSession {
     this.pruneExpired();
 
+    if (
+      input.provider !== "local" &&
+      input.subject?.trim()
+    ) {
+      this.bindIdentity({
+        provider: input.provider,
+        subject: input.subject,
+        organizationId: input.organizationId,
+        memberId: input.memberId,
+        email: input.email
+      });
+    }
+
     const token = `oeap_${randomUUID().replaceAll("-", "")}`;
     const now = new Date();
     const expires = new Date(
