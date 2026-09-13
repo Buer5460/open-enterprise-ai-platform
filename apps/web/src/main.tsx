@@ -10,6 +10,7 @@ import { KnowledgeCenter } from "./KnowledgeCenter";
 import { ConnectorCredentials } from "./ConnectorCredentials";
 import { PublisherCenter } from "./PublisherCenter";
 import { RuntimeCenter } from "./RuntimeCenter";
+import { MyApps } from "./MyApps";
 import {
   GettingStarted,
   type UsabilityStatus
@@ -235,8 +236,8 @@ function Platform() {
       return;
     }
 
-    if (usability?.ai.available === false) {
-      alert("AI Runtime 当前未连接。你可以先从业务模板一键创建应用。");
+    if (!usability || usability.ai.available === false) {
+      alert("AI Runtime 当前未连接或仍在检查。你可以先从业务模板一键创建应用。");
       return;
     }
 
@@ -500,7 +501,19 @@ function Workbench({
   openApp: (item: AppManifest) => void;
 }) {
   const aiUnavailable =
-    usability?.ai.available === false;
+    !usability || usability.ai.available === false;
+  const providerName =
+    usability?.ai.displayName ||
+    usability?.ai.provider ||
+    "AI Runtime";
+  const providerState =
+    !usability
+      ? "Checking"
+      : !usability.ai.available
+        ? "Offline"
+        : usability.ai.state === "configured"
+          ? "Configured"
+          : "Online";
 
   return (
     <>
@@ -532,8 +545,8 @@ function Workbench({
         <h2>你想为自己的企业做一个什么应用？</h2>
         <p>
           {aiUnavailable
-            ? "AI Runtime 当前未连接。你可以先从业务模板创建应用，连接 AI 后再通过自然语言持续修改。"
-            : "描述业务需求，AI 将帮助你完成需求分析、数据模型、页面、Agent、Skill、Workflow 和 Connector 设计。"}
+            ? "AI Runtime 当前未连接或仍在检查。你可以先从业务模板创建应用，连接 AI 后再通过自然语言持续修改。"
+            : `当前使用 ${providerName}。描述业务需求，AI 将帮助你完成需求分析、数据模型、页面、Agent、Skill、Workflow 和 Connector 设计。`}
         </p>
 
         <div className="promptBox">
@@ -578,55 +591,18 @@ function Workbench({
           <span>AI Runtime</span>
         </div>
         <div>
-          <strong>
-            {usability
-              ? usability.ai.available
-                ? "Online"
-                : "Offline"
-              : "Checking"}
-          </strong>
-          <span>DeepSeek Harness</span>
+          <strong>{providerState}</strong>
+          <span>{providerName}</span>
         </div>
       </section>
 
-      <section className="appsSection">
-        <div className="sectionHeader">
-          <div>
-            <h3>我的应用</h3>
-            <p>AI 创建或从业务模板安装到当前平台的企业应用</p>
-          </div>
-        </div>
-
-        {loading && <div className="empty">正在加载应用……</div>}
-
-        {!loading && apps.length === 0 && (
-          <div className="empty">
-            还没有企业应用。上方模板不依赖 AI，可以直接一键创建。
-          </div>
-        )}
-
-        <div className="appGrid">
-          {apps.map((item) => (
-            <article className="appCard" key={item.id}>
-              <div className="appTop">
-                <div className="appIcon">{item.displayName?.[0] ?? item.name[0]}</div>
-                <span className="status">● 已启用</span>
-              </div>
-              <h4>{item.displayName ?? item.name}</h4>
-              <p className="description">{item.description}</p>
-              <div className="appMeta">
-                <span>页面 {item.navigation?.length ?? 0}</span>
-                <span>角色 {item.metadata?.roles?.length ?? 0}</span>
-                <span>数据实体 {item.metadata?.entities?.length ?? 0}</span>
-              </div>
-              <div className="cardFooter">
-                <span>v{item.version}</span>
-                <button onClick={() => openApp(item)}>打开应用 →</button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <MyApps
+        apps={apps}
+        loading={loading}
+        openApp={(item) =>
+          openApp(item as AppManifest)
+        }
+      />
     </>
   );
 }
