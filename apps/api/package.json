@@ -19,6 +19,7 @@
     "@oeap/deepseek-harness-connector": "workspace:*",
     "@oeap/openai-compatible-connector": "workspace:*",
     "@oeap/harness-adapter": "workspace:*",
+    "@oeap/marketplace-registry": "workspace:*",
     "@oeap/ai-generate-skill": "workspace:*",
     "@oeap/app-builder": "workspace:*",
     "@oeap/app-package-builder": "workspace:*",
