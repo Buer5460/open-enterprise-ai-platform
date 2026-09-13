@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0] o"])" && pwd)"
 cd "$ROOT"
 
 run_if_present() {
@@ -14,6 +14,7 @@ run_if_present() {
 
 run_if_present scripts/test-release-version.mjs
 run_if_present scripts/test-repository-hygiene.mjs
+run_if_present scripts/test-production-preflight.mjs
 run_if_present scripts/test-action-gateway.mjs
 run_if_present scripts/test-installable-skill.mjs
 run_if_present scripts/test-growth-agent.mjs
