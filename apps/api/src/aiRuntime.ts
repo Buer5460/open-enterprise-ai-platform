@@ -40,7 +40,6 @@ export type AIRuntimeStatus = {
   message: string;
   checkedAt: string;
   model?: string;
-  endpoint?: string;
   configSource?: "organization-vault" | "environment" | "none";
   warning?: string;
 };
@@ -155,7 +154,6 @@ export async function getAIRuntimeStatus(input: {
           "OpenAI-Compatible Provider 已配置；可执行真实 AI 测试确认网络、密钥与模型。",
         checkedAt,
         model: validated.model,
-        endpoint: redactEndpoint(validated.endpoint),
         configSource: resolved.source
       };
     } catch (error) {
@@ -297,15 +295,12 @@ export function getAIRuntimePublicSettings(
     OPENAI_COMPATIBLE_CREDENTIAL_ID
   );
 
-  const providerMode = normalizeProviderMode(
+  const providerMode = safeProviderMode(
     values.PROVIDER_MODE ||
     process.env.OEAP_AI_PROVIDER ||
     "auto"
   );
-  const openAI = resolveOpenAIConfig(
-    repoRoot,
-    organizationId
-  );
+  const openAI = resolveOpenAIConfigFromValues(values);
 
   const selectedProvider: AIProviderId =
     providerMode === "openai-compatible"
@@ -340,74 +335,101 @@ export function updateAIRuntimeSettings(input: {
   timeoutMs?: number;
   clearApiKey?: boolean;
 }): AIRuntimePublicSettings {
-  const current = connectorVault(input.repoRoot).get(
+  const store = connectorVault(input.repoRoot);
+  const current = store.get(
     input.organizationId,
     OPENAI_COMPATIBLE_CREDENTIAL_ID
   );
-
+  const proposed = { ...current };
   const patch: Record<string, string | undefined> = {};
+  const clear: string[] = [];
 
   if (input.providerMode !== undefined) {
-    patch.PROVIDER_MODE = normalizeProviderMode(
+    const mode = normalizeProviderMode(
       input.providerMode
     );
+    proposed.PROVIDER_MODE = mode;
+    patch.PROVIDER_MODE = mode;
   }
+
   if (input.baseUrl !== undefined) {
-    patch.BASE_URL = input.baseUrl.trim();
+    const value = input.baseUrl.trim();
+    if (value) {
+      proposed.BASE_URL = value;
+      patch.BASE_URL = value;
+    } else {
+      delete proposed.BASE_URL;
+      clear.push("BASE_URL");
+    }
   }
+
   if (input.model !== undefined) {
-    patch.MODEL = input.model.trim();
+    const value = input.model.trim();
+    if (value) {
+      proposed.MODEL = value;
+      patch.MODEL = value;
+    } else {
+      delete proposed.MODEL;
+      clear.push("MODEL");
+    }
   }
+
   if (input.apiKey !== undefined && input.apiKey.trim()) {
-    patch.API_KEY = input.apiKey.trim();
+    const value = input.apiKey.trim();
+    proposed.API_KEY = value;
+    patch.API_KEY = value;
   }
+
+  if (input.clearApiKey) {
+    delete proposed.API_KEY;
+    clear.push("API_KEY");
+  }
+
   if (input.timeoutMs !== undefined) {
     const value = normalizeTimeout(input.timeoutMs);
+    proposed.TIMEOUT_MS = String(value);
     patch.TIMEOUT_MS = String(value);
   }
 
-  const clear = input.clearApiKey
-    ? ["API_KEY"]
-    : [];
-
-  connectorVault(input.repoRoot).update(
-    input.organizationId,
-    OPENAI_COMPATIBLE_CREDENTIAL_ID,
-    patch,
-    clear
-  );
-
-  const next = getAIRuntimePublicSettings(
-    input.repoRoot,
-    input.organizationId
-  );
+  validateProposedSettings(proposed);
 
   if (
-    next.providerMode === "openai-compatible" &&
-    next.openAICompatible.complete
+    Object.keys(patch).length === 0 &&
+    clear.length === 0
   ) {
-    const resolved = resolveOpenAIConfig(
+    return getAIRuntimePublicSettings(
       input.repoRoot,
       input.organizationId
     );
-    validateOpenAICompatibleConfig(resolved.config!);
   }
 
-  // Avoid treating an accidental blank patch as a destructive operation.
-  if (
-    Object.keys(patch).length === 0 &&
-    clear.length === 0 &&
-    Object.keys(current).length === 0
-  ) {
-    return next;
-  }
+  store.update(
+    input.organizationId,
+    OPENAI_COMPATIBLE_CREDENTIAL_ID,
+    patch,
+    [...new Set(clear)]
+  );
 
-  return next;
+  return getAIRuntimePublicSettings(
+    input.repoRoot,
+    input.organizationId
+  );
 }
 
 function resolveOpenAIConfig(
   repoRoot: string,
   organizationId: string
+) {
+  return resolveOpenAIConfigFromValues(
+    connectorVault(repoRoot).get(
+      organizationId,
+      OPENAI_COMPATIBLE_CREDENTIAL_ID
+    )
+  );
+}
+
+function resolveOpenAIConfigFromValues(
+  values: Record<string, string>
 ): {
   config?: OpenAICompatibleConnectorConfig;
   baseUrl: string;
@@ -421,11 +443,6 @@ function resolveOpenAIConfig(
     | "environment"
     | "none";
 } {
-  const values = connectorVault(repoRoot).get(
-    organizationId,
-    OPENAI_COMPATIBLE_CREDENTIAL_ID
-  );
-
   const vaultHasRuntimeFields = [
     "BASE_URL",
     "API_KEY",
@@ -488,6 +505,40 @@ function resolveOpenAIConfig(
   };
 }
 
+function validateProposedSettings(
+  values: Record<string, string>
+): void {
+  const mode = normalizeProviderMode(
+    values.PROVIDER_MODE ||
+    process.env.OEAP_AI_PROVIDER ||
+    "auto"
+  );
+  const resolved = resolveOpenAIConfigFromValues(values);
+
+  if (resolved.baseUrl) {
+    validateOpenAICompatibleConfig({
+      baseUrl: resolved.baseUrl,
+      apiKey:
+        resolved.config?.apiKey ||
+        "validation-placeholder-key",
+      model:
+        resolved.model ||
+        "validation-placeholder-model",
+      timeoutMs: resolved.timeoutMs
+    });
+  }
+
+  if (
+    mode === "openai-compatible" &&
+    resolved.complete &&
+    resolved.config
+  ) {
+    validateOpenAICompatibleConfig(
+      resolved.config
+    );
+  }
+}
+
 function connectorVault(
   repoRoot: string
 ): ConnectorSecretStore {
@@ -530,6 +581,16 @@ function normalizeProviderMode(
   );
 }
 
+function safeProviderMode(
+  value: unknown
+): AIProviderMode {
+  try {
+    return normalizeProviderMode(value);
+  } catch {
+    return "auto";
+  }
+}
+
 function normalizeTimeout(
   value: unknown
 ): number {
@@ -540,17 +601,4 @@ function normalizeTimeout(
         300_000
       )
     : 120_000;
-}
-
-function redactEndpoint(
-  value: string
-): string {
-  try {
-    const url = new URL(value);
-    url.username = "";
-    url.password = "";
-    return url.toString();
-  } catch {
-    return "configured";
-  }
 }
