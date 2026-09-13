@@ -57,6 +57,9 @@ import {
   registerMailSettingsRoutes
 } from "./mailSettingsRoutes.js";
 import {
+  registerMarketplaceRegistryRoutes
+} from "./marketplaceRegistryRoutes.js";
+import {
   registerOperationsRoutes
 } from "./operationsRoutes.js";
 import {
@@ -239,6 +242,11 @@ registerPackageProvenanceRoutes({
 });
 
 registerRemotePackageRoutes({
+  app,
+  repoRoot
+});
+
+registerMarketplaceRegistryRoutes({
   app,
   repoRoot
 });
