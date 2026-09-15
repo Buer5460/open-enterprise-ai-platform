@@ -19,6 +19,15 @@ export type MarketplaceOrderStatus =
   | "failed"
   | "cancelled";
 
+export type MarketplacePaymentEventType =
+  | "payment.succeeded"
+  | "payment.failed"
+  | "payment.cancelled";
+
+export type MarketplacePaymentEventStatus =
+  | "processed"
+  | "rejected";
+
 export interface MarketplaceEntitlement {
   id: string;
   organizationId: string;
@@ -47,6 +56,37 @@ export interface MarketplaceOrder {
   updatedAt: string;
 }
 
+export interface MarketplacePaymentEvent {
+  id: string;
+  provider: string;
+  providerEventId: string;
+  orderId: string;
+  organizationId: string;
+  eventType: MarketplacePaymentEventType;
+  payloadDigest: string;
+  status: MarketplacePaymentEventStatus;
+  externalReference?: string;
+  occurredAt: string;
+  receivedAt: string;
+  processedAt?: string;
+  error?: string;
+}
+
+export type MarketplacePaymentEventResult = {
+  duplicate: boolean;
+  event: MarketplacePaymentEvent;
+  order: MarketplaceOrder;
+  entitlement?: MarketplaceEntitlement;
+};
+
+export class MarketplacePaymentEventConflictError
+extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MarketplacePaymentEventConflictError";
+  }
+}
+
 export class MarketplaceCommerceStore {
   private readonly db: DatabaseSync;
 
@@ -54,6 +94,8 @@ export class MarketplaceCommerceStore {
     mkdirSync(dirname(path), { recursive: true });
     this.db = new DatabaseSync(path);
     this.db.exec(`
+      PRAGMA foreign_keys = ON;
+
       CREATE TABLE IF NOT EXISTS marketplace_entitlements (
         id TEXT PRIMARY KEY,
         organization_id TEXT NOT NULL,
@@ -95,6 +137,35 @@ export class MarketplaceCommerceStore {
           package_id,
           plan_id,
           status
+        );
+
+      CREATE TABLE IF NOT EXISTS marketplace_payment_events (
+        id TEXT PRIMARY KEY,
+        provider TEXT NOT NULL,
+        provider_event_id TEXT NOT NULL,
+        order_id TEXT NOT NULL,
+        organization_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        payload_digest TEXT NOT NULL,
+        status TEXT NOT NULL,
+        external_reference TEXT,
+        occurred_at TEXT NOT NULL,
+        received_at TEXT NOT NULL,
+        processed_at TEXT,
+        error TEXT,
+        UNIQUE (provider, provider_event_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_marketplace_payment_events_order
+        ON marketplace_payment_events (
+          order_id,
+          received_at DESC
+        );
+
+      CREATE INDEX IF NOT EXISTS idx_marketplace_payment_events_org
+        ON marketplace_payment_events (
+          organization_id,
+          received_at DESC
         );
     `);
   }
@@ -219,19 +290,25 @@ export class MarketplaceCommerceStore {
       throw new Error("Free plans do not require an order");
     }
 
+    const provider = normalizeProvider(
+      input.provider ?? "unconfigured"
+    );
+
     const existing = this.db.prepare(`
       SELECT *
       FROM marketplace_orders
       WHERE organization_id = ?
         AND package_id = ?
         AND plan_id = ?
+        AND provider = ?
         AND status = 'pending'
       ORDER BY created_at DESC
       LIMIT 1
     `).get(
       input.organizationId,
       input.packageId,
-      input.plan.id
+      input.plan.id,
+      provider
     ) as any;
 
     if (existing) {
@@ -263,7 +340,7 @@ export class MarketplaceCommerceStore {
       input.plan.model,
       input.plan.currency ?? null,
       input.plan.amountMinor ?? null,
-      input.provider ?? "unconfigured",
+      provider,
       now,
       now
     );
@@ -284,6 +361,18 @@ export class MarketplaceCommerceStore {
     return row ? orderFromRow(row) : undefined;
   }
 
+  getOrderById(
+    orderId: string
+  ): MarketplaceOrder | undefined {
+    const row = this.db.prepare(`
+      SELECT *
+      FROM marketplace_orders
+      WHERE id = ?
+    `).get(orderId) as any;
+
+    return row ? orderFromRow(row) : undefined;
+  }
+
   listOrders(
     organizationId: string
   ): MarketplaceOrder[] {
@@ -296,7 +385,222 @@ export class MarketplaceCommerceStore {
       .map(orderFromRow);
   }
 
+  listPaymentEvents(
+    organizationId: string,
+    limit = 100
+  ): MarketplacePaymentEvent[] {
+    const bounded = Math.min(
+      Math.max(Math.trunc(limit), 1),
+      500
+    );
+
+    return (this.db.prepare(`
+      SELECT *
+      FROM marketplace_payment_events
+      WHERE organization_id = ?
+      ORDER BY received_at DESC, id DESC
+      LIMIT ?
+    `).all(
+      organizationId,
+      bounded
+    ) as any[]).map(paymentEventFromRow);
+  }
+
+  getPaymentEvent(
+    provider: string,
+    providerEventId: string
+  ): MarketplacePaymentEvent | undefined {
+    const row = this.db.prepare(`
+      SELECT *
+      FROM marketplace_payment_events
+      WHERE provider = ? AND provider_event_id = ?
+    `).get(
+      normalizeProvider(provider),
+      providerEventId
+    ) as any;
+
+    return row ? paymentEventFromRow(row) : undefined;
+  }
+
   completeOrder(input: {
+    organizationId: string;
+    orderId: string;
+    externalReference?: string;
+    checkoutUrl?: string;
+    expiresAt?: string;
+  }): {
+    order: MarketplaceOrder;
+    entitlement: MarketplaceEntitlement;
+  } {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const result = this.completeOrderInTransaction(input);
+      this.db.exec("COMMIT");
+      return result;
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
+  processVerifiedPaymentEvent(input: {
+    provider: string;
+    providerEventId: string;
+    orderId: string;
+    eventType: MarketplacePaymentEventType;
+    payloadDigest: string;
+    occurredAt: string;
+    externalReference?: string;
+    expiresAt?: string;
+  }): MarketplacePaymentEventResult {
+    const provider = normalizeProvider(input.provider);
+    const eventId = normalizeEventId(input.providerEventId);
+    const digest = normalizeDigest(input.payloadDigest);
+    const occurredAt = normalizeTimestamp(
+      input.occurredAt,
+      "occurredAt"
+    );
+    const receivedAt = new Date().toISOString();
+
+    const existing = this.getPaymentEvent(
+      provider,
+      eventId
+    );
+
+    if (existing) {
+      if (
+        existing.payloadDigest !== digest ||
+        existing.orderId !== input.orderId ||
+        existing.eventType !== input.eventType
+      ) {
+        throw new MarketplacePaymentEventConflictError(
+          "Payment provider event id was replayed with different content"
+        );
+      }
+
+      const order = this.getOrderById(existing.orderId);
+      if (!order) {
+        throw new MarketplacePaymentEventConflictError(
+          "Previously processed payment event references a missing order"
+        );
+      }
+
+      return {
+        duplicate: true,
+        event: existing,
+        order,
+        entitlement:
+          order.status === "paid"
+            ? this.getEntitlement(
+                order.organizationId,
+                order.packageId
+              )
+            : undefined
+      };
+    }
+
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const order = this.getOrderById(input.orderId);
+      if (!order) {
+        throw new Error("Marketplace order not found");
+      }
+
+      if (order.provider !== provider) {
+        throw new MarketplacePaymentEventConflictError(
+          `Payment provider mismatch: order expects ${order.provider}`
+        );
+      }
+
+      const id = `evt_${randomUUID()}`;
+      this.db.prepare(`
+        INSERT INTO marketplace_payment_events (
+          id,
+          provider,
+          provider_event_id,
+          order_id,
+          organization_id,
+          event_type,
+          payload_digest,
+          status,
+          external_reference,
+          occurred_at,
+          received_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'processed', ?, ?, ?)
+      `).run(
+        id,
+        provider,
+        eventId,
+        order.id,
+        order.organizationId,
+        input.eventType,
+        digest,
+        normalizeOptionalText(input.externalReference, 500),
+        occurredAt,
+        receivedAt
+      );
+
+      let finalOrder: MarketplaceOrder;
+      let entitlement: MarketplaceEntitlement | undefined;
+
+      if (input.eventType === "payment.succeeded") {
+        const completed = this.completeOrderInTransaction({
+          organizationId: order.organizationId,
+          orderId: order.id,
+          externalReference: input.externalReference,
+          expiresAt: input.expiresAt
+        });
+        finalOrder = completed.order;
+        entitlement = completed.entitlement;
+      } else {
+        const nextStatus: MarketplaceOrderStatus =
+          input.eventType === "payment.failed"
+            ? "failed"
+            : "cancelled";
+
+        if (order.status === "paid") {
+          throw new MarketplacePaymentEventConflictError(
+            "A paid order cannot be changed by a later failure/cancellation event"
+          );
+        }
+
+        this.db.prepare(`
+          UPDATE marketplace_orders
+          SET status = ?,
+              external_reference = COALESCE(?, external_reference),
+              updated_at = ?
+          WHERE id = ?
+        `).run(
+          nextStatus,
+          normalizeOptionalText(input.externalReference, 500),
+          new Date().toISOString(),
+          order.id
+        );
+        finalOrder = this.getOrderById(order.id)!;
+      }
+
+      const processedAt = new Date().toISOString();
+      this.db.prepare(`
+        UPDATE marketplace_payment_events
+        SET processed_at = ?
+        WHERE id = ?
+      `).run(processedAt, id);
+
+      this.db.exec("COMMIT");
+
+      return {
+        duplicate: false,
+        event: this.getPaymentEvent(provider, eventId)!,
+        order: finalOrder,
+        entitlement
+      };
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
+  private completeOrderInTransaction(input: {
     organizationId: string;
     orderId: string;
     externalReference?: string;
@@ -315,6 +619,19 @@ export class MarketplaceCommerceStore {
       throw new Error("Marketplace order not found");
     }
 
+    if (
+      order.status === "failed" ||
+      order.status === "cancelled"
+    ) {
+      throw new MarketplacePaymentEventConflictError(
+        `Marketplace order cannot be paid from status ${order.status}`
+      );
+    }
+
+    if (input.expiresAt) {
+      normalizeTimestamp(input.expiresAt, "expiresAt");
+    }
+
     const now = new Date().toISOString();
 
     this.db.prepare(`
@@ -325,8 +642,14 @@ export class MarketplaceCommerceStore {
           updated_at = ?
       WHERE organization_id = ? AND id = ?
     `).run(
-      input.externalReference ?? order.externalReference ?? null,
-      input.checkoutUrl ?? order.checkoutUrl ?? null,
+      normalizeOptionalText(
+        input.externalReference ?? order.externalReference,
+        500
+      ),
+      normalizeOptionalText(
+        input.checkoutUrl ?? order.checkoutUrl,
+        2000
+      ),
       now,
       input.organizationId,
       order.id
@@ -382,6 +705,54 @@ export class MarketplaceCommerceStore {
   }
 }
 
+function normalizeProvider(value: string): string {
+  const provider = value.trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9._-]{0,63}$/.test(provider)) {
+    throw new Error("Marketplace payment provider id is invalid");
+  }
+  return provider;
+}
+
+function normalizeEventId(value: string): string {
+  const id = value.trim();
+  if (!id || id.length > 200 || /[\r\n\0]/.test(id)) {
+    throw new Error("Marketplace payment provider event id is invalid");
+  }
+  return id;
+}
+
+function normalizeDigest(value: string): string {
+  const digest = value.trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(digest)) {
+    throw new Error("Marketplace payment payload digest is invalid");
+  }
+  return digest;
+}
+
+function normalizeTimestamp(
+  value: string,
+  field: string
+): string {
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) {
+    throw new Error(`${field} must be a valid timestamp`);
+  }
+  return new Date(time).toISOString();
+}
+
+function normalizeOptionalText(
+  value: string | undefined,
+  maximum: number
+): string | null {
+  if (value === undefined) return null;
+  const text = value.trim();
+  if (!text) return null;
+  if (text.length > maximum || /[\0]/.test(text)) {
+    throw new Error("Marketplace payment reference value is invalid");
+  }
+  return text;
+}
+
 function entitlementFromRow(
   row: any
 ): MarketplaceEntitlement {
@@ -423,5 +794,33 @@ function orderFromRow(row: any): MarketplaceOrder {
       : {}),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
+  };
+}
+
+function paymentEventFromRow(
+  row: any
+): MarketplacePaymentEvent {
+  return {
+    id: String(row.id),
+    provider: String(row.provider),
+    providerEventId: String(row.provider_event_id),
+    orderId: String(row.order_id),
+    organizationId: String(row.organization_id),
+    eventType:
+      row.event_type as MarketplacePaymentEventType,
+    payloadDigest: String(row.payload_digest),
+    status:
+      row.status as MarketplacePaymentEventStatus,
+    ...(row.external_reference
+      ? { externalReference: String(row.external_reference) }
+      : {}),
+    occurredAt: String(row.occurred_at),
+    receivedAt: String(row.received_at),
+    ...(row.processed_at
+      ? { processedAt: String(row.processed_at) }
+      : {}),
+    ...(row.error
+      ? { error: String(row.error) }
+      : {})
   };
 }
