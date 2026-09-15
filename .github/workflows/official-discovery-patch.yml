@@ -1,0 +1,33 @@
+name: Official Package Discovery Patch
+
+on:
+  push:
+    branches: [feat/marketplace-runtime-install]
+    paths:
+      - "scripts/patch-official-discovery.mjs"
+      - ".github/workflows/official-discovery-patch.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: feat/marketplace-runtime-install
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Patch official package discovery
+        run: node scripts/patch-official-discovery.mjs
+      - name: Commit discovery fix
+        shell: bash
+        run: |
+          git config user.name "oeap-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: scope official package discovery to manifest"
+          git push origin HEAD:feat/marketplace-runtime-install
