@@ -348,6 +348,15 @@ MarketplaceListing[] = [
     tags: ["market", "strategy", "unit-economics"]
   }),
   officialListing({
+    slug: "b2b-opportunity-workflow",
+    type: "workflow",
+    displayName: "B2B Opportunity Workflow",
+    summary:
+      "Turn market signals into a business analysis and evidence-aware prospect pipeline.",
+    categories: ["sales", "business-intelligence", "workflow"],
+    tags: ["b2b", "opportunity", "strategy", "growth"]
+  }),
+  officialListing({
     slug: "investment-analysis",
     type: "agent",
     displayName: "Investment Analysis",
