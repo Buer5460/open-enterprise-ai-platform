@@ -2,7 +2,9 @@
 
 > Build and operate enterprise software from business requirements — with AI when useful, without making AI a prerequisite for day-one operations.
 
-**Current development line: `1.1.0-alpha.1`.**
+**Current development line: `1.1.0-alpha.2`.**
+
+**Published usability baseline: `1.1.0-alpha.1`.**
 
 **Stable review baseline: `1.0.0-rc.2`.** The 1.0 RC line freezes the first stable Package/SDK contracts and remains the recommended baseline for independent security review. 1.0 General Availability still requires an independent external security review and deployment-owned production infrastructure/credentials.
 
@@ -95,9 +97,9 @@ auto | deepseek-harness | openai-compatible
 
 Organization administrators can configure the compatible Provider in **AI Runtime**. API keys are stored in the encrypted Connector Vault and are not returned to the browser after saving.
 
-### Agent / Package Marketplace foundation
+### Agent / Package Marketplace
 
-The 1.1 line also adds the first hosted-style Marketplace foundation:
+The 1.1 line includes the first hosted-style Marketplace foundation:
 
 - registry protocol and Registry runtime
 - official seeded listings
@@ -105,8 +107,11 @@ The 1.1 line also adds the first hosted-style Marketplace foundation:
 - organization-scoped free acquisition
 - order and entitlement data model
 - organization-isolated acquisition state
+- free acquisition can activate runnable official Packages
+- required Package dependencies are resolved before activation
+- manual organization enable/disable uses the same activation path
 
-The commerce layer is a foundation. A real third-party paid checkout/webhook provider must still be connected server-side before paid entitlements should be granted in production.
+Paid plans currently create pending orders only. Browser/session APIs cannot mark a paid order complete or self-grant a paid entitlement. Alpha.2 is building a provider-neutral, signed server-to-server payment-event boundary before any real payment processor is connected.
 
 ## Enterprise administration
 
@@ -245,7 +250,7 @@ flowchart TD
     RBAC --> PM
 
     DS[Developer Studio] --> M[Marketplace Registry]
-    M --> ENT[Order / Entitlement]
+    M --> ENT[Order / Entitlement / Activation]
     M --> PROV[Security Scan + Provenance]
     PROV --> GH[GitHub Publisher / Trusted Import]
 ```
@@ -295,7 +300,9 @@ External live AI calls with real provider credentials are intentionally excluded
 
 ## Versioning
 
-Current development version: **1.1.0-alpha.1**.
+Current development version: **1.1.0-alpha.2**.
+
+Published usability baseline: **1.1.0-alpha.1**.
 
 Stable independent-review baseline: **1.0.0-rc.2**.
 
@@ -308,6 +315,7 @@ See [CHANGELOG.md](CHANGELOG.md), [ROADMAP.md](ROADMAP.md) and [docs/release-rea
 - Production local bootstrap login cannot be re-enabled by a mistaken environment override.
 - Organizations, application data, knowledge, files, Marketplace commerce state and local Package assets are isolated server-side.
 - Remote Package import does not automatically execute imported code.
+- Paid Marketplace entitlements are not granted by browser-supplied completion status.
 - Backups are integrity-checked and restored only after archive/path/type validation.
 - CI rejects committed runtime-state/secrets and common credential patterns.
 
