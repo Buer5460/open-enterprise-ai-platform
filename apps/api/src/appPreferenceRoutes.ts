@@ -78,7 +78,10 @@ export function registerAppPreferenceRoutes(input: {
 
   input.app.put<{
     Params: { appId: string };
-    Body: { favorite?: boolean };
+    Body: {
+      favorite?: boolean;
+      folder?: string | null;
+    };
   }>(
     "/api/app-preferences/:appId",
     async (request, reply) => {
@@ -104,15 +107,38 @@ export function registerAppPreferenceRoutes(input: {
         });
       }
 
+      if (
+        request.body?.favorite === undefined &&
+        request.body?.folder === undefined
+      ) {
+        return reply.code(400).send({
+          ok: false,
+          error: "favorite or folder is required"
+        });
+      }
+
+      if (
+        request.body?.folder !== undefined &&
+        request.body.folder !== null &&
+        typeof request.body.folder !== "string"
+      ) {
+        return reply.code(400).send({
+          ok: false,
+          error: "folder must be a string or null"
+        });
+      }
+
       return {
         ok: true,
-        preference: store.setFavorite({
+        preference: store.update({
           organizationId:
             identity.organizationId,
           memberId: identity.memberId,
           appId: request.params.appId,
           favorite:
-            Boolean(request.body?.favorite)
+            request.body?.favorite,
+          folder:
+            request.body?.folder
         })
       };
     }
