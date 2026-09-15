@@ -1,8 +1,13 @@
 # OEAP Roadmap
 
-OEAP has completed the initial platform scope and the repository-owned 1.0 compatibility/security-stabilization work. The current release line is **1.0.0-rc.2**: stable contracts, automated security gates, browser/API end-to-end tests, hardened backup/restore, Production Preflight and deployment artifacts are frozen for release-candidate evaluation. General Availability still requires an independent external security review and real deployment-owned infrastructure validation.
+OEAP has completed the initial platform foundation and repository-owned 1.0 compatibility/security stabilization work.
 
-## 0.9 — Platform foundation and production candidate
+- **Stable independent-review baseline:** `1.0.0-rc.2`
+- **Current development line:** `1.1.0-alpha.1`
+
+1.0 General Availability still requires an independent external security review and real deployment-owned infrastructure validation. The 1.1 line does not redefine the 1.0 security baseline; it focuses on making the platform easier to start, operate and commercialize.
+
+## 0.9 — Platform foundation
 
 ### Runtime and AI application lifecycle
 
@@ -10,12 +15,13 @@ OEAP has completed the initial platform scope and the repository-owned 1.0 compa
 - [x] Capability registry and Connector runtime
 - [x] Permission engine, approval engine, audit log and Action Gateway
 - [x] Skill, Agent and Workflow runtimes
-- [x] DeepSeek Harness adapter and provider-independent `ai.generate`
+- [x] Provider-independent `ai.generate`
+- [x] DeepSeek Harness adapter
 - [x] AI application Blueprint generation
 - [x] Blueprint → installable App Package
 - [x] Generic SQLite generated-application runtime
 - [x] CRUD, search and pagination
-- [x] Enum, date/time, currency, relation, attachment, rich-text and JSON fields
+- [x] Rich enterprise field types
 - [x] AI-assisted application revision
 - [x] Schema evolution and application version snapshots
 - [x] Application rollback
@@ -30,7 +36,7 @@ OEAP has completed the initial platform scope and the repository-owned 1.0 compa
 - [x] Server-side RBAC and app access scopes
 - [x] Organization-isolated app databases
 - [x] Organization-isolated Developer Studio / Marketplace assets
-- [x] Invitation links/codes, expiry, revoke and single-use acceptance
+- [x] Invitation lifecycle
 - [x] Organization branding and production login page
 - [x] SMTP / Resend / webhook / manual mail delivery
 - [x] Enterprise knowledge base
@@ -54,79 +60,131 @@ OEAP has completed the initial platform scope and the repository-owned 1.0 compa
 - [x] Static Package security scan
 - [x] Trusted publisher fingerprints
 - [x] Package dependency validation
-- [x] Correct fail-closed SemVer dependency-range evaluation
+- [x] Fail-closed SemVer dependency-range evaluation
 - [x] Remote import without automatic code execution
 
 ### Deployment and operations
 
 - [x] Development/Production mode separation
 - [x] Production Session identity boundary
-- [x] Production Local Development login hard-disabled in code
-- [x] HTTPS public URL requirements and fail-closed CORS policy
+- [x] Production Local Development login hard-disabled
+- [x] HTTPS public URL requirements and fail-closed CORS
 - [x] Docker multi-stage builds
 - [x] Docker Compose deployment
-- [x] Nginx reverse proxy and web security headers
-- [x] Persistent runtime data directory
-- [x] Hardened backup and restore with SHA-256/archive validation
+- [x] Nginx reverse proxy and Web security headers
+- [x] Persistent `OEAP_DATA_DIR`
+- [x] Hardened backup and restore
 - [x] Production Preflight offline/live validation
 - [x] Repository runtime-state/secret hygiene gate
 - [x] `/health` and `/ready`
-- [x] Deterministic CI and container build validation
-- [x] Built-API end-to-end test
-- [x] Real Chrome browser end-to-end smoke test
+- [x] Deterministic CI and container validation
+- [x] Built-API E2E
+- [x] Real Chrome browser E2E
 - [x] Automatic pnpm lockfile synchronization
-- [x] Tagged/controlled GitHub Release workflow
+- [x] Controlled GitHub Release workflow
 
-## 1.0 — Stable contracts
-
-The 1.0 goal is compatibility and security stabilization rather than another large feature expansion.
+## 1.0 — Stable contracts and security baseline
 
 - [x] Freeze Package Manifest 1.x compatibility rules
 - [x] Freeze public TypeScript SDK APIs and add contract tests
 - [x] Define migration guarantees for application Blueprints and persistent runtime data
 - [x] Add compatibility fixtures for supported previous Package versions
-- [x] Add API and real-browser end-to-end release gates
-- [x] Document upgrade/rollback procedure between platform releases
-- [x] Add release-version consistency checks for platform/API/Web/CLI/SDK/Package Spec
-- [x] Harden OAuth state, verified external identity binding and production auth defaults
-- [x] Harden remote Package provenance, static scan, path/size limits and SemVer dependency validation
-- [x] Add backup/restore integrity and archive-traversal protections
+- [x] Add API and real-browser release gates
+- [x] Document platform upgrade/rollback
+- [x] Add release-version consistency checks
+- [x] Harden OAuth state and external identity binding
+- [x] Harden remote Package provenance/path/size/dependency validation
+- [x] Add backup/restore integrity and traversal protections
 - [x] Add repository credential/runtime-state leakage gate
-- [x] Add Production Preflight configuration/live-deployment checker
+- [x] Add Production Preflight configuration/live checker
 - [x] Publish Threat Model and independent security-review checklist
-- [x] Track the external GA security/deployment gate separately from source-code work
-- [ ] Complete an independent external security review before declaring **1.0 General Availability**
+- [x] Track external GA security/deployment gates separately
+- [ ] Complete independent external security review before declaring **1.0 General Availability**
 
-### 1.0.0-rc.2 release criteria
-
-- [x] Workspace build passes on Node.js 24 / pnpm 11.7.0
-- [x] Deterministic regression suite passes
-- [x] Repository hygiene scan passes
-- [x] Production Preflight regression passes
-- [x] Backup/restore integrity/traversal regression passes
-- [x] Built API starts and passes critical session/RBAC/runtime probes
-- [x] Headless Chrome renders and navigates core workspace pages without uncaught runtime exceptions
-- [x] Docker Compose validates
-- [x] API Docker image builds
-- [x] Web Docker image builds
-- [x] Production readiness fails closed when identity/public URL configuration is unsafe or incomplete
-- [x] Release tags are required to match the platform SemVer version
-- [x] RC releases publish as GitHub prereleases
-
-## 1.0 GA deployment gates
+### 1.0 GA deployment gates
 
 These are environment/external-review requirements, not missing source-code features:
 
 - [ ] Independent security review completed and material findings resolved
 - [ ] Organization-owned OAuth/OIDC credentials configured and tested
 - [ ] Production DNS/TLS and public HTTPS URLs configured
-- [ ] Production mail provider credentials configured if automatic invitations are required
-- [ ] Production backup/restore drill completed against the deployment data volume
-- [ ] AI runtime/provider credentials configured and tested if AI generation is enabled
+- [ ] Production mail credentials configured when required
+- [ ] Production backup/restore drill completed
+- [ ] AI provider credentials configured and tested when AI is enabled
 
-The authoritative GA tracker is GitHub issue #6.
+The authoritative GA tracker remains GitHub issue #6.
 
-## Post-1.0 — Scalable enterprise infrastructure
+## 1.1 — Day-1 usability and commercial ecosystem
+
+### Business users can start without AI
+
+- [x] CRM Day-1 template
+- [x] Travel-agency management template
+- [x] Payment-service ERP template
+- [x] Project/task collaboration template
+- [x] One-click template application creation
+- [x] Business-data overview
+- [x] CSV / JSON import and export
+- [x] Dry-run data migration validation
+- [x] Transactional batch import
+- [x] Server-side CRUD field validation
+- [x] CSV formula-injection hardening
+- [x] Application archive and restore without deleting business data
+
+### Daily workspace
+
+- [x] Application search
+- [x] Member favorites
+- [x] Recently used applications
+- [x] Server-side member preference persistence
+- [x] Member-scoped personal application folders/categories
+- [x] Smart / recent / name / folder sorting
+- [x] Legacy app-preference schema migration
+
+### AI Runtime becomes provider-flexible
+
+- [x] DeepSeek Harness Provider
+- [x] OpenAI-Compatible Provider
+- [x] `auto / deepseek-harness / openai-compatible` selection
+- [x] Organization-level encrypted AI API configuration
+- [x] Provider configuration UI
+- [x] Real AI runtime test endpoint
+- [x] Compatible-provider mock E2E
+- [x] App Builder organization/provider context propagation
+- [x] Production Preflight multi-provider validation
+
+### Marketplace ecosystem
+
+- [x] Marketplace Registry protocol
+- [x] Runtime Registry foundation
+- [x] Public discovery/read APIs
+- [x] Official seeded listings
+- [x] Buyer-facing Marketplace UI
+- [x] Organization-scoped free acquisition
+- [x] Organization-scoped entitlement store
+- [x] Order model and buyer order history foundation
+- [ ] Third-party paid checkout Connector
+- [ ] Signed server-to-server payment webhook verification
+- [ ] Subscription renewal/cancellation lifecycle
+- [ ] Metered usage billing
+- [ ] Revenue sharing and publisher settlement
+- [ ] Ratings/reviews and publisher reputation
+- [ ] Managed Marketplace security-review program
+
+### 1.1.0-alpha.1 release criteria
+
+- [x] Package/API/Web development version moved to 1.1 alpha line
+- [x] Day-1 no-AI application path is covered by API and browser E2E
+- [x] CSV/JSON migration path is covered by deterministic/API tests
+- [x] OpenAI-Compatible Provider is covered without external secrets
+- [x] Application archive/restore has deterministic regression coverage
+- [x] App preference member isolation has deterministic coverage
+- [x] Marketplace registry/acquisition tests are deterministic
+- [x] 5-minute first-use documentation exists
+- [ ] Final alpha full CI is green on release commit
+- [ ] `v1.1.0-alpha.1` GitHub prerelease published
+
+## Post-1.1 — Scalable enterprise infrastructure
 
 - [ ] PostgreSQL enterprise data backend
 - [ ] Object-storage backend for large files
@@ -137,20 +195,6 @@ The authoritative GA tracker is GitHub issue #6.
 - [ ] Enterprise secret-manager adapters (Vault/KMS/cloud secret managers)
 - [ ] SCIM provisioning
 - [ ] Fine-grained row/field data policies
-
-## Marketplace ecosystem
-
-- [x] Hosted Package registry protocol
-- [ ] Hosted registry persistence and publication API
-- [ ] Public publisher profiles and package pages
-- [ ] Registry search/discovery API
-- [ ] Ratings/reviews and publisher reputation
-- [ ] Free/paid Package licensing
-- [ ] Subscription and metered pricing
-- [ ] Revenue sharing
-- [ ] Managed security-review program
-
-The registry protocol is defined as a separate commercial/discovery contract over the stable OEAP Package Manifest. Hosted persistence, discovery, entitlement and billing services follow as independent phases.
 
 ## Visual builders
 
@@ -166,10 +210,10 @@ Future visual tooling should generate the same Blueprint and Package contracts r
 
 Candidate official/community families remain outside hard-coded OEAP core:
 
-- Software development: PRD, architecture, coding, review, GitHub and deployment workflows
-- Growth/sales: lead generation, scoring, outreach, CRM and growth agents
-- Business analysis: company research, competition, operating metrics and business agents
-- Investment research: filings, financial analysis, valuation, risk and investment memos
+- Software development
+- Growth/sales and lead generation
+- Business analysis
+- Investment research
 - Payments/payment-service ERP
 - Cross-border payments
 - Travel/tourism
