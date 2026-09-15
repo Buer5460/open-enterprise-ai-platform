@@ -1,0 +1,44 @@
+name: Official Business Agents Lockfile Sync
+
+on:
+  push:
+    branches: [feat/official-business-agents]
+    paths:
+      - "packages/structured-ai/package.json"
+      - "packages/official/company-research/package.json"
+      - "packages/official/lead-generation/package.json"
+      - "packages/official/opportunity-radar/package.json"
+      - "packages/official/business-analysis/package.json"
+      - "packages/official/investment-analysis/package.json"
+      - "packages/official/b2b-opportunity-workflow/package.json"
+      - ".github/workflows/official-business-agents-lockfile.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: feat/official-business-agents
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - name: Regenerate lockfile
+        run: corepack pnpm install --lockfile-only --no-frozen-lockfile
+      - name: Commit lockfile when changed
+        shell: bash
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "pnpm-lock.yaml is already current"
+            exit 0
+          fi
+          git config user.name "oeap-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "chore: sync official business agents lockfile"
+          git push origin HEAD:feat/official-business-agents
