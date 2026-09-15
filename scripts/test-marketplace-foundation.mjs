@@ -281,7 +281,7 @@ const officialSearch = await official.search({
   publisherId: "oeap-official",
   limit: 20
 });
-assert.equal(officialSearch.items.length, 5);
+assert.equal(officialSearch.items.length, 6);
 assert.deepEqual(
   new Set(officialSearch.items.map((item) => item.slug)),
   new Set([
@@ -289,10 +289,11 @@ assert.deepEqual(
     "lead-generation",
     "opportunity-radar",
     "business-analysis",
+    "b2b-opportunity-workflow",
     "investment-analysis"
   ])
 );
-assert.equal(officialMarketplaceListings.length, 5);
+assert.equal(officialMarketplaceListings.length, 6);
 
 console.log(
   "✅ MARKETPLACE FOUNDATION TEST PASSED"

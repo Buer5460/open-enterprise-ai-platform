@@ -43,7 +43,7 @@ try {
   );
   assert.equal(all.response.status, 200);
   assert.equal(all.body.ok, true);
-  assert.equal(all.body.items.length, 5);
+  assert.equal(all.body.items.length, 6);
   assert.deepEqual(
     new Set(all.body.items.map((item) => item.slug)),
     new Set([
@@ -51,6 +51,7 @@ try {
       "lead-generation",
       "opportunity-radar",
       "business-analysis",
+      "b2b-opportunity-workflow",
       "investment-analysis"
     ])
   );
@@ -141,6 +142,11 @@ try {
     "oeap.company-research"
   );
   assert.equal(acquired.body.entitlement.status, "active");
+  assert.equal(acquired.body.activation.status, "enabled");
+  assert.equal(
+    acquired.body.activation.steps.at(-1).packageId,
+    "oeap.company-research"
+  );
 
   const acquiredAgain = await jsonRequest(
     "/api/marketplace/v1/listings/oeap.company-research/acquire",
@@ -181,6 +187,7 @@ try {
   );
   assert.equal(cancelled.response.status, 200);
   assert.equal(cancelled.body.entitlement.status, "cancelled");
+  assert.equal(cancelled.body.activation.status, "disabled");
 
   const reacquired = await jsonRequest(
     "/api/marketplace/v1/listings/oeap.company-research/acquire",

@@ -3,13 +3,9 @@ import type {
   FastifyReply,
   FastifyRequest
 } from "fastify";
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-
 import {
-  packageManager,
-  type PackageRuntimeModule
-} from "@oeap/package-manager";
+  OfficialPackageActivator
+} from "./officialPackageActivator.js";
 import { AppDatabase } from "@oeap/data-runtime";
 
 import {
@@ -52,35 +48,8 @@ export function registerPlatformRoutes(
     runtimePath(repoRoot, "packages", "organization-packages.sqlite")
   );
 
-  async function loadOfficialRuntimeModule(
-    packageId: string
-  ): Promise<PackageRuntimeModule> {
-    const official = await discoverOfficialPackages(repoRoot);
-    const found = official.find((item) => item.id === packageId);
-
-    if (!found?.directory) {
-      throw new Error(`Official package not found: ${packageId}`);
-    }
-
-    const modulePath = join(
-      repoRoot,
-      found.directory,
-      "dist",
-      "index.js"
-    );
-    const imported = await import(pathToFileURL(modulePath).href);
-    const runtimeModule = imported.packageModule as
-      | PackageRuntimeModule
-      | undefined;
-
-    if (!runtimeModule) {
-      throw new Error(
-        `${packageId} requires connector/runtime configuration and cannot be toggled automatically yet.`
-      );
-    }
-
-    return runtimeModule;
-  }
+  const officialActivator =
+    new OfficialPackageActivator(repoRoot);
 
   app.get(
     "/api/platform/packages",
@@ -164,20 +133,11 @@ export function registerPlatformRoutes(
       const packageId = request.params.packageId;
 
       try {
-        if (!packageManager.get(packageId)) {
-          const runtimeModule = await loadOfficialRuntimeModule(packageId);
-          await packageManager.install(runtimeModule);
-        }
-
-        if (!packageManager.isEnabled(packageId)) {
-          await packageManager.enable(packageId);
-        }
-
-        organizationPackages.set(
-          identity.organizationId,
-          packageId,
-          "enabled"
-        );
+        const activation =
+          await officialActivator.enableForOrganization(
+            identity.organizationId,
+            packageId
+          );
 
         return {
           ok: true,
@@ -185,7 +145,8 @@ export function registerPlatformRoutes(
             id: packageId,
             status: "enabled",
             organizationId: identity.organizationId
-          }
+          },
+          activation
         };
       } catch (error) {
         return reply.code(400).send({
@@ -213,18 +174,11 @@ export function registerPlatformRoutes(
       if (!identity) return;
 
       const packageId = request.params.packageId;
-      organizationPackages.set(
-        identity.organizationId,
-        packageId,
-        "disabled"
-      );
-
-      if (
-        organizationPackages.countEnabled(packageId) === 0 &&
-        packageManager.isEnabled(packageId)
-      ) {
-        await packageManager.disable(packageId);
-      }
+      const activation =
+        await officialActivator.disableForOrganization(
+          identity.organizationId,
+          packageId
+        );
 
       return {
         ok: true,
@@ -232,7 +186,8 @@ export function registerPlatformRoutes(
           id: packageId,
           status: "disabled",
           organizationId: identity.organizationId
-        }
+        },
+        activation
       };
     }
   );

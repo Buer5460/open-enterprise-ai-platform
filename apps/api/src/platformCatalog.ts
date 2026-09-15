@@ -93,6 +93,24 @@ function typeField(
   return undefined;
 }
 
+function manifestSource(
+  source: string
+): string {
+  const start = source.indexOf("definePackage({");
+  if (start < 0) {
+    return source;
+  }
+
+  const end = source.indexOf(
+    "} satisfies",
+    start
+  );
+
+  return end >= 0
+    ? source.slice(start, end + 1)
+    : source.slice(start);
+}
+
 async function readJson(
   path: string
 ): Promise<any | undefined> {
@@ -147,8 +165,11 @@ export async function discoverOfficialPackages(
       // Package source is optional for catalog discovery.
     }
 
+    const manifestText =
+      manifestSource(source);
+
     const type =
-      typeField(source) ??
+      typeField(manifestText) ??
       inferType(entry.name);
 
     if (!type) {
@@ -156,27 +177,27 @@ export async function discoverOfficialPackages(
     }
 
     const name =
-      stringField(source, "name") ??
+      stringField(manifestText, "name") ??
       entry.name;
 
     packages.push({
       id:
-        stringField(source, "id") ??
+        stringField(manifestText, "id") ??
         `oeap.${entry.name}`,
       type,
       name,
       displayName:
-        stringField(source, "displayName") ??
+        stringField(manifestText, "displayName") ??
         humanize(name),
       description:
-        stringField(source, "description") ??
+        stringField(manifestText, "description") ??
         undefined,
       version:
-        stringField(source, "version") ??
+        stringField(manifestText, "version") ??
         pkg?.version ??
         "0.0.1",
       publisher:
-        stringField(source, "publisher") ??
+        stringField(manifestText, "publisher") ??
         "oeap",
       source: "official",
       status: "available",

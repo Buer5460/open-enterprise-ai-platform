@@ -20,6 +20,9 @@ import {
 import {
   MarketplaceCommerceStore
 } from "./marketplaceCommerceStore.js";
+import {
+  OfficialPackageActivator
+} from "./officialPackageActivator.js";
 import { runtimePath } from "./runtimePaths.js";
 import { TenancyStore } from "./tenancyStore.js";
 import {
@@ -88,6 +91,8 @@ export function registerMarketplaceRoutes(input: {
       "tenancy.sqlite"
     )
   );
+  const activator =
+    new OfficialPackageActivator(input.repoRoot);
 
   input.app.get<{
     Querystring: ListingQuery;
@@ -291,10 +296,16 @@ export function registerMarketplaceRoutes(input: {
       );
 
       if (existing?.status === "active") {
+        const activation = await activateIfOfficial(
+          activator,
+          identity.organizationId,
+          listing.packageId
+        );
         return {
           ok: true,
           alreadyOwned: true,
-          entitlement: existing
+          entitlement: existing,
+          activation
         };
       }
 
@@ -319,10 +330,17 @@ export function registerMarketplaceRoutes(input: {
           plan
         });
 
+        const activation = await activateIfOfficial(
+          activator,
+          identity.organizationId,
+          listing.packageId
+        );
+
         return reply.code(201).send({
           ok: true,
           paymentRequired: false,
-          entitlement
+          entitlement,
+          activation
         });
       }
 
@@ -379,14 +397,88 @@ export function registerMarketplaceRoutes(input: {
         );
       }
 
+      const activation =
+        await disableIfOfficial(
+          activator,
+          identity.organizationId,
+          request.params.packageId
+        );
+
       return {
         ok: true,
-        entitlement
+        entitlement,
+        activation
       };
     }
   );
 
   return { registry, commerce };
+}
+
+async function activateIfOfficial(
+  activator: OfficialPackageActivator,
+  organizationId: string,
+  packageId: string
+) {
+  if (!(await activator.hasOfficialPackage(packageId))) {
+    return {
+      status: "metadata-only" as const,
+      packageId
+    };
+  }
+
+  try {
+    const result = await activator.enableForOrganization(
+      organizationId,
+      packageId
+    );
+    return {
+      status: "enabled" as const,
+      ...result
+    };
+  } catch (error) {
+    return {
+      status: "activation-failed" as const,
+      packageId,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Package activation failed"
+    };
+  }
+}
+
+async function disableIfOfficial(
+  activator: OfficialPackageActivator,
+  organizationId: string,
+  packageId: string
+) {
+  if (!(await activator.hasOfficialPackage(packageId))) {
+    return {
+      status: "metadata-only" as const,
+      packageId
+    };
+  }
+
+  try {
+    const result = await activator.disableForOrganization(
+      organizationId,
+      packageId
+    );
+    return {
+      status: "disabled" as const,
+      ...result
+    };
+  } catch (error) {
+    return {
+      status: "disable-failed" as const,
+      packageId,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Package disable failed"
+    };
+  }
 }
 
 async function publicListing(

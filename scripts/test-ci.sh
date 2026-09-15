@@ -20,6 +20,7 @@ run_if_present scripts/test-installable-skill.mjs
 run_if_present scripts/test-growth-agent.mjs
 run_if_present scripts/test-growth-workflow.mjs
 run_if_present scripts/test-official-business-agents.mjs
+run_if_present scripts/test-official-package-activator.mjs
 run_if_present scripts/test-agent-context-enrichment.mjs
 run_if_present scripts/test-package-compatibility.mjs
 run_if_present scripts/test-marketplace-registry-protocol.mjs
