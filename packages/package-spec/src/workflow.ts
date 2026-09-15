@@ -18,4 +18,7 @@ export interface OEAPWorkflowStep {
 export interface OEAPWorkflowManifest extends OEAPBaseManifest {
   type: "workflow";
   steps: OEAPWorkflowStep[];
+  inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
+  qualityChecks?: string[];
 }

@@ -7,6 +7,10 @@ export interface OEAPAgentManifest extends OEAPBaseManifest {
 
   skills?: string[];
 
+  inputSchema?: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
+  qualityChecks?: string[];
+
   modelPolicy?: {
     preferred?: string[];
     fallback?: string[];

@@ -199,6 +199,39 @@ importers:
         specifier: workspace:*
         version: link:../../skill-runtime
 
+  packages/official/b2b-opportunity-workflow:
+    dependencies:
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../package-spec
+      '@oeap/workflow-engine':
+        specifier: workspace:*
+        version: link:../../workflow-engine
+
+  packages/official/business-analysis:
+    dependencies:
+      '@oeap/agent-runtime':
+        specifier: workspace:*
+        version: link:../../agent-runtime
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../package-spec
+      '@oeap/structured-ai':
+        specifier: workspace:*
+        version: link:../../structured-ai
+
+  packages/official/company-research:
+    dependencies:
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../package-spec
+      '@oeap/skill-runtime':
+        specifier: workspace:*
+        version: link:../../skill-runtime
+      '@oeap/structured-ai':
+        specifier: workspace:*
+        version: link:../../structured-ai
+
   packages/official/deepseek-harness-connector:
     dependencies:
       '@oeap/connector-runtime':
@@ -229,6 +262,30 @@ importers:
         specifier: workspace:*
         version: link:../../workflow-engine
 
+  packages/official/investment-analysis:
+    dependencies:
+      '@oeap/agent-runtime':
+        specifier: workspace:*
+        version: link:../../agent-runtime
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../package-spec
+      '@oeap/structured-ai':
+        specifier: workspace:*
+        version: link:../../structured-ai
+
+  packages/official/lead-generation:
+    dependencies:
+      '@oeap/agent-runtime':
+        specifier: workspace:*
+        version: link:../../agent-runtime
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../package-spec
+      '@oeap/structured-ai':
+        specifier: workspace:*
+        version: link:../../structured-ai
+
   packages/official/openai-compatible-connector:
     dependencies:
       '@oeap/connector-runtime':
@@ -237,6 +294,18 @@ importers:
       '@oeap/package-spec':
         specifier: workspace:*
         version: link:../../package-spec
+
+  packages/official/opportunity-radar:
+    dependencies:
+      '@oeap/agent-runtime':
+        specifier: workspace:*
+        version: link:../../agent-runtime
+      '@oeap/package-spec':
+        specifier: workspace:*
+        version: link:../../package-spec
+      '@oeap/structured-ai':
+        specifier: workspace:*
+        version: link:../../structured-ai
 
   packages/official/social-first-touch:
     dependencies:
@@ -281,6 +350,8 @@ importers:
       '@oeap/package-spec':
         specifier: workspace:*
         version: link:../package-spec
+
+  packages/structured-ai: {}
 
   packages/workflow-engine:
     dependencies:
