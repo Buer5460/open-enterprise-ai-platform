@@ -2,13 +2,67 @@
 
 All notable changes to Open Enterprise AI Platform (OEAP) are documented here.
 
+## 1.1.0-alpha.1 — Day-1 Usability and Marketplace Alpha
+
+The 1.1 line builds on the frozen 1.0 RC contracts and focuses on making OEAP directly usable by business teams, easier to connect to AI providers, and ready for an Agent/Package Marketplace ecosystem.
+
+### Day-1 business applications
+
+- Added one-click CRM, travel-agency, payment-service ERP and project/task templates.
+- Template applications work without an AI Runtime and create real generated pages, SQLite entities and business data.
+- Added business-data overview across applications visible to the current member.
+- Added CSV/JSON import/export with dry-run validation, Chinese field labels, type validation, unknown-column rejection and row limits.
+- Batch imports are transactional so partially imported datasets are not left behind after failure.
+- Added CSV formula-injection hardening.
+- Moved generated-app validation into the server-side data runtime so API clients cannot bypass required/enum/type/unknown-field validation.
+- Added application archive/restore while preserving the existing business database.
+
+### Daily workspace
+
+- Added server-persisted favorites and recently used applications.
+- Added application/business-entity search.
+- Added member-scoped personal application folders/categories.
+- Added smart, recent, name and folder sorting/filtering.
+- Added schema migration for existing app-preference databases.
+- Added isolation tests proving member preferences do not leak across members or organizations.
+
+### Multi-provider AI Runtime
+
+- Added an OpenAI-Compatible Connector alongside DeepSeek Harness.
+- Compatible endpoints can be used with OpenAI, DeepSeek API, newAPI and private enterprise gateways.
+- Added `auto`, `deepseek-harness` and `openai-compatible` Provider modes.
+- Added organization-level encrypted Provider configuration through the existing Connector Vault.
+- API keys are write-only from the browser and are not returned after storage.
+- App Builder requests now propagate organization/member/provider context through Skill → Action Gateway → Connector resolution.
+- Added real AI Runtime testing and controlled mock-provider E2E without external secrets.
+- Production Preflight now validates both AI Provider paths, rejects explicit incomplete OpenAI-Compatible configuration and treats missing optional AI as a warning rather than a core-platform blocker.
+
+### Marketplace foundation
+
+- Added Marketplace Registry runtime/protocol support.
+- Added official seeded Agent/Package listings and public discovery/read APIs.
+- Added buyer-facing Marketplace UI.
+- Added organization-scoped free acquisition.
+- Added organization-scoped order and entitlement persistence.
+- Paid checkout remains a platform integration boundary: a trusted server-side payment Connector/webhook flow is still required before production paid entitlements should be granted.
+
+### Documentation
+
+- Added a five-minute first-use guide.
+- Updated deployment guidance for `OEAP_DATA_DIR`, dual AI Providers and Marketplace boundaries.
+- README and Roadmap now distinguish the 1.0 RC security baseline from the 1.1 usability/commercial-development line.
+
+### Release boundary
+
+`1.1.0-alpha.1` is an alpha usability/ecosystem release. It does not replace `1.0.0-rc.2` as the independent security-review baseline and does not claim a configured external paid Marketplace processor, production OAuth credentials, DNS/TLS or independent security certification.
+
 ## 1.0.0-rc.2 — Backup and Deployment Hardening Release Candidate
 
 OEAP 1.0.0-rc.2 keeps the stable 1.x Package/SDK contracts from rc.1 and adds a focused post-RC security/reliability hardening pass. It does not expand the platform feature surface.
 
 ### Backup and restore hardening
 
-- Filesystem backups now refuse to run while the local OEAP API health endpoint is reachable, reducing the risk of inconsistent SQLite copies.
+- Filesystem backups refuse to run while the local OEAP API health endpoint is reachable, reducing the risk of inconsistent SQLite copies.
 - Backup targets inside `OEAP_DATA_DIR` and filesystem-root runtime directories are rejected.
 - Backup creation rejects symlinks and special/device/socket/FIFO entries.
 - Every new backup receives a SHA-256 sidecar for integrity verification.
@@ -20,23 +74,22 @@ OEAP 1.0.0-rc.2 keeps the stable 1.x Package/SDK contracts from rc.1 and adds a 
 
 ### Repository and secret hygiene
 
-- CI now scans tracked files and rejects runtime-state/secrets such as `.env`, SQLite databases, encrypted local stores, private-key files and backup archives.
+- CI scans tracked files and rejects runtime-state/secrets such as `.env`, SQLite databases, encrypted local stores, private-key files and backup archives.
 - High-confidence credential patterns for private keys, GitHub/AWS/Google/Slack/Stripe/Resend and generic provider keys are rejected from tracked source.
-- `.gitignore` was hardened for credentials, runtime databases, encrypted state, backups and local IDE state.
+- `.gitignore` is hardened for credentials, runtime databases, encrypted state, backups and local IDE state.
 
 ### Production deployment preflight
 
 - Added `pnpm preflight:production -- --env-file .env` for offline Production configuration checks.
 - Added `--live` mode to validate the deployed Web endpoint, `/health`, `/ready`, TLS reachability and key Web security headers.
 - Preflight checks Production mode, Local Auth safety, external OAuth/OIDC availability, HTTPS public URLs, CORS semantics, Session TTL and persistent data directory safety.
-- Preflight reports whether mail/AI runtime configuration is present without printing secret values.
 - Configuration and secret-redaction behavior are regression-tested in CI.
 
 ### Security review package
 
 - Added `docs/threat-model.md` covering assets, trust boundaries, threat scenarios, mitigations, release-blocking invariants and residual risks.
 - Added `docs/security-review-checklist.md` with an executable independent-review/penetration-test checklist and severity guide.
-- `SECURITY.md`, Production checklist and release-readiness guidance were aligned with the 1.0 RC security boundary.
+- `SECURITY.md`, Production checklist and release-readiness guidance are aligned with the 1.0 RC security boundary.
 - GitHub issue #6 tracks the independent security review and deployment-owned GA validation separately from repository feature work.
 
 ### Release boundary
@@ -72,7 +125,7 @@ OEAP 1.0.0-rc.1 freezes the first stable Package/SDK contracts and closes the in
 
 - Remote GitHub Package import continues to require static scanning, trusted Ed25519 provenance and publisher fingerprint validation.
 - Remote imports reject symlinks/submodules and enforce file-count/per-file/aggregate size bounds.
-- Package dependency evaluation now uses a fail-closed SemVer range evaluator.
+- Package dependency evaluation uses a fail-closed SemVer range evaluator.
 - Correct zero-major caret semantics are enforced (`^0.2.0` does not accept `0.9.0`, `^0.0.3` does not accept `0.0.4`).
 - Exact, wildcard, caret, tilde, comparator, AND/OR and prerelease range behavior is regression-tested.
 
@@ -85,20 +138,7 @@ OEAP 1.0.0-rc.1 freezes the first stable Package/SDK contracts and closes the in
 
 ### End-to-end quality gates
 
-The CI release gate now includes:
-
-- frozen-lockfile install
-- full workspace TypeScript/Vite build
-- deterministic runtime/RBAC/auth/invitation/mail/supply-chain/multi-tenant tests
-- Package compatibility and SemVer dependency tests
-- SDK 1.x contract tests
-- built API end-to-end test
-- real headless Chrome rendering/navigation of the enterprise workspace
-- uncaught browser runtime-exception detection
-- shell-script validation
-- Docker Compose validation
-- API Docker image build
-- Web Docker image build
+The CI release gate includes frozen-lockfile install, full workspace build, deterministic tests, Package/SDK compatibility tests, built API E2E, real headless Chrome navigation, shell validation, Docker Compose validation and API/Web Docker image builds.
 
 ### GA boundary
 
