@@ -21,9 +21,10 @@
 }
 
 .myAppsFilters {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) repeat(3, auto);
   gap: 8px;
-  min-width: min(480px, 50%);
+  min-width: min(720px, 64%);
 }
 
 .myAppsFilters input,
@@ -38,7 +39,6 @@
 }
 
 .myAppsFilters input {
-  flex: 1;
   min-width: 180px;
 }
 
@@ -92,12 +92,39 @@
   color: #b7791f;
 }
 
-.favoriteButton:disabled {
+.favoriteButton:disabled,
+.folderButton:disabled {
   cursor: wait;
   opacity: .55;
 }
 
-@media (max-width: 900px) {
+.folderButton {
+  max-width: 125px;
+  overflow: hidden;
+  border: 1px solid #e1e6ef;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #536174;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folderButton:hover {
+  border-color: var(--brand-primary, #315efb);
+  color: var(--brand-primary, #315efb);
+}
+
+.folderChip {
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #405f9b;
+  padding: 3px 7px;
+}
+
+@media (max-width: 1180px) {
   .myAppsHeading {
     align-items: stretch;
     flex-direction: column;
@@ -109,12 +136,28 @@
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 760px) {
   .myAppsFilters {
-    flex-direction: column;
+    grid-template-columns: 1fr 1fr;
   }
 
   .myAppsFilters input {
+    grid-column: 1 / -1;
     min-width: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .myAppsFilters {
+    grid-template-columns: 1fr;
+  }
+
+  .myAppsFilters input {
+    grid-column: auto;
+  }
+
+  .myAppTopActions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 }
