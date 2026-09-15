@@ -1,56 +1,129 @@
 # Open Enterprise AI Platform (OEAP)
 
-> Build enterprise software with AI — by describing the business, not by starting from code.
+> Build and operate enterprise software from business requirements — with AI when useful, without making AI a prerequisite for day-one operations.
 
-**OEAP 1.0.0-rc.2** is a self-hosted, open-source enterprise AI application platform. It turns business requirements into real applications, then provides the tenancy, data, identity, package, security and operations layers required to keep those applications usable inside an organization.
+**Current development line: `1.1.0-alpha.1`.**
 
-The 1.0 release-candidate line freezes the first stable Package/SDK contracts and is continuously validated by runtime, API, browser, container, backup/restore and supply-chain tests. `1.0.0-rc.2` is the recommended baseline for controlled self-hosted evaluation and independent security review. **1.0 General Availability remains gated on an independent external security review and deployment-owned production infrastructure/credentials.**
+**Stable review baseline: `1.0.0-rc.2`.** The 1.0 RC line freezes the first stable Package/SDK contracts and remains the recommended baseline for independent security review. 1.0 General Availability still requires an independent external security review and deployment-owned production infrastructure/credentials.
+
+OEAP is a self-hosted, open-source enterprise AI application platform. It combines an AI App Builder with tenancy, RBAC, data, knowledge, files, approvals, Package runtimes, Marketplace, security and deployment controls so generated applications can actually be used inside an organization.
+
+## Five-minute start
+
+See [docs/quickstart-5-minutes.md](docs/quickstart-5-minutes.md).
+
+Local start:
+
+```bash
+git clone https://github.com/Buer5460/open-enterprise-ai-platform.git
+cd open-enterprise-ai-platform
+corepack enable
+corepack pnpm install --frozen-lockfile
+./scripts/start-local.sh
+```
+
+Open:
+
+```text
+http://127.0.0.1:5173/
+```
+
+AI is optional. Even with no AI Provider connected, the Day-1 templates can create real CRM, travel, payment-service ERP and project-management applications backed by SQLite.
 
 ## From requirement to operating application
 
 ```text
-Business requirement
-→ AI analysis
+Business requirement / Day-1 template
 → App Blueprint
 → installable App Package
 → generated pages and SQLite data model
+→ real business data
 → enterprise users / roles / app permissions
-→ AI revision + version rollback
+→ files / knowledge / approvals / operations
+→ optional AI revision + version rollback
 → reusable Agent / Skill / Workflow / Connector packages
 ```
 
-DeepSeek Harness is the current AI runtime adapter, but the platform is designed around provider-independent capabilities rather than one model vendor.
+## 1.1 Day-1 usability line
 
-## What works in 1.0.0-rc.2
+The 1.1 development line focuses on making OEAP usable by ordinary business teams rather than only technically complete.
 
-### AI application lifecycle
+### Start without AI
 
-- Natural-language enterprise application generation
-- Structured App Blueprints
-- Blueprint → installable App Package
-- Generated navigation and business pages
-- SQLite-backed CRUD, search and pagination
-- Enum, currency, dates, rich text, attachment, relation and JSON fields
-- AI modification of existing applications
-- Automatic version snapshots and rollback
-- Enterprise knowledge retrieval injected into app generation/revision and Agent execution context
+- CRM, travel-agency, payment-service ERP and project/task templates
+- One-click application creation
+- Real generated business pages and SQLite databases
+- CRUD, search and pagination
+- Server-side field validation
+- Enum, currency, date/time, rich text, attachment, relation and JSON fields
 
-### Enterprise administration
+### Bring existing data
+
+- CSV / JSON import and export
+- Dry-run validation before writing
+- Chinese field-label support
+- Required/enum/number/integer/boolean/JSON/relation validation
+- Unknown-column rejection
+- CSV formula-injection hardening
+- Transactional batch import: all rows commit or the whole batch rolls back
+- Business-data overview across applications the current member can access
+
+### Daily workspace
+
+- Search applications and business entities
+- Favorites
+- Recently used applications
+- Personal application folders/categories
+- Smart, recent, name and folder sorting
+- Preferences persist server-side by organization/member
+- Application archive and restore without deleting the application database
+
+### Multi-provider AI Runtime
+
+OEAP exposes provider-independent capabilities such as `ai.generate`.
+
+Supported runtime paths in 1.1:
+
+- **DeepSeek Harness** — local/private runtime adapter
+- **OpenAI-Compatible API** — OpenAI, DeepSeek API, newAPI, enterprise gateways and compatible `/chat/completions` services
+
+Provider mode:
+
+```text
+auto | deepseek-harness | openai-compatible
+```
+
+Organization administrators can configure the compatible Provider in **AI Runtime**. API keys are stored in the encrypted Connector Vault and are not returned to the browser after saving.
+
+### Agent / Package Marketplace foundation
+
+The 1.1 line also adds the first hosted-style Marketplace foundation:
+
+- registry protocol and Registry runtime
+- official seeded listings
+- discovery/read APIs and buyer-facing UI
+- organization-scoped free acquisition
+- order and entitlement data model
+- organization-isolated acquisition state
+
+The commerce layer is a foundation. A real third-party paid checkout/webhook provider must still be connected server-side before paid entitlements should be granted in production.
+
+## Enterprise administration
 
 - Multi-organization tenancy
 - Owner / Admin / Manager / Member / Viewer plus custom roles
 - Server-side RBAC
 - Per-member application access scopes
-- Organization-isolated application data and Developer/Marketplace assets
-- Persistent Session identity
+- Organization-isolated application databases and Package assets
+- Persistent Sessions
 - GitHub OAuth, Google Workspace, Microsoft Entra ID and generic OIDC
-- Stable provider-subject identity binding after first SSO match
-- Invitation link/code lifecycle: expiration, revoke, single use and automatic session creation
+- Stable external provider-subject identity binding
+- Invitation expiry/revoke/single-use acceptance
 - Organization branding and production login page
-- Per-organization SMTP / Resend / webhook / manual mail delivery
+- Per-organization SMTP / Resend / webhook / manual invitation delivery
 - Encrypted Connector credential vault
 
-### AI extensibility
+## AI extensibility
 
 OEAP supports six Package types:
 
@@ -63,61 +136,89 @@ OEAP supports six Package types:
 | `connector` | SaaS, MCP, API or local-system integration |
 | `data-provider` | Enterprise/professional data source |
 
-The platform includes Agent, Skill, Workflow and Connector runtimes; a capability registry; permission and approval engines; audit logging; and an Action Gateway for controlled execution.
+The runtime includes:
 
-### Developer Studio and Marketplace
+- Package Manager
+- Capability Registry
+- Connector Runtime
+- Permission Engine
+- Approval Engine
+- Audit Log
+- Action Gateway
+- Skill Runtime
+- Agent Runtime
+- Workflow Engine
+
+## Developer Studio and Package supply chain
 
 - Generate Package scaffold, manifest, source entry, smoke test and README
 - Validate Package structure
-- Publish/unpublish to an organization-local Marketplace
-- Enable/disable official Packages per organization
-- Frozen Package Manifest 1.x compatibility rules
-- TypeScript SDK 1.x contract and OEAP CLI
+- Publish/unpublish to organization-local Marketplace
+- TypeScript SDK and OEAP CLI
 - GitHub Publisher using server-side credentials only
 - Ed25519 Package signatures and SHA-256 provenance
 - Trusted remote GitHub Package import
-- Static security scan, file/path bounds and dependency checks before import
-- Correct fail-closed SemVer dependency-range evaluation
+- Static security scan and file/path/size bounds
+- Dependency and fail-closed SemVer validation
 - Publisher fingerprint trust policy
 - Imported remote source is **not automatically executed**
 
-### Data and operations
+See [docs/package-supply-chain.md](docs/package-supply-chain.md).
+
+## Data, knowledge and operations
 
 - File/attachment center
 - Enterprise knowledge base / retrieval context
-- Operations history and error tracking
+- Enterprise knowledge injected into App Builder and Agent context
+- Operations history and failure tracking
 - AI call/activity statistics
 - Approval request / approve / reject / cancel lifecycle
 - Tenancy and permission audit data
-- Runtime persistence consistently rooted under configurable `OEAP_DATA_DIR`
+- Persistent runtime state rooted under configurable `OEAP_DATA_DIR`
 
-### Production deployment and recovery
+## Production deployment and recovery
 
-- Development and Production modes are explicitly separated
-- Production rejects spoofed client identity headers
-- Production requires authenticated Session identity
-- Local Development login is hard-disabled in Production
-- Brand-aware authentication gate
-- Production public Web/API URLs require HTTPS
-- Production CORS fails closed and rejects wildcard origins
-- `/health` liveness and `/ready` readiness endpoints
+- Explicit Development / Production modes
+- Production Session identity boundary
+- Production Local Development login hard-disabled
+- HTTPS public URL requirements
+- Fail-closed Production CORS
+- `/health` and `/ready`
 - Deployment & Security readiness dashboard
-- Docker multi-stage build
+- Docker multi-stage builds
 - Docker Compose
-- Nginx reverse proxy and security headers/CSP
-- Configurable persistent `OEAP_DATA_DIR`
-- Hardened backup/restore with SHA-256 verification, archive-path validation, link/special-file rejection, staging restore and pre-restore safety copy
-- Production Preflight configuration/live deployment checker
+- Nginx security headers/CSP
+- Durable `OEAP_DATA_DIR`
+- Hardened backup/restore with SHA-256 and archive validation
 - Repository secret/runtime-state hygiene gate
-- Tag-driven GitHub Release workflow with RC prereleases
+- Production Preflight offline/live checks
+- Tag-driven GitHub Release workflow
+
+Production Preflight understands both AI Provider paths and distinguishes core-platform readiness from optional AI readiness.
+
+```bash
+corepack pnpm preflight:production -- --env-file .env
+corepack pnpm preflight:production -- --env-file .env --live
+```
+
+Deployment references:
+
+- [docs/deployment.md](docs/deployment.md)
+- [docs/production-checklist.md](docs/production-checklist.md)
+- [docs/release-readiness.md](docs/release-readiness.md)
+- [docs/threat-model.md](docs/threat-model.md)
+- [docs/security-review-checklist.md](docs/security-review-checklist.md)
+- [.env.example](.env.example)
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    U[Business User] --> B[AI App Builder]
+    U[Business User] --> B[App Builder / Day-1 Templates]
     KB[Enterprise Knowledge] --> B
-    B --> AI[AI Capability / DeepSeek Harness]
+    B --> AI[AI Capability]
+    AI --> OAI[OpenAI-Compatible]
+    AI --> DSH[DeepSeek Harness]
     B --> BP[App Blueprint]
     BP --> AP[App Package]
     AP --> DR[Generated App Runtime]
@@ -143,7 +244,8 @@ flowchart TD
     RBAC --> DR
     RBAC --> PM
 
-    DS[Developer Studio] --> M[Organization Marketplace]
+    DS[Developer Studio] --> M[Marketplace Registry]
+    M --> ENT[Order / Entitlement]
     M --> PROV[Security Scan + Provenance]
     PROV --> GH[GitHub Publisher / Trusted Import]
 ```
@@ -162,7 +264,8 @@ packages/
   package-spec/         Package contracts
   sdk/                  TypeScript client SDK
   package-manager/      Runtime Package lifecycle
-  capability-registry/  Capability-provider resolution
+  marketplace-registry Marketplace registry runtime
+  capability-registry/ Capability-provider resolution
   connector-runtime/    Connector abstraction
   permission-engine/    Policy evaluation
   approval-engine/      Human approval primitives
@@ -176,89 +279,8 @@ packages/
   app-package-builder/  Blueprint → App Package
   app-installer/        App installation
   data-runtime/         Generated app data runtime
-  official/             Official example Packages
+  official/             Official Packages and AI connectors
 ```
-
-## Local development
-
-Requirements:
-
-- Node.js 24+
-- pnpm 11.7.0 through Corepack
-- Optional DeepSeek Harness checkout for live AI generation
-
-```bash
-git clone https://github.com/Buer5460/open-enterprise-ai-platform.git
-cd open-enterprise-ai-platform
-corepack pnpm install
-./scripts/start-local.sh
-```
-
-Open:
-
-```text
-http://127.0.0.1:5173/
-```
-
-The local startup script builds the workspace and launches the platform in development mode with the local Owner identity.
-
-## Production deployment
-
-Start with:
-
-- [docs/deployment.md](docs/deployment.md)
-- [docs/production-checklist.md](docs/production-checklist.md)
-- [docs/release-readiness.md](docs/release-readiness.md)
-- [docs/threat-model.md](docs/threat-model.md)
-- [docs/security-review-checklist.md](docs/security-review-checklist.md)
-- [.env.example](.env.example)
-
-Before deployment, run the offline configuration check:
-
-```bash
-pnpm preflight:production -- --env-file .env
-```
-
-After DNS/TLS/reverse proxy are live:
-
-```bash
-pnpm preflight:production -- --env-file .env --live
-```
-
-Typical container deployment:
-
-```bash
-cp .env.example .env
-# Edit production-owned values and secrets outside source control.
-docker compose up -d --build
-```
-
-Check:
-
-```text
-GET /health   # process liveness
-GET /ready    # production readiness
-```
-
-## Package security
-
-OEAP treats third-party extensions as a software supply-chain boundary. Remote imports must pass file/path limits, static security checks, content-digest verification, Ed25519 signature verification, trusted publisher fingerprint validation and fail-closed dependency checks before entering an organization Marketplace.
-
-See [docs/package-supply-chain.md](docs/package-supply-chain.md).
-
-## Security model
-
-- Secrets belong in environment configuration or the encrypted Connector vault, never Package source.
-- Production identity is Session-based and cannot be selected by client headers.
-- Production local bootstrap login cannot be re-enabled by a mistaken environment override.
-- First GitHub enterprise binding requires a verified GitHub email; subsequent SSO uses stable provider-subject binding.
-- Organizations, application data, knowledge, files and local Package assets are isolated server-side.
-- Remote Package import does not automatically execute imported code.
-- Backups are integrity-checked and restored only after archive/path/type validation.
-- CI rejects committed runtime-state/secrets and common high-confidence credential patterns.
-- High-risk domains still require domain-specific controls and independent review.
-
-See [SECURITY.md](SECURITY.md) and [docs/threat-model.md](docs/threat-model.md).
 
 ## Tests and CI
 
@@ -267,15 +289,29 @@ corepack pnpm build
 corepack pnpm test
 ```
 
-CI additionally performs built-API E2E, real headless Chrome rendering/navigation with uncaught-runtime-exception detection, backup/restore security regression, repository hygiene scanning, Production Preflight regression, shell validation, Docker Compose validation and both production container builds.
+CI includes deterministic runtime/RBAC/auth/data/Marketplace tests, built-API E2E, real headless Chrome rendering/navigation, backup/restore security regression, repository hygiene scanning, Production Preflight regression, shell validation, Docker Compose validation and production API/Web container builds.
 
-Live AI-provider calls are intentionally excluded from public CI because they require an external runtime checkout and private provider credentials.
+External live AI calls with real provider credentials are intentionally excluded from public CI. Compatible-provider behavior is tested against controlled mock servers.
 
 ## Versioning
 
-Current platform version: **1.0.0-rc.2**.
+Current development version: **1.1.0-alpha.1**.
 
-`1.0.0-rc.2` is the repository-owned 1.0 engineering baseline for independent review; it is not 1.0 GA security certification. See [CHANGELOG.md](CHANGELOG.md), [ROADMAP.md](ROADMAP.md) and [docs/release-readiness.md](docs/release-readiness.md).
+Stable independent-review baseline: **1.0.0-rc.2**.
+
+See [CHANGELOG.md](CHANGELOG.md), [ROADMAP.md](ROADMAP.md) and [docs/release-readiness.md](docs/release-readiness.md).
+
+## Security
+
+- Secrets belong in environment configuration or encrypted vaults, never Package source.
+- Production identity is Session-based and cannot be selected by client headers.
+- Production local bootstrap login cannot be re-enabled by a mistaken environment override.
+- Organizations, application data, knowledge, files, Marketplace commerce state and local Package assets are isolated server-side.
+- Remote Package import does not automatically execute imported code.
+- Backups are integrity-checked and restored only after archive/path/type validation.
+- CI rejects committed runtime-state/secrets and common credential patterns.
+
+See [SECURITY.md](SECURITY.md) and [docs/threat-model.md](docs/threat-model.md).
 
 ## Contributing
 
