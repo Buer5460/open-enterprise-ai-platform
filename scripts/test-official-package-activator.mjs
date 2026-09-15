@@ -3,6 +3,29 @@ import assert from "node:assert/strict";
 import {
   OfficialPackageActivator
 } from "../apps/api/dist/officialPackageActivator.js";
+import {
+  discoverOfficialPackages
+} from "../apps/api/dist/platformCatalog.js";
+
+const discovered =
+  await discoverOfficialPackages(process.cwd());
+const discoveredIds = new Set(
+  discovered.map((item) => item.id)
+);
+for (const packageId of [
+  "oeap.company-research",
+  "oeap.lead-generation",
+  "oeap.opportunity-radar",
+  "oeap.business-analysis",
+  "oeap.investment-analysis",
+  "oeap.b2b-opportunity-workflow"
+]) {
+  assert.equal(
+    discoveredIds.has(packageId),
+    true,
+    `official package discovery missing ${packageId}`
+  );
+}
 
 class FakeManager {
   installed = new Map();
