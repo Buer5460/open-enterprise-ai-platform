@@ -12,12 +12,14 @@ import {
 import { join } from "node:path";
 
 import {
-  createOfficialMarketplaceRegistry
-} from "@oeap/marketplace-registry";
-
-import {
   registerMarketplaceRoutes
 } from "./marketplaceRoutes.js";
+import {
+  registerMarketplacePublishingRoutes
+} from "./marketplacePublishingRoutes.js";
+import {
+  createRuntimeMarketplace
+} from "./runtimeMarketplaceRegistry.js";
 import { runtimeDataRoot } from "./runtimePaths.js";
 
 export function registerSystemRoutes(input: {
@@ -26,10 +28,20 @@ export function registerSystemRoutes(input: {
 }) {
   const version = platformVersion(input.repoRoot);
 
+  const marketplace =
+    createRuntimeMarketplace(input.repoRoot);
+
   registerMarketplaceRoutes({
     app: input.app,
     repoRoot: input.repoRoot,
-    registry: createOfficialMarketplaceRegistry()
+    registry: marketplace.registry
+  });
+
+  registerMarketplacePublishingRoutes({
+    app: input.app,
+    repoRoot: input.repoRoot,
+    registry: marketplace.registry,
+    store: marketplace.publishing
   });
 
   input.app.get("/health", async () => ({

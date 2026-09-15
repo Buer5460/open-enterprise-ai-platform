@@ -26,6 +26,7 @@ run_if_present scripts/test-package-compatibility.mjs
 run_if_present scripts/test-marketplace-registry-protocol.mjs
 run_if_present scripts/test-marketplace-foundation.mjs
 run_if_present scripts/test-marketplace-commerce.mjs
+run_if_present scripts/test-marketplace-publishing-store.mjs
 run_if_present scripts/test-semver-range.mjs
 run_if_present scripts/test-sdk-contract.mjs
 run_if_present scripts/test-runtime-storage-path.mjs
@@ -42,6 +43,7 @@ run_if_present scripts/test-multitenant-isolation.mjs
 run_if_present scripts/test-backup-restore.mjs
 run_if_present scripts/test-openai-compatible-connector.mjs
 run_if_present scripts/test-marketplace-api.mjs
+run_if_present scripts/test-marketplace-publishing-api.mjs
 run_if_present scripts/test-api-e2e.mjs
 run_if_present scripts/test-ai-runtime-api.mjs
 run_if_present scripts/test-app-lifecycle.mjs

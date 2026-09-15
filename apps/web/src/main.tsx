@@ -24,6 +24,7 @@ import {
   type PlatformView
 } from "./PlatformWorkspace";
 import { MarketplaceCenter } from "./MarketplaceCenter";
+import { MarketplacePublisherStudio } from "./MarketplacePublisherStudio";
 import {
   BrandMark,
   BrandProvider,
@@ -91,6 +92,7 @@ type RootView =
   | "operations"
   | "credentials"
   | "publisher"
+  | "marketplacePublisher"
   | PlatformView;
 
 function AuthenticatedPlatform() {
@@ -419,6 +421,7 @@ function Platform() {
           <div className="navDivider" />
 
           <button className={rootView === "marketplace" ? "active" : ""} onClick={() => setRootView("marketplace")}>◇ Marketplace</button>
+          <button className={rootView === "marketplacePublisher" ? "active" : ""} onClick={() => setRootView("marketplacePublisher")}>🧩 商店发布</button>
           <button className={rootView === "developer" ? "active" : ""} onClick={() => setRootView("developer")}>&lt;/&gt; Developer</button>
           <button className={rootView === "publisher" ? "active" : ""} onClick={() => setRootView("publisher")}>⇧ 发布中心</button>
         </nav>
@@ -468,6 +471,8 @@ function Platform() {
           <PublisherCenter />
         ) : rootView === "marketplace" ? (
           <MarketplaceCenter />
+        ) : rootView === "marketplacePublisher" ? (
+          <MarketplacePublisherStudio />
         ) : (
           <PlatformWorkspace view={rootView} />
         )}
