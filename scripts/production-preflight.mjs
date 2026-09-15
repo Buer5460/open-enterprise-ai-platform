@@ -191,17 +191,7 @@ add(
     : "No deployment-level automatic mail configuration detected; manual invitation links remain available"
 );
 
-const aiConfigured = Boolean(
-  value("OEAP_HARNESS_ROOT") ||
-  value("OEAP_HARNESS_HOST_PATH")
-);
-add(
-  "ai-runtime",
-  aiConfigured ? "pass" : "warning",
-  aiConfigured
-    ? "An AI runtime path is configured"
-    : "No AI runtime path detected; core OEAP can run, but AI generation/revision requires a provider runtime"
-);
+addAIRuntimeChecks();
 
 if (live) {
   if (webUrl) {
@@ -238,6 +228,143 @@ if (failures.length > 0) {
   console.log("✅ Production preflight passed");
 }
 
+function addAIRuntimeChecks() {
+  const requested = (value("OEAP_AI_PROVIDER") || "auto").toLowerCase();
+  const validModes = new Set([
+    "auto",
+    "deepseek-harness",
+    "openai-compatible"
+  ]);
+
+  if (!validModes.has(requested)) {
+    add(
+      "ai-provider-mode",
+      "fail",
+      "OEAP_AI_PROVIDER must be auto, deepseek-harness or openai-compatible",
+      "Set OEAP_AI_PROVIDER to a supported provider mode"
+    );
+    return;
+  }
+
+  add(
+    "ai-provider-mode",
+    "pass",
+    `AI provider mode: ${requested}`
+  );
+
+  const harnessConfigured = Boolean(
+    value("OEAP_HARNESS_ROOT") ||
+    value("OEAP_HARNESS_HOST_PATH")
+  );
+  const openAIFields = {
+    baseUrl: value("OEAP_OPENAI_BASE_URL"),
+    apiKey: value("OEAP_OPENAI_API_KEY"),
+    model: value("OEAP_OPENAI_MODEL")
+  };
+  const openAIConfiguredCount = Object.values(openAIFields)
+    .filter(Boolean)
+    .length;
+  const openAIAny = openAIConfiguredCount > 0;
+  const openAIComplete = openAIConfiguredCount === 3;
+  const openAIUrlValid = !openAIFields.baseUrl ||
+    validAIProviderUrl(openAIFields.baseUrl);
+
+  if (!openAIUrlValid) {
+    add(
+      "ai-openai-compatible",
+      "fail",
+      "OEAP_OPENAI_BASE_URL must use HTTPS (HTTP is allowed only for localhost)",
+      "Use an HTTPS OpenAI-compatible API base URL"
+    );
+    return;
+  }
+
+  if (openAIAny && !openAIComplete) {
+    const missing = [
+      ["OEAP_OPENAI_BASE_URL", openAIFields.baseUrl],
+      ["OEAP_OPENAI_API_KEY", openAIFields.apiKey],
+      ["OEAP_OPENAI_MODEL", openAIFields.model]
+    ]
+      .filter(([, configured]) => !configured)
+      .map(([name]) => name);
+
+    add(
+      "ai-openai-compatible",
+      requested === "openai-compatible" ? "fail" : "warning",
+      `OpenAI-Compatible provider is partially configured; missing ${missing.join(", ")}`,
+      "Complete all OpenAI-Compatible settings or remove the partial configuration"
+    );
+  } else if (openAIComplete) {
+    add(
+      "ai-openai-compatible",
+      "pass",
+      `OpenAI-Compatible provider configuration is complete (model: ${openAIFields.model})`
+    );
+  } else {
+    add(
+      "ai-openai-compatible",
+      "warning",
+      "No deployment-level OpenAI-Compatible provider configuration detected; organization vault configuration may still be used"
+    );
+  }
+
+  if (harnessConfigured) {
+    add(
+      "ai-deepseek-harness",
+      "pass",
+      "DeepSeek Harness runtime path is configured"
+    );
+  } else {
+    add(
+      "ai-deepseek-harness",
+      requested === "deepseek-harness" ? "warning" : "warning",
+      "No DeepSeek Harness runtime path detected"
+    );
+  }
+
+  if (requested === "openai-compatible") {
+    add(
+      "ai-runtime",
+      openAIComplete && openAIUrlValid ? "pass" : "fail",
+      openAIComplete && openAIUrlValid
+        ? "Selected OpenAI-Compatible AI runtime is deployment-configured"
+        : "Selected OpenAI-Compatible AI runtime is not fully configured",
+      openAIComplete && openAIUrlValid
+        ? undefined
+        : "Configure OEAP_OPENAI_BASE_URL, OEAP_OPENAI_API_KEY and OEAP_OPENAI_MODEL"
+    );
+    return;
+  }
+
+  if (requested === "deepseek-harness") {
+    add(
+      "ai-runtime",
+      harnessConfigured ? "pass" : "warning",
+      harnessConfigured
+        ? "Selected DeepSeek Harness runtime path is configured"
+        : "Selected DeepSeek Harness is not deployment-configured; core OEAP remains usable without AI",
+      harnessConfigured
+        ? undefined
+        : "Configure a Harness path before using natural-language generation"
+    );
+    return;
+  }
+
+  const autoReady = openAIComplete || harnessConfigured;
+  add(
+    "ai-runtime",
+    autoReady ? "pass" : "warning",
+    openAIComplete
+      ? "Auto mode will use the complete OpenAI-Compatible provider configuration"
+      : harnessConfigured
+        ? "Auto mode can use DeepSeek Harness"
+        : "No deployment-level AI provider is complete; core OEAP remains usable and organization vault configuration may be added in the UI",
+    autoReady
+      ? undefined
+      : "Configure an AI provider before using natural-language generation/revision"
+  );
+}
+
 function value(name) {
   return String(environment[name] || "").trim();
 }
@@ -263,6 +390,16 @@ function validHttpsOrigin(input) {
     return undefined;
   }
   return url;
+}
+
+function validAIProviderUrl(input) {
+  try {
+    const url = new URL(input);
+    const local = ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+    return url.protocol === "https:" || (local && url.protocol === "http:");
+  } catch {
+    return false;
+  }
 }
 
 async function liveWebCheck(url) {
