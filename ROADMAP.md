@@ -3,7 +3,8 @@
 OEAP has completed the initial platform foundation and repository-owned 1.0 compatibility/security stabilization work.
 
 - **Stable independent-review baseline:** `1.0.0-rc.2`
-- **Current development line:** `1.1.0-alpha.1`
+- **Published usability baseline:** `1.1.0-alpha.1`
+- **Current development line:** `1.1.0-alpha.2`
 
 1.0 General Availability still requires an independent external security review and real deployment-owned infrastructure validation. The 1.1 line does not redefine the 1.0 security baseline; it focuses on making the platform easier to start, operate and commercialize.
 
@@ -163,8 +164,12 @@ The authoritative GA tracker remains GitHub issue #6.
 - [x] Organization-scoped free acquisition
 - [x] Organization-scoped entitlement store
 - [x] Order model and buyer order history foundation
+- [x] Free acquisition activates runnable official Packages
+- [x] Dependency-aware official Package activation
+- [x] Organization-level enable/disable through the shared activation path
 - [ ] Third-party paid checkout Connector
 - [ ] Signed server-to-server payment webhook verification
+- [ ] Payment-event idempotency and replay protection
 - [ ] Subscription renewal/cancellation lifecycle
 - [ ] Metered usage billing
 - [ ] Revenue sharing and publisher settlement
@@ -181,8 +186,21 @@ The authoritative GA tracker remains GitHub issue #6.
 - [x] App preference member isolation has deterministic coverage
 - [x] Marketplace registry/acquisition tests are deterministic
 - [x] 5-minute first-use documentation exists
-- [ ] Final alpha full CI is green on release commit
-- [ ] `v1.1.0-alpha.1` GitHub prerelease published
+- [x] Final alpha full CI is green on release commit
+- [x] `v1.1.0-alpha.1` GitHub prerelease published
+
+### 1.1.0-alpha.2 development goals
+
+- [x] Move post-release `main` to a distinct alpha.2 version
+- [x] Make Marketplace acquisition activate runnable official Packages
+- [x] Resolve required Package dependencies before activation
+- [ ] Add provider-neutral Marketplace payment Connector contract
+- [ ] Add signed server-to-server payment webhook verification
+- [ ] Add payment event idempotency/replay protection
+- [ ] Make paid entitlement activation originate only from verified payment events
+- [ ] Add Marketplace order/admin diagnostics
+- [ ] Add subscription lifecycle primitives without binding core to one payment vendor
+- [ ] Final alpha.2 full CI and prerelease gate
 
 ## Post-1.1 — Scalable enterprise infrastructure
 
