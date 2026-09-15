@@ -25,6 +25,7 @@ export type MyAppItem = {
 type Preference = {
   appId: string;
   favorite: boolean;
+  folder?: string;
   lastOpenedAt?: string;
 };
 
@@ -32,6 +33,12 @@ type FilterMode =
   | "all"
   | "favorites"
   | "recent";
+
+type SortMode =
+  | "smart"
+  | "name"
+  | "recent"
+  | "folder";
 
 export function MyApps(props: {
   apps: MyAppItem[];
@@ -43,6 +50,10 @@ export function MyApps(props: {
   const [query, setQuery] = React.useState("");
   const [mode, setMode] =
     React.useState<FilterMode>("all");
+  const [folder, setFolderFilter] =
+    React.useState("all");
+  const [sort, setSort] =
+    React.useState<SortMode>("smart");
   const [working, setWorking] =
     React.useState<string | null>(null);
   const [message, setMessage] =
@@ -73,14 +84,13 @@ export function MyApps(props: {
     void loadPreferences();
   }, [loadPreferences, props.apps.length]);
 
-  async function toggleFavorite(
+  async function updatePreference(
     app: MyAppItem,
-    event: React.MouseEvent
+    patch: {
+      favorite?: boolean;
+      folder?: string | null;
+    }
   ) {
-    event.stopPropagation();
-    const current = Boolean(
-      preferences[app.id]?.favorite
-    );
     setWorking(app.id);
     setMessage("");
 
@@ -94,15 +104,13 @@ export function MyApps(props: {
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            favorite: !current
-          })
+          body: JSON.stringify(patch)
         }
       );
       const result = await response.json();
       if (!response.ok || !result.ok) {
         throw new Error(
-          result.error ?? "收藏状态更新失败"
+          result.error ?? "应用偏好更新失败"
         );
       }
 
@@ -114,11 +122,43 @@ export function MyApps(props: {
       setMessage(
         error instanceof Error
           ? error.message
-          : "收藏状态更新失败"
+          : "应用偏好更新失败"
       );
     } finally {
       setWorking(null);
     }
+  }
+
+  async function toggleFavorite(
+    app: MyAppItem,
+    event: React.MouseEvent
+  ) {
+    event.stopPropagation();
+    const current = Boolean(
+      preferences[app.id]?.favorite
+    );
+    await updatePreference(app, {
+      favorite: !current
+    });
+  }
+
+  async function editFolder(
+    app: MyAppItem,
+    event: React.MouseEvent
+  ) {
+    event.stopPropagation();
+    const current =
+      preferences[app.id]?.folder ?? "";
+    const value = window.prompt(
+      "输入个人应用分类，例如：支付、旅游、内部管理。留空可取消分类。",
+      current
+    );
+
+    if (value === null) return;
+
+    await updatePreference(app, {
+      folder: value.trim() || null
+    });
   }
 
   async function open(app: MyAppItem) {
@@ -145,6 +185,14 @@ export function MyApps(props: {
     }
   }
 
+  const folders = [...new Set(
+    Object.values(preferences)
+      .map((item) => item.folder?.trim())
+      .filter((item): item is string => Boolean(item))
+  )].sort((a, b) =>
+    a.localeCompare(b, "zh-CN")
+  );
+
   const normalizedQuery =
     query.trim().toLowerCase();
 
@@ -163,6 +211,12 @@ export function MyApps(props: {
       ) {
         return false;
       }
+      if (
+        folder !== "all" &&
+        preference?.folder !== folder
+      ) {
+        return false;
+      }
 
       if (!normalizedQuery) return true;
 
@@ -170,6 +224,7 @@ export function MyApps(props: {
         app.displayName,
         app.name,
         app.description,
+        preference?.folder,
         ...(app.metadata?.entities ?? []).flatMap(
           (entity) => [
             entity.name,
@@ -185,32 +240,15 @@ export function MyApps(props: {
         normalizedQuery
       );
     })
-    .sort((a, b) => {
-      const pa = preferences[a.id];
-      const pb = preferences[b.id];
-
-      if (mode === "recent") {
-        return timestamp(pb?.lastOpenedAt) -
-          timestamp(pa?.lastOpenedAt);
-      }
-
-      if (
-        Boolean(pa?.favorite) !==
-        Boolean(pb?.favorite)
-      ) {
-        return pa?.favorite ? -1 : 1;
-      }
-
-      const recent =
-        timestamp(pb?.lastOpenedAt) -
-        timestamp(pa?.lastOpenedAt);
-      if (recent !== 0) return recent;
-
-      return displayName(a).localeCompare(
-        displayName(b),
-        "zh-CN"
-      );
-    });
+    .sort((a, b) =>
+      compareApps(
+        a,
+        b,
+        preferences,
+        sort,
+        mode
+      )
+    );
 
   return (
     <section className="myAppsSection">
@@ -218,7 +256,7 @@ export function MyApps(props: {
         <div>
           <h3>我的应用</h3>
           <p>
-            搜索、收藏和最近使用状态会跟随当前企业成员账号保存。
+            搜索、收藏、个人分类和最近使用状态会跟随当前企业成员账号保存。
           </p>
         </div>
 
@@ -228,7 +266,7 @@ export function MyApps(props: {
             onChange={(event) =>
               setQuery(event.target.value)
             }
-            placeholder="搜索应用、业务实体…"
+            placeholder="搜索应用、分类、业务实体…"
           />
           <select
             value={mode}
@@ -241,6 +279,30 @@ export function MyApps(props: {
             <option value="all">全部应用</option>
             <option value="favorites">我的收藏</option>
             <option value="recent">最近使用</option>
+          </select>
+          <select
+            value={folder}
+            onChange={(event) =>
+              setFolderFilter(event.target.value)
+            }
+          >
+            <option value="all">全部分类</option>
+            {folders.map((item) => (
+              <option value={item} key={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+          <select
+            value={sort}
+            onChange={(event) =>
+              setSort(event.target.value as SortMode)
+            }
+          >
+            <option value="smart">智能排序</option>
+            <option value="recent">最近使用优先</option>
+            <option value="name">名称排序</option>
+            <option value="folder">分类排序</option>
           </select>
         </div>
       </div>
@@ -288,6 +350,18 @@ export function MyApps(props: {
                 </div>
                 <div className="myAppTopActions">
                   <button
+                    className="folderButton"
+                    disabled={working === item.id}
+                    title="设置个人分类"
+                    onClick={(event) =>
+                      void editFolder(item, event)
+                    }
+                  >
+                    {preference?.folder
+                      ? `▦ ${preference.folder}`
+                      : "▦ 分类"}
+                  </button>
+                  <button
                     className={
                       preference?.favorite
                         ? "favoriteButton active"
@@ -322,6 +396,11 @@ export function MyApps(props: {
               </p>
 
               <div className="appMeta">
+                {preference?.folder && (
+                  <span className="folderChip">
+                    {preference.folder}
+                  </span>
+                )}
                 <span>
                   页面 {item.navigation?.length ?? 0}
                 </span>
@@ -350,6 +429,62 @@ export function MyApps(props: {
         })}
       </div>
     </section>
+  );
+}
+
+function compareApps(
+  a: MyAppItem,
+  b: MyAppItem,
+  preferences: Record<string, Preference>,
+  sort: SortMode,
+  mode: FilterMode
+): number {
+  const pa = preferences[a.id];
+  const pb = preferences[b.id];
+
+  if (sort === "name") {
+    return displayName(a).localeCompare(
+      displayName(b),
+      "zh-CN"
+    );
+  }
+
+  if (sort === "folder") {
+    const folderCompare = (pa?.folder ?? "未分类")
+      .localeCompare(pb?.folder ?? "未分类", "zh-CN");
+    if (folderCompare !== 0) return folderCompare;
+    return displayName(a).localeCompare(
+      displayName(b),
+      "zh-CN"
+    );
+  }
+
+  if (sort === "recent" || mode === "recent") {
+    const recent =
+      timestamp(pb?.lastOpenedAt) -
+      timestamp(pa?.lastOpenedAt);
+    if (recent !== 0) return recent;
+    return displayName(a).localeCompare(
+      displayName(b),
+      "zh-CN"
+    );
+  }
+
+  if (
+    Boolean(pa?.favorite) !==
+    Boolean(pb?.favorite)
+  ) {
+    return pa?.favorite ? -1 : 1;
+  }
+
+  const recent =
+    timestamp(pb?.lastOpenedAt) -
+    timestamp(pa?.lastOpenedAt);
+  if (recent !== 0) return recent;
+
+  return displayName(a).localeCompare(
+    displayName(b),
+    "zh-CN"
   );
 }
 
