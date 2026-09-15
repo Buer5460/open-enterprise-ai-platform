@@ -11,6 +11,7 @@ export type AppPreference = {
   memberId: string;
   appId: string;
   favorite: boolean;
+  folder?: string;
   lastOpenedAt?: string;
   updatedAt: string;
 };
@@ -30,6 +31,7 @@ export class AppPreferenceStore {
         member_id TEXT NOT NULL,
         app_id TEXT NOT NULL,
         favorite INTEGER NOT NULL DEFAULT 0,
+        folder TEXT,
         last_opened_at TEXT,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (organization_id, member_id, app_id)
@@ -41,6 +43,20 @@ export class AppPreferenceStore {
           last_opened_at DESC
         );
     `);
+
+    const columns = new Set(
+      (this.db.prepare(
+        `PRAGMA table_info(member_app_preferences)`
+      ).all() as Array<{ name?: string }>)
+        .map((item) => String(item.name ?? ""))
+    );
+
+    if (!columns.has("folder")) {
+      this.db.exec(`
+        ALTER TABLE member_app_preferences
+        ADD COLUMN folder TEXT
+      `);
+    }
   }
 
   list(
@@ -53,6 +69,7 @@ export class AppPreferenceStore {
         member_id,
         app_id,
         favorite,
+        folder,
         last_opened_at,
         updated_at
       FROM member_app_preferences
@@ -80,6 +97,7 @@ export class AppPreferenceStore {
         member_id,
         app_id,
         favorite,
+        folder,
         last_opened_at,
         updated_at
       FROM member_app_preferences
@@ -103,29 +121,45 @@ export class AppPreferenceStore {
         };
   }
 
-  setFavorite(input: {
+  update(input: {
     organizationId: string;
     memberId: string;
     appId: string;
-    favorite: boolean;
+    favorite?: boolean;
+    folder?: string | null;
   }): AppPreference {
+    const current = this.get(
+      input.organizationId,
+      input.memberId,
+      input.appId
+    );
+    const favorite =
+      input.favorite ?? current.favorite;
+    const folder =
+      input.folder === undefined
+        ? current.folder ?? null
+        : normalizeFolder(input.folder);
+
     this.db.prepare(`
       INSERT INTO member_app_preferences (
         organization_id,
         member_id,
         app_id,
         favorite,
+        folder,
         updated_at
-      ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       ON CONFLICT(organization_id, member_id, app_id)
       DO UPDATE SET
         favorite = excluded.favorite,
+        folder = excluded.folder,
         updated_at = CURRENT_TIMESTAMP
     `).run(
       input.organizationId,
       input.memberId,
       input.appId,
-      input.favorite ? 1 : 0
+      favorite ? 1 : 0,
+      folder
     );
 
     return this.get(
@@ -133,6 +167,15 @@ export class AppPreferenceStore {
       input.memberId,
       input.appId
     );
+  }
+
+  setFavorite(input: {
+    organizationId: string;
+    memberId: string;
+    appId: string;
+    favorite: boolean;
+  }): AppPreference {
+    return this.update(input);
   }
 
   markOpened(input: {
@@ -187,12 +230,30 @@ export class AppPreferenceStore {
   }
 }
 
+function normalizeFolder(
+  value: string | null
+): string | null {
+  if (value === null) return null;
+
+  const normalized = value
+    .trim()
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .slice(0, 60);
+
+  return normalized || null;
+}
+
 function mapPreference(row: any): AppPreference {
   return {
     organizationId: String(row.organization_id),
     memberId: String(row.member_id),
     appId: String(row.app_id),
     favorite: Boolean(row.favorite),
+    folder:
+      row.folder == null || !String(row.folder).trim()
+        ? undefined
+        : String(row.folder),
     lastOpenedAt:
       row.last_opened_at == null
         ? undefined
