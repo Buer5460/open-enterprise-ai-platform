@@ -10,6 +10,7 @@ import { KnowledgeCenter } from "./KnowledgeCenter";
 import { ConnectorCredentials } from "./ConnectorCredentials";
 import { PublisherCenter } from "./PublisherCenter";
 import { RuntimeCenter } from "./RuntimeCenter";
+import { ActionHubCenter } from "./ActionHubCenter";
 import { MyApps } from "./MyApps";
 import {
   GettingStarted,
@@ -86,6 +87,7 @@ type AppManifest = {
 type RootView =
   | "workbench"
   | "runtime"
+  | "actionHub"
   | "organization"
   | "files"
   | "knowledge"
@@ -408,6 +410,7 @@ function Platform() {
           <button className={rootView === "workbench" ? "active" : ""} onClick={() => setRootView("workbench")}>▣ 工作台</button>
           <button onClick={() => setRootView("workbench")}>◈ 我的应用</button>
           <button className={rootView === "runtime" ? "active" : ""} onClick={() => setRootView("runtime")}>⚡ AI Runtime</button>
+          <button className={rootView === "actionHub" ? "active" : ""} onClick={() => setRootView("actionHub")}>◫ AI Action Hub</button>
           <button className={rootView === "agents" ? "active" : ""} onClick={() => setRootView("agents")}>◎ Agent</button>
           <button className={rootView === "skills" ? "active" : ""} onClick={() => setRootView("skills")}>◆ Skills</button>
           <button className={rootView === "workflows" ? "active" : ""} onClick={() => setRootView("workflows")}>⇄ Workflows</button>
@@ -457,6 +460,8 @@ function Platform() {
           />
         ) : rootView === "runtime" ? (
           <RuntimeCenter />
+        ) : rootView === "actionHub" ? (
+          <ActionHubCenter />
         ) : rootView === "organization" ? (
           <OrganizationCenter />
         ) : rootView === "files" ? (
