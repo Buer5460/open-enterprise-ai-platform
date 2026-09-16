@@ -12,6 +12,9 @@ import {
 } from "node:url";
 
 import {
+  registerActionHubRoutes
+} from "./actionHubRoutes.js";
+import {
   registerAgentKnowledgeBridge
 } from "./agentKnowledgeBridge.js";
 import {
@@ -182,6 +185,12 @@ registerAuthRoutes({
 });
 
 registerAIRuntimeRoutes({
+  app,
+  repoRoot,
+  openEnterpriseRoot
+});
+
+registerActionHubRoutes({
   app,
   repoRoot,
   openEnterpriseRoot
