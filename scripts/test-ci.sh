@@ -17,6 +17,7 @@ run_if_present scripts/test-repository-hygiene.mjs
 run_if_present scripts/test-production-preflight.mjs
 run_if_present scripts/test-universal-action-spec.mjs
 run_if_present scripts/test-action-hub-store.mjs
+run_if_present scripts/test-action-hub-api.mjs
 run_if_present scripts/test-action-gateway.mjs
 run_if_present scripts/test-installable-skill.mjs
 run_if_present scripts/test-growth-agent.mjs
